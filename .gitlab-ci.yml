@@ -70,12 +70,11 @@ auto-release:
     - git remote set-url origin "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
     - git fetch --unshallow 2>/dev/null || git fetch --all --tags
     - |
-      NEXT=$(cog bump --auto --dry-run 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
-      if [ -z "$NEXT" ]; then
-        echo "no version bump needed"
+      if git describe --exact-match HEAD >/dev/null 2>&1; then
+        echo "HEAD already tagged, skipping"
       else
-        cog bump --auto
-        git push origin HEAD:main --follow-tags
+        cog bump --auto || true
+        git push origin HEAD:main --follow-tags || true
       fi
 
 release-assets:
