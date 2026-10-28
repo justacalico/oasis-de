@@ -36,12 +36,12 @@ test:
 
 github-sync:
   stage: sync
-  image: alpine/git:latest
+  image: alpine:latest
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - apk add --no-cache openssh-client curl jq
+    - apk add --no-cache git openssh-client curl python3
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - echo "$GITHUB_SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519 2>/dev/null || echo "$GITHUB_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
