@@ -1,12 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SHA="${CI_COMMIT_SHA:-$(git rev-parse HEAD)}"
+REPO="justacalico/oasis-de"
 for i in $(seq 1 120); do
-  STATUS=$(gh api "repos/justacalico/oasis-de/commits/$SHA/check-runs" \
-    --jq '.check_runs[] | select(.app.slug=="github-actions") | .conclusion // .status' 2>/dev/null | head -1 || true)
+  RESP=$(curl -fsS -H "Authorization: token ${GH_TOKEN:-}" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" 2>/dev/null || echo '{}')
+  STATUS=$(echo "$RESP" | python3 -c "
+import json, sys
+try:
+    runs = json.load(sys.stdin).get('check_runs', [])
+except Exception:
+    runs = []
+runs = [r for r in runs if (r.get('app') or {}).get('slug') == 'github-actions']
+if not runs:
+    print('')
+else:
+    conclusions = {r.get('conclusion') for r in runs if r.get('conclusion')}
+    statuses = {r.get('status') for r in runs}
+    if len(statuses) == 1 and 'completed' in statuses:
+        print(next(iter(conclusions), ''))
+    else:
+        print('running')
+")
   case "$STATUS" in
     success) echo "github build passed"; exit 0 ;;
-    failure|cancelled|timed_out|action_required) echo "github build failed: $STATUS"; exit 1 ;;
+    failure|cancelled|timed_out|action_required|neutral|skipped|stale)
+      echo "github build failed: $STATUS"; exit 1 ;;
     "") echo "waiting for github run..." ;;
     *) echo "github build status: $STATUS" ;;
   esac
