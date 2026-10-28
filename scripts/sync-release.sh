@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env sh
+set -eu
 TAG="${1:?tag required}"
 REPO="justacalico/oasis-de"
 RESP=$(curl -fsS -H "Authorization: token ${GH_TOKEN:-}" \
@@ -10,17 +10,21 @@ import json, sys
 rel = json.load(sys.stdin)
 links = []
 for a in rel.get('assets', []):
-    links.append({'name': a['name'], 'url': a['browser_download_url'], 'link_type': 'package'})
-if not links:
-    tag = rel.get('tag_name', '')
-    for n in ('oasis-linux-x64.tar.gz', 'oasis-linux-arm64.tar.gz'):
-        links.append({'name': n, 'url': f'https://github.com/$REPO/releases/download/{tag}/{n}', 'link_type': 'package'})
-print(json.dumps(links))
+    links.append({'name': a['name'], 'url': a['browser_download_url'], 'link_type': 'package', 'direct_asset_path': a['browser_download_url']})
+print(json.dumps({'assets': {'links': links}}))
 ")
-DESCRIPTION=$(git tag -l --format='%(contents)' "$TAG" | head -200)
-release-cli create \
-  --name "Oasis ${TAG#v}" \
-  --tag-name "$TAG" \
-  --description "$DESCRIPTION" \
-  --assets-links "$LINKS"
+DESCRIPTION=$(echo "$RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('body','') or 'Oasis release')")
+curl -fsS -X POST -H "JOB-TOKEN: ${CI_JOB_TOKEN:-}" \
+  -H "Content-Type: application/json" \
+  "${CI_API_V4_URL:-https://gitlab.com/api/v4}/projects/${CI_PROJECT_ID}/releases" \
+  -d "$(python3 -c "
+import json, sys
+links = json.loads(sys.argv[1])
+print(json.dumps({
+    'name': 'Oasis ' + sys.argv[2].lstrip('v'),
+    'tag_name': sys.argv[2],
+    'description': sys.argv[3],
+    **links,
+}))
+" "$LINKS" "$TAG" "$DESCRIPTION")"
 echo "release $TAG created"
