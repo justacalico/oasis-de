@@ -24,15 +24,14 @@ test:
     - flutter test --coverage
     - |
       python3 - <<'PY'
-      total = hit = 0
+      lf = lh = 0
       for line in open('coverage/lcov.info'):
-          if line.startswith('DA:'):
-              total += 1
-              if int(line.split(',')[1].strip()) > 0:
-                  hit += 1
-      pct = 100 * hit / total if total else 0
-      print(f'coverage {pct:.1f}%')
-      assert pct == 100.0, f'coverage {pct:.1f}% below 100%'
+          if line.startswith('LF:'):
+              lf += int(line[3:])
+          elif line.startswith('LH:'):
+              lh += int(line[3:])
+      print(f'line coverage {lh}/{lf}')
+      assert lf > 0 and lh == lf, f'coverage {lh}/{lf} not 100%'
       PY
 
 github-sync:
