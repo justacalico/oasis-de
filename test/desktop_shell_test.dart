@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -101,9 +102,11 @@ void main() {
     await tester.drag(
         find.text('Notes').first, const Offset(30, 20));
     await tester.pumpAndSettle();
-    await tester.tapAt(light(2));
-    await tester.pumpAndSettle();
-    await tester.tapAt(light(2));
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await tester.tapAt(light(2));
+      await tester.pump();
+      await tester.tapAt(light(2));
+    });
     await tester.pumpAndSettle();
   });
 
