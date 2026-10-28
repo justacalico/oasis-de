@@ -89,10 +89,10 @@ void main() {
       (tester) async {
     await pumpOasis(
         tester,
-        const Column(children: [
-          SizedBox(height: 60, child: Scaffold(body: OasisSearchField(hint: 'h'))),
-          SizedBox(height: 8),
-          Expanded(child: const OasisWallpaper()),
+        Column(children: [
+          const SizedBox(height: 60, child: Scaffold(body: OasisSearchField(hint: 'h'))),
+          const SizedBox(height: 8),
+          Expanded(child: OasisWallpaper()),
         ]),
         theme: OasisThemeMode.dark);
     expect(find.byType(OasisSearchField), findsOneWidget);
