@@ -54,7 +54,7 @@ github-sync:
     - git fetch --unshallow github main 2>/dev/null || true
     - git push github HEAD:refs/heads/main --force-with-lease
     - if [ -n "$CI_COMMIT_TAG" ]; then git push github "$CI_COMMIT_TAG" --force; fi
-    - bash scripts/watch-github-run.sh
+    - sh scripts/watch-github-run.sh
 
 auto-release:
   stage: release
@@ -85,7 +85,7 @@ release-assets:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
   script:
     - apt-get update -qq && apt-get install -y -qq curl python3 >/dev/null
-    - bash scripts/sync-release.sh "$CI_COMMIT_TAG"
+    - sh scripts/sync-release.sh "$CI_COMMIT_TAG"
 
 pages:
   stage: pages
