@@ -266,10 +266,10 @@ void main() {
 
   testWidgets('OasisWallpaper paints in light and dark',
       (tester) async {
-    await pumpOasis(tester, const OasisWallpaper());
-    await pumpOasis(tester, const OasisWallpaper(),
+    await pumpOasis(tester, OasisWallpaper());
+    await pumpOasis(tester, OasisWallpaper(),
         theme: OasisThemeMode.dark);
-    await pumpOasis(tester, const OasisWallpaper(),
+    await pumpOasis(tester, OasisWallpaper(),
         theme: OasisThemeMode.oled);
     expect(find.byType(OasisWallpaper), findsOneWidget);
   });

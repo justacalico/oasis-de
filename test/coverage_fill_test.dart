@@ -92,7 +92,7 @@ void main() {
         const Column(children: [
           SizedBox(height: 60, child: Scaffold(body: OasisSearchField(hint: 'h'))),
           SizedBox(height: 8),
-          Expanded(child: OasisWallpaper()),
+          Expanded(child: const OasisWallpaper()),
         ]),
         theme: OasisThemeMode.dark);
     expect(find.byType(OasisSearchField), findsOneWidget);
