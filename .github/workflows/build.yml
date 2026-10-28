@@ -2,6 +2,7 @@ name: build
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
   release:
@@ -53,9 +54,10 @@ jobs:
           name: oasis-web
           path: de/build/web
           retention-days: 400
-      - name: Upload release assets
+      - name: Create release and upload assets
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
+          gh release create "$GITHUB_REF_NAME" --generate-notes || true
           gh release upload "$GITHUB_REF_NAME" oasis-linux-x64.tar.gz --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -84,9 +86,10 @@ jobs:
           name: oasis-linux-arm64
           path: oasis-linux-arm64.tar.gz
           retention-days: 400
-      - name: Upload release assets
+      - name: Upload arm64 release assets
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
+          gh release create "$GITHUB_REF_NAME" --generate-notes || true
           gh release upload "$GITHUB_REF_NAME" oasis-linux-arm64.tar.gz --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
