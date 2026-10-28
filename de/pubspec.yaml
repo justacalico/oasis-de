@@ -1,0 +1,32 @@
+name: oasis_de
+description: The Oasis desktop shell.
+publish_to: none
+resolution: workspace
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.30.0"
+
+dependencies:
+  clock: ^1.1.1
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  oasis_ui:
+    path: ../packages/oasis_ui
+  oasis_settings:
+    path: ../apps/settings
+  window_manager: ^0.5.1
+  package_info_plus: ^9.0.0
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

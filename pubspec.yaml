@@ -1,0 +1,40 @@
+name: oasis
+description: Oasis monorepo test harness.
+publish_to: none
+version: 0.1.0
+
+workspace:
+  - packages/oasis_ui
+  - de
+  - apps/settings
+  - landing
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.30.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  http: ^1.2.0
+  shared_preferences: ^2.3.0
+  clock: ^1.1.1
+  oasis_ui:
+    path: packages/oasis_ui
+  oasis_de:
+    path: de
+  oasis_settings:
+    path: apps/settings
+  oasis_landing:
+    path: landing
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

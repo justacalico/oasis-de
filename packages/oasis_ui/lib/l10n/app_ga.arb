@@ -1,0 +1,106 @@
+{
+  "@@locale": "ga",
+  "appName": "Oasis",
+  "menuFile": "Comhad",
+  "menuEdit": "Eagar",
+  "menuView": "Amharc",
+  "menuWindow": "Fuinneog",
+  "menuHelp": "Cabhair",
+  "menuAboutApp": "Faoi {app}",
+  "@menuAboutApp": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "menuSettings": "Socruithe…",
+  "menuCloseWindow": "Dún an Fhuinneog",
+  "menuMinimise": "Íoslaghdaigh",
+  "menuZoom": "Zúmáil",
+  "menuNewWindow": "Fuinneog Nua",
+  "menuUndo": "Cealaigh",
+  "menuRedo": "Athdhéan",
+  "menuCut": "Gearr",
+  "menuCopy": "Cóipeáil",
+  "menuPaste": "Greamaigh",
+  "menuSelectAll": "Roghnaigh Uile",
+  "menuEnterFullScreen": "Scáileán Iomlán",
+  "menuAbout": "Faoi Oasis",
+  "launcherHint": "Cuardaigh aipeanna",
+  "launcherNoResults": "Torthaí ar bith",
+  "ccWifi": "Wi-Fi",
+  "ccBluetooth": "Bluetooth",
+  "ccFocus": "Fócas",
+  "ccBrightness": "Gile",
+  "ccVolume": "Airde",
+  "ccAppearance": "Dealramh",
+  "ccDarkMode": "Mód Dorcha",
+  "aboutTagline": "Timpeallacht deisce shochréatach ghloineach do Linux.",
+  "versionLabel": "Leagan {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateCheck": "Seiceáil Nuashonruithe",
+  "updateChecking": "Nuashonruithe á seiceáil…",
+  "updateUpToDate": "Tá Oasis cothrom le dáta",
+  "updateAvailable": "Tá leagan {version} ar fáil",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateFailed": "Níorbh fhéidir nuashonruithe a sheiceáil",
+  "updateViewRelease": "Féach ar an eisiúint",
+  "updateAllReleases": "Gach eisiúint",
+  "settingsTitle": "Socruithe",
+  "settingsAppearance": "Dealramh",
+  "settingsGeneral": "Ginearálta",
+  "settingsWifi": "Wi-Fi",
+  "settingsBluetooth": "Bluetooth",
+  "settingsAbout": "Faoi",
+  "settingsTheme": "Téama",
+  "settingsAccent": "Dath aicem",
+  "settingsLanguage": "Teanga",
+  "settingsEnabled": "Cumasaithe",
+  "settingsNetworkBody": "Scoraigh raidió an deisce thaispeána seo.",
+  "themeSystem": "Córas",
+  "themeLight": "Solas",
+  "themeDark": "Dorcha",
+  "themeOled": "OLED",
+  "languageSystem": "Córas",
+  "languageEnGb": "Traditional English",
+  "languageZh": "简体中文",
+  "languageRu": "Русский",
+  "languageGa": "Gaeilge",
+  "landingTagline": "Do dheasc, íochtaithe.",
+  "landingHeroBody": "Is timpeallacht deisce do Linux é Oasis a chumascann dearadh gloineach suaimhneach le sreabhadh oibre aithnid.",
+  "landingOpenApp": "Tosaigh an feidhmchlár gréasáin",
+  "landingGetStarted": "Íoslódáil",
+  "landingShowcaseTitle": "Deartha le himeacht",
+  "landingShowcaseBody": "Dromchlaí gloine, clófhoireacht ionraic agus rialuithe a fheidhmíonn mar a bhféadfá. Níl aon rud idir tú agus d'obair.",
+  "landingFeatureGlassTitle": "Dromchlaí leachtacha",
+  "landingFeatureGlassBody": "Snámhann biachláir, dugaí agus fuinneoga ar thrédhearcacht fhíor le soilsiú spéaclaíoch.",
+  "landingFeatureCalmTitle": "Ciúin ó thús",
+  "landingFeatureCalmBody": "Barra roghchláir ciúin, duga a fhanann as do bhealach, agus fógraí nach mbíonn ag béiceáil.",
+  "landingFeatureOpenTitle": "Oscailte thíos",
+  "landingFeatureOpenBody": "Ritheann sé ar an gcruach Linux a aithníonn tú. Saor in aisce agus foinse oscailte, gan fógraí, gan rianú.",
+  "landingDownloadsTitle": "Faigh Oasis",
+  "landingDownloadsBody": "Faigh an t-eisiúint is déanaí do do mheaisín, nó féach ar gach eisiúint ar GitLab.",
+  "landingLoadingReleases": "Eisiúintí á lódáil…",
+  "landingNoReleases": "Eisiúint ar bith go fóil",
+  "landingReleasesFailed": "Níorbh fhéidir eisiúintí a lódáil",
+  "landingAllReleases": "Gach eisiúint ar GitLab",
+  "landingSource": "Cód foinse",
+  "landingFooter": "Saor in aisce agus foinse oscailte, go deo.",
+  "landingTryWeb": "Bain triail as sa bhrabhsálaí",
+  "landingWebBody": "Ritheann an deasc iomlán ar an ngréasán freisin. Gan shuiteáil.",
+  "appNotes": "Nótaí",
+  "menuQuit": "Scoir Oasis"
+}

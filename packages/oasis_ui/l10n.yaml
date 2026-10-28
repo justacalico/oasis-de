@@ -1,0 +1,6 @@
+arb-dir: lib/l10n
+template-arb-file: app_en_GB.arb
+output-localization-file: oasis_localizations.dart
+output-class: OasisLocalizations
+output-dir: lib/l10n/generated
+nullable-getter: false

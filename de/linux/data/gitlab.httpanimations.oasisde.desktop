@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Oasis
+Comment=A calm, glassy desktop environment
+Exec=oasis
+Icon=gitlab.httpanimations.oasisde
+Terminal=false
+Type=Application
+Categories=Utility;

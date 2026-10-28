@@ -1,0 +1,106 @@
+{
+  "@@locale": "en_GB",
+  "appName": "Oasis",
+  "menuFile": "File",
+  "menuEdit": "Edit",
+  "menuView": "View",
+  "menuWindow": "Window",
+  "menuHelp": "Help",
+  "menuAboutApp": "About {app}",
+  "@menuAboutApp": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "menuSettings": "Settings…",
+  "menuCloseWindow": "Close Window",
+  "menuMinimise": "Minimise",
+  "menuZoom": "Zoom",
+  "menuNewWindow": "New Window",
+  "menuUndo": "Undo",
+  "menuRedo": "Redo",
+  "menuCut": "Cut",
+  "menuCopy": "Copy",
+  "menuPaste": "Paste",
+  "menuSelectAll": "Select All",
+  "menuEnterFullScreen": "Enter Full Screen",
+  "menuAbout": "About Oasis",
+  "launcherHint": "Search apps",
+  "launcherNoResults": "No results",
+  "ccWifi": "Wi-Fi",
+  "ccBluetooth": "Bluetooth",
+  "ccFocus": "Focus",
+  "ccBrightness": "Brightness",
+  "ccVolume": "Volume",
+  "ccAppearance": "Appearance",
+  "ccDarkMode": "Dark Mode",
+  "aboutTagline": "A calm, glassy desktop environment for Linux.",
+  "versionLabel": "Version {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateCheck": "Check for Updates",
+  "updateChecking": "Checking for updates…",
+  "updateUpToDate": "Oasis is up to date",
+  "updateAvailable": "Version {version} is available",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateFailed": "Couldn't check for updates",
+  "updateViewRelease": "View release",
+  "updateAllReleases": "All releases",
+  "settingsTitle": "Settings",
+  "settingsAppearance": "Appearance",
+  "settingsGeneral": "General",
+  "settingsWifi": "Wi-Fi",
+  "settingsBluetooth": "Bluetooth",
+  "settingsAbout": "About",
+  "settingsTheme": "Theme",
+  "settingsAccent": "Accent colour",
+  "settingsLanguage": "Language",
+  "settingsEnabled": "Enabled",
+  "settingsNetworkBody": "Toggle the radio for this demo desktop.",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeOled": "OLED",
+  "languageSystem": "System",
+  "languageEnGb": "Traditional English",
+  "languageZh": "简体中文",
+  "languageRu": "Русский",
+  "languageGa": "Gaeilge",
+  "landingTagline": "Your desktop, distilled.",
+  "landingHeroBody": "Oasis is a desktop environment for Linux that pairs a calm, glassy design with a workflow that feels instantly familiar.",
+  "landingOpenApp": "Launch web app",
+  "landingGetStarted": "Download",
+  "landingShowcaseTitle": "Designed to disappear",
+  "landingShowcaseBody": "Glass surfaces, honest typography and controls that behave the way you expect. Nothing gets between you and your work.",
+  "landingFeatureGlassTitle": "Liquid surfaces",
+  "landingFeatureGlassBody": "Menus, docks and windows float on real translucency with specular highlights.",
+  "landingFeatureCalmTitle": "Calm by default",
+  "landingFeatureCalmBody": "A quiet menu bar, a dock that stays out of the way, and notifications that never shout.",
+  "landingFeatureOpenTitle": "Open underneath",
+  "landingFeatureOpenBody": "Runs on the Linux stack you already know. Free and open source, no ads, no tracking.",
+  "landingDownloadsTitle": "Get Oasis",
+  "landingDownloadsBody": "Grab the latest release for your machine, or browse every release on GitLab.",
+  "landingLoadingReleases": "Loading releases…",
+  "landingNoReleases": "No releases yet",
+  "landingReleasesFailed": "Couldn't load releases",
+  "landingAllReleases": "All releases on GitLab",
+  "landingSource": "Source code",
+  "landingFooter": "Free and open source, forever.",
+  "landingTryWeb": "Try it in your browser",
+  "landingWebBody": "The whole desktop runs on the web too. No install required.",
+  "appNotes": "Notes",
+  "menuQuit": "Quit Oasis"
+}

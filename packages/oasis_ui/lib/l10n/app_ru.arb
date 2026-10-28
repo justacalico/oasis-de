@@ -1,0 +1,106 @@
+{
+  "@@locale": "ru",
+  "appName": "Oasis",
+  "menuFile": "Файл",
+  "menuEdit": "Правка",
+  "menuView": "Вид",
+  "menuWindow": "Окно",
+  "menuHelp": "Справка",
+  "menuAboutApp": "О программе {app}",
+  "@menuAboutApp": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "menuSettings": "Настройки…",
+  "menuCloseWindow": "Закрыть окно",
+  "menuMinimise": "Свернуть",
+  "menuZoom": "Масштаб",
+  "menuNewWindow": "Новое окно",
+  "menuUndo": "Отменить",
+  "menuRedo": "Повторить",
+  "menuCut": "Вырезать",
+  "menuCopy": "Скопировать",
+  "menuPaste": "Вставить",
+  "menuSelectAll": "Выбрать все",
+  "menuEnterFullScreen": "На весь экран",
+  "menuAbout": "О Oasis",
+  "launcherHint": "Поиск приложений",
+  "launcherNoResults": "Ничего не найдено",
+  "ccWifi": "Wi-Fi",
+  "ccBluetooth": "Bluetooth",
+  "ccFocus": "Фокус",
+  "ccBrightness": "Яркость",
+  "ccVolume": "Громкость",
+  "ccAppearance": "Оформление",
+  "ccDarkMode": "Тёмная тема",
+  "aboutTagline": "Спокойная стеклянная среда рабочего стола для Linux.",
+  "versionLabel": "Версия {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateCheck": "Проверить обновления",
+  "updateChecking": "Проверка обновлений…",
+  "updateUpToDate": "Oasis обновлён",
+  "updateAvailable": "Доступна версия {version}",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateFailed": "Не удалось проверить обновления",
+  "updateViewRelease": "Открыть релиз",
+  "updateAllReleases": "Все релизы",
+  "settingsTitle": "Настройки",
+  "settingsAppearance": "Оформление",
+  "settingsGeneral": "Основные",
+  "settingsWifi": "Wi-Fi",
+  "settingsBluetooth": "Bluetooth",
+  "settingsAbout": "О системе",
+  "settingsTheme": "Тема",
+  "settingsAccent": "Акцентный цвет",
+  "settingsLanguage": "Язык",
+  "settingsEnabled": "Включено",
+  "settingsNetworkBody": "Переключите радиомодуль этого демо-рабочего стола.",
+  "themeSystem": "Как в системе",
+  "themeLight": "Светлая",
+  "themeDark": "Тёмная",
+  "themeOled": "OLED",
+  "languageSystem": "Как в системе",
+  "languageEnGb": "Traditional English",
+  "languageZh": "简体中文",
+  "languageRu": "Русский",
+  "languageGa": "Gaeilge",
+  "landingTagline": "Ваш рабочий стол в чистом виде.",
+  "landingHeroBody": "Oasis — среда рабочего стола для Linux, сочетающая спокойный стеклянный дизайн с привычным рабочим процессом.",
+  "landingOpenApp": "Открыть веб-версию",
+  "landingGetStarted": "Скачать",
+  "landingShowcaseTitle": "Создано быть незаметным",
+  "landingShowcaseBody": "Стеклянные поверхности, честная типографика и элементы управления, ведущие себя так, как вы ожидаете. Ничего не мешает работе.",
+  "landingFeatureGlassTitle": "Жидкие поверхности",
+  "landingFeatureGlassBody": "Меню, док и окна парят на настоящей полупрозрачности с бликами.",
+  "landingFeatureCalmTitle": "Спокойствие по умолчанию",
+  "landingFeatureCalmBody": "Тихая строка меню, док, который не мешает, и уведомления, которые не кричат.",
+  "landingFeatureOpenTitle": "Открытый фундамент",
+  "landingFeatureOpenBody": "Работает на знакомом стеке Linux. Свободно и открыто, без рекламы и слежки.",
+  "landingDownloadsTitle": "Получить Oasis",
+  "landingDownloadsBody": "Скачайте последний релиз для вашего устройства или посмотрите все релизы на GitLab.",
+  "landingLoadingReleases": "Загрузка релизов…",
+  "landingNoReleases": "Релизов пока нет",
+  "landingReleasesFailed": "Не удалось загрузить релизы",
+  "landingAllReleases": "Все релизы на GitLab",
+  "landingSource": "Исходный код",
+  "landingFooter": "Свободно и открыто навсегда.",
+  "landingTryWeb": "Попробуйте в браузере",
+  "landingWebBody": "Весь рабочий стол работает и в вебе. Установка не нужна.",
+  "appNotes": "Заметки",
+  "menuQuit": "Выйти из Oasis"
+}
