@@ -33,6 +33,10 @@ test:
       print(f'line coverage {lh}/{lf}')
       assert lf > 0 and lh == lf, f'coverage {lh}/{lf} not 100%'
       PY
+  artifacts:
+    when: always
+    paths:
+      - coverage/lcov.info
 
 github-sync:
   stage: sync
