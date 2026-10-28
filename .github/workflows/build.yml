@@ -1,4 +1,7 @@
 name: build
+permissions:
+  contents: write
+
 on:
   push:
     branches: [main]
@@ -10,7 +13,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-permissions:
+  contents: write
+
+on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -40,7 +46,7 @@ jobs:
       - name: Package Linux
         run: |
           cd de/build/linux/x64/release/bundle
-          tar czf ../../../../../oasis-linux-x64.tar.gz .
+          tar czf ../../../../../../oasis-linux-x64.tar.gz .
           cd ../../../../../
       - name: Upload Linux x64
         uses: actions/upload-artifact@v4
@@ -63,7 +69,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-arm64:
-    runs-on: ubuntu-24.04-arm
+    runs-permissions:
+  contents: write
+
+on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - name: Install Linux desktop deps
@@ -78,7 +87,7 @@ jobs:
       - name: Package Linux arm64
         run: |
           cd de/build/linux/arm64/release/bundle
-          tar czf ../../../../../oasis-linux-arm64.tar.gz .
+          tar czf ../../../../../../oasis-linux-arm64.tar.gz .
           cd ../../../../../
       - name: Upload Linux arm64
         uses: actions/upload-artifact@v4

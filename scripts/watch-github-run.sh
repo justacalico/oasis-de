@@ -13,15 +13,15 @@ try:
 except Exception:
     runs = []
 runs = [r for r in runs if (r.get('app') or {}).get('slug') == 'github-actions']
+runs.sort(key=lambda r: r.get('started_at') or '', reverse=True)
+runs = runs[:2]
 if not runs:
     print('')
+elif any(r.get('status') != 'completed' for r in runs):
+    print('running')
 else:
-    conclusions = {r.get('conclusion') for r in runs if r.get('conclusion')}
-    statuses = {r.get('status') for r in runs}
-    if len(statuses) == 1 and 'completed' in statuses:
-        print(next(iter(conclusions), ''))
-    else:
-        print('running')
+    conclusions = {r.get('conclusion') for r in runs}
+    print('success' if conclusions == {'success'} else 'failure')
 ")
   case "$STATUS" in
     success) echo "github build passed"; exit 0 ;;
