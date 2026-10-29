@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
@@ -12,6 +15,7 @@ class WallpaperPane extends StatefulWidget {
 
 class _WallpaperPaneState extends State<WallpaperPane> {
   final _pathController = TextEditingController();
+  bool _invalidPath = false;
 
   @override
   void dispose() {
@@ -97,22 +101,36 @@ class _WallpaperPaneState extends State<WallpaperPane> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(14),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: OasisSearchField(
-                          hint: l10n.wallpaperPathHint,
-                          icon: Icons.image_outlined,
-                          controller: _pathController,
-                          onSubmitted: _apply,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OasisSearchField(
+                              hint: l10n.wallpaperPathHint,
+                              icon: Icons.image_outlined,
+                              controller: _pathController,
+                              onSubmitted: _apply,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          OasisButton(
+                            label: l10n.wallpaperApply,
+                            variant: OasisButtonVariant.primary,
+                            onPressed: () => _apply(_pathController.text),
+                          ),
+                        ],
+                      ),
+                      if (_invalidPath)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            l10n.wallpaperInvalidPath,
+                            style: text.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.error),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      OasisButton(
-                        label: l10n.wallpaperApply,
-                        variant: OasisButtonVariant.primary,
-                        onPressed: () => _apply(_pathController.text),
-                      ),
                     ],
                   ),
                 ),
@@ -151,6 +169,11 @@ class _WallpaperPaneState extends State<WallpaperPane> {
   void _apply(String path) {
     final trimmed = path.trim();
     if (trimmed.isEmpty) return;
+    if (!kIsWeb && !File(trimmed).existsSync()) {
+      setState(() => _invalidPath = true);
+      return;
+    }
+    setState(() => _invalidPath = false);
     widget.wallpaper.imagePath = trimmed;
   }
 }

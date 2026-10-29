@@ -74,6 +74,7 @@
   "wallpaperCustom": "Своё изображение",
   "wallpaperPathHint": "Путь к изображению",
   "wallpaperApply": "Применить",
+  "wallpaperInvalidPath": "Изображение не найдено",
   "wallpaperFit": "Размещение",
   "wallpaperFitCover": "Заполнить экран",
   "wallpaperFitContain": "Вместить в экран",

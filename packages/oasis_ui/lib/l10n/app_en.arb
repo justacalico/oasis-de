@@ -74,6 +74,7 @@
   "wallpaperCustom": "Custom image",
   "wallpaperPathHint": "Image path",
   "wallpaperApply": "Apply",
+  "wallpaperInvalidPath": "Image not found",
   "wallpaperFit": "Fit",
   "wallpaperFitCover": "Fill screen",
   "wallpaperFitContain": "Fit to screen",

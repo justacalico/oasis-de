@@ -151,11 +151,24 @@ void main() {
     expect(find.text('Fit'), findsNothing);
 
     await tester.enterText(
-        find.byType(TextField), '/pics/lagoon.png');
+        find.byType(TextField), '/pics/missing.png');
     await tester.tap(find.text('Apply'));
     await tester.pumpAndSettle();
-    expect(wallpaper.imagePath, '/pics/lagoon.png');
-    expect(find.text('lagoon.png'), findsOneWidget);
+    expect(wallpaper.imagePath, isNull);
+    expect(find.text('Image not found'), findsOneWidget);
+
+    final file = File(
+        '${Directory.systemTemp.path}/oasis_pane_test.png');
+    await tester.runAsync(() async {
+      await file.writeAsBytes(base64Decode(_pngBase64));
+    });
+    addTearDown(() => file.deleteSync());
+
+    await tester.enterText(find.byType(TextField), file.path);
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(wallpaper.imagePath, file.path);
+    expect(find.text('oasis_pane_test.png'), findsOneWidget);
     expect(find.text('Fit to screen'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Fit to screen'));
@@ -167,7 +180,7 @@ void main() {
     await tester.enterText(find.byType(TextField), '   ');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    expect(wallpaper.imagePath, '/pics/lagoon.png');
+    expect(wallpaper.imagePath, file.path);
 
     await tester.tap(find.text('Oasis Dunes'));
     await tester.pumpAndSettle();

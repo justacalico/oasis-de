@@ -176,6 +176,9 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get wallpaperApply => 'Применить';
 
   @override
+  String get wallpaperInvalidPath => 'Изображение не найдено';
+
+  @override
   String get wallpaperFit => 'Размещение';
 
   @override

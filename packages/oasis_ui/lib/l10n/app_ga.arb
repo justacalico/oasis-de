@@ -74,6 +74,7 @@
   "wallpaperCustom": "Íomhá shaincheaptha",
   "wallpaperPathHint": "Conair na híomhá",
   "wallpaperApply": "Cuir i bhfeidhm",
+  "wallpaperInvalidPath": "Íomhá gan aimsiú",
   "wallpaperFit": "Oiriúnú",
   "wallpaperFitCover": "Líon an scáileán",
   "wallpaperFitContain": "Oiriúnaigh don scáileán",
