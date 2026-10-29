@@ -30,12 +30,18 @@ jobs:
         run: |
           python3 - <<'PY'
           lf = lh = 0
+          bad = []
+          cur = None
           for line in open('coverage/lcov.info'):
-              if line.startswith('LF:'):
+              if line.startswith('SF:'):
+                  cur = line[3:].strip()
+              elif line.startswith('LF:'):
                   lf += int(line[3:])
               elif line.startswith('LH:'):
                   lh += int(line[3:])
-          assert lf > 0 and lh == lf, f'coverage {lh}/{lf}'
+              elif line.startswith('DA:') and line.strip().endswith(',0'):
+                  bad.append(f'{cur}:{line.strip()}')
+          assert lf > 0 and lh == lf, f'coverage {lh}/{lf}: {bad}'
           print('coverage 100%')
           PY
       - run: cd de && flutter build linux --release

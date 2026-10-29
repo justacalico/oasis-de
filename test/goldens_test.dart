@@ -58,6 +58,7 @@ void main() {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
         OasisDesktopApp(
+          backend: const NoopSystemBackend(),
           version: '1.0.0',
           appearance: OasisAppearance(themeMode: OasisThemeMode.light),
           updateChecker: _FakeChecker(),
@@ -76,6 +77,7 @@ void main() {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
         OasisDesktopApp(
+          backend: const NoopSystemBackend(),
           version: '1.0.0',
           appearance: OasisAppearance(themeMode: OasisThemeMode.dark),
           updateChecker: _FakeChecker(),
@@ -96,6 +98,7 @@ void main() {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
         OasisDesktopApp(
+          backend: const NoopSystemBackend(),
           version: '1.0.0',
           appearance: OasisAppearance(themeMode: OasisThemeMode.light),
           updateChecker: _FakeChecker(),
@@ -122,6 +125,7 @@ void main() {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
         OasisDesktopApp(
+          backend: const NoopSystemBackend(),
           version: '1.0.0',
           appearance: OasisAppearance(themeMode: OasisThemeMode.light),
           updateChecker: _FakeChecker(),
@@ -144,6 +148,7 @@ void main() {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
         OasisDesktopApp(
+          backend: const NoopSystemBackend(),
           version: '1.0.0',
           appearance: OasisAppearance(themeMode: OasisThemeMode.light),
           updateChecker: _FakeChecker(),
@@ -164,6 +169,7 @@ void main() {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
         OasisDesktopApp(
+          backend: const NoopSystemBackend(),
           version: '1.0.0',
           appearance: OasisAppearance(themeMode: OasisThemeMode.light),
           updateChecker: _FakeChecker(),
@@ -185,6 +191,7 @@ void main() {
         await _size(tester, const Size(1280, 800));
         await tester.pumpWidget(
           OasisDesktopApp(
+            backend: const NoopSystemBackend(),
             version: '1.0.0',
             appearance: OasisAppearance(themeMode: mode),
             updateChecker: _FakeChecker(),
@@ -207,6 +214,7 @@ void main() {
         await _size(tester, const Size(1280, 800));
         await tester.pumpWidget(
           OasisDesktopApp(
+            backend: const NoopSystemBackend(),
             version: '1.0.0',
             appearance: OasisAppearance(themeMode: mode),
             updateChecker: _FakeChecker(),
@@ -227,6 +235,7 @@ void main() {
         await _size(tester, const Size(1280, 800));
         await tester.pumpWidget(
           OasisDesktopApp(
+            backend: const NoopSystemBackend(),
             version: '1.0.0',
             appearance: OasisAppearance(themeMode: mode),
             updateChecker: _FakeChecker(),
