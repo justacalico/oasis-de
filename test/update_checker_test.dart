@@ -12,6 +12,21 @@ UpdateChecker _checker(http.Client client) =>
 String _page(List<Map<String, dynamic>> releases) => jsonEncode(releases);
 
 void main() {
+  test('skips prerelease tags for stable users', () async {
+    final client = MockClient((req) async => http.Response(
+          _page([
+            {'tag_name': 'v2.0.0-beta'},
+            {'tag_name': 'v1.2.0'},
+          ]),
+          200,
+        ));
+    final update = await _checker(client).check('1.0.0');
+    expect(update.latestVersion, '1.2.0');
+
+    final beta = await _checker(client).check('1.0.0-beta');
+    expect(beta.latestVersion, '2.0.0-beta');
+  });
+
   test('finds the highest semver tag across pages', () async {
     var calls = 0;
     final client = MockClient((req) async {
@@ -89,7 +104,7 @@ void main() {
       ),
     );
     final update = await _checker(client).check('3.0.0');
-    expect(update.latestVersion, '3.0.0-beta.1');
+    expect(update.latestVersion, '');
     expect(update.updateAvailable, isFalse);
   });
 

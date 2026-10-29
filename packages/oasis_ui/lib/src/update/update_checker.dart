@@ -35,7 +35,10 @@ class UpdateChecker {
   String get releasesUrl => 'https://$host/$projectPath/-/releases';
 
   Future<AppUpdate> check(String currentVersion) async {
-    final latest = await _fetchLatestRelease();
+    final current = Version.parse(currentVersion);
+    final latest = await _fetchLatestRelease(
+      allowPrerelease: current?.pre != null,
+    );
     if (latest == null) {
       return AppUpdate(
         currentVersion: currentVersion,
@@ -43,7 +46,6 @@ class UpdateChecker {
       );
     }
 
-    final current = Version.parse(currentVersion);
     final latestVersion = latest.version;
     final releaseUrl = _releaseUrl(latest.tag);
 
@@ -71,7 +73,9 @@ class UpdateChecker {
     }
   }
 
-  Future<({Version version, String tag})?> _fetchLatestRelease() async {
+  Future<({Version version, String tag})?> _fetchLatestRelease({
+    bool allowPrerelease = false,
+  }) async {
     Version? maxVersion;
     String? maxTag;
     for (var page = 1; page <= _maxPages; page++) {
@@ -108,6 +112,7 @@ class UpdateChecker {
           if (tag is! String) continue;
           final version = Version.parse(tag);
           if (version == null) continue;
+          if (!allowPrerelease && version.pre != null) continue;
           if (maxVersion == null || version.compareTo(maxVersion) > 0) {
             maxVersion = version;
             maxTag = tag;
