@@ -63,6 +63,9 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+  if (g_strcmp0(g_getenv("OASIS_SESSION"), "1") == 0) {
+    gtk_window_fullscreen(window);
+  }
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
