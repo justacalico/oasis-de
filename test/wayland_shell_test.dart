@@ -1083,6 +1083,21 @@ void main() {
     expect(service.surfaces[2]?.transientParentId, isNull);
   });
 
+  test('cyclic transient parents do not hang the reorder', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    addTearDown(c.dispose);
+    _emitToplevel(host, id: 1, appId: 'x');
+    _emitToplevel(host, id: 2, appId: 'x');
+    await pumpEventQueue();
+    host.emit({'event': 'toplevelParent', 'id': 1, 'parent': 2});
+    host.emit({'event': 'toplevelParent', 'id': 2, 'parent': 1});
+    await pumpEventQueue();
+    c.focusWindow(c.windows.first.id);
+    expect(c.windows.length, 2);
+  });
+
   testWidgets('windowMenu request opens the window menu', (tester) async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);

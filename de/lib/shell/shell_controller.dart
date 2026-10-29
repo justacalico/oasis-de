@@ -352,8 +352,10 @@ class ShellController extends ChangeNotifier {
 
   void _raiseTransients() {
     var moved = true;
-    while (moved) {
+    var passes = 0;
+    while (moved && passes < windows.length) {
       moved = false;
+      passes++;
       for (final w in List.of(windows)) {
         final pid = w.surface?.transientParentId;
         if (pid == null) continue;
