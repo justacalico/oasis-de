@@ -7,7 +7,8 @@ import 'helpers/test_app.dart';
 void exerciseStrings(OasisLocalizations l) {
   l.appName;
   l.menuFile;
-  l.menuEdit;
+  l.dockPin;
+  l.dockUnpin;
   l.menuView;
   l.menuWindow;
   l.menuHelp;
@@ -17,12 +18,6 @@ void exerciseStrings(OasisLocalizations l) {
   l.menuMinimise;
   l.menuZoom;
   l.menuNewWindow;
-  l.menuUndo;
-  l.menuRedo;
-  l.menuCut;
-  l.menuCopy;
-  l.menuPaste;
-  l.menuSelectAll;
   l.menuEnterFullScreen;
   l.menuAbout;
   l.launchPad;

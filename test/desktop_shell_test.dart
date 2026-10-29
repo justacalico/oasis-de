@@ -46,7 +46,7 @@ void main() {
   testWidgets('desktop renders bar, dock and wallpaper', (tester) async {
     await pumpDesktop(tester);
     expect(find.text('File'), findsOneWidget);
-    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('View'), findsOneWidget);
     expect(find.byType(OasisAppIcon), findsWidgets);
     expect(find.byType(Tooltip), findsWidgets);
   });
@@ -76,9 +76,9 @@ void main() {
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer(location: Offset.zero);
     addTearDown(gesture.removePointer);
-    await gesture.moveTo(tester.getCenter(find.text('Edit')));
+    await gesture.moveTo(tester.getCenter(find.text('View')));
     await tester.pumpAndSettle();
-    expect(find.text('Select All'), findsOneWidget);
+    expect(find.text('Enter Full Screen'), findsOneWidget);
     await gesture.moveTo(tester.getCenter(find.text('Window')));
     await tester.pumpAndSettle();
     expect(find.text('Minimise'), findsOneWidget);
@@ -549,10 +549,13 @@ void main() {
     final from = tester.getCenter(icons.at(1));
     final to = tester.getCenter(icons.at(2));
     final gesture = await tester.startGesture(from);
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 800));
+    await gesture.moveBy(const Offset(10, 0));
+    await tester.pump(const Duration(milliseconds: 100));
     await gesture.moveTo(to);
+    await tester.pump(const Duration(milliseconds: 100));
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(c.pinned.map((a) => a.id), isNot(contains('x')));
+    expect(c.pinned.first.id, 'b');
   });
 }

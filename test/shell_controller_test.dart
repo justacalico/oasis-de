@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
+import 'package:oasis_de/shell/shell_menus.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 OasisApp _app(String id) => OasisApp(
@@ -338,4 +339,68 @@ void main() {
     expect(identical(c.windows.first.app, fresh.first), isTrue);
     c.dispose();
   });
+  test('shell menus reflect and drive window state', () {
+    final l10n = lookupOasisLocalizations(const Locale('en'));
+    OasisApp app(String id) => OasisApp(
+      id: id,
+      name: 'App $id',
+      icon: Icons.circle,
+      iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+      builder: (_) => const SizedBox(),
+    );
+    final c = ShellController(
+      apps: [app('notes'), app('about'), app('settings')],
+    );
+    c.openApp(c.apps.first);
+    final ctx = _Ctx();
+    final apps = {'about': c.apps[1], 'settings': c.apps[2]};
+    final menus = buildShellMenus(l10n, c, 'Oasis', apps);
+    expect(menus.length, 5);
+    for (final menu in menus) {
+      c.openApp(c.apps.first);
+      c.focusWindow(c.windows.last.id);
+      for (final item in menu.items(ctx)) {
+        if (item.enabled && item.action != null) {
+          item.action!(ctx);
+        }
+        if (c.windows.isEmpty) c.openApp(c.apps.first);
+        c.focusWindow(c.windows.last.id);
+      }
+    }
+    c.dispose();
+  });
+
+  test('menus minimise and restore windows from the list', () {
+    final l10n = lookupOasisLocalizations(const Locale('en'));
+    OasisApp app(String id) => OasisApp(
+      id: id,
+      name: 'App $id',
+      icon: Icons.circle,
+      iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+      builder: (_) => const SizedBox(),
+    );
+    final c = ShellController(apps: [app('a'), app('b')]);
+    c.openApp(c.apps[0]);
+    c.openApp(c.apps[1]);
+    final ctx = _Ctx();
+    final windowMenu = buildShellMenus(
+      l10n,
+      c,
+      'Oasis',
+      {},
+    ).firstWhere((m) => m.label == l10n.menuWindow);
+    final items = windowMenu.items(ctx);
+    expect(items.length, greaterThanOrEqualTo(4));
+    final minimised = c.windows.first;
+    minimised.minimized = true;
+    final entries = windowMenu.items(ctx);
+    for (final item in entries) {
+      if (item.checked) expect(item.label, isNotEmpty);
+      item.action?.call(ctx);
+    }
+    expect(minimised.minimized, isFalse);
+    c.dispose();
+  });
 }
+
+class _Ctx extends Fake implements BuildContext {}

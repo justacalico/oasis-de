@@ -15,9 +15,6 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get menuFile => 'Файл';
 
   @override
-  String get menuEdit => 'Правка';
-
-  @override
   String get menuView => 'Вид';
 
   @override
@@ -45,24 +42,6 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get menuNewWindow => 'Новое окно';
-
-  @override
-  String get menuUndo => 'Отменить';
-
-  @override
-  String get menuRedo => 'Повторить';
-
-  @override
-  String get menuCut => 'Вырезать';
-
-  @override
-  String get menuCopy => 'Скопировать';
-
-  @override
-  String get menuPaste => 'Вставить';
-
-  @override
-  String get menuSelectAll => 'Выбрать все';
 
   @override
   String get menuEnterFullScreen => 'На весь экран';

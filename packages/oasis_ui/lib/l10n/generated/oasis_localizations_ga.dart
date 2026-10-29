@@ -15,9 +15,6 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get menuFile => 'Comhad';
 
   @override
-  String get menuEdit => 'Eagar';
-
-  @override
   String get menuView => 'Amharc';
 
   @override
@@ -45,24 +42,6 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get menuNewWindow => 'Fuinneog Nua';
-
-  @override
-  String get menuUndo => 'Cealaigh';
-
-  @override
-  String get menuRedo => 'Athdhéan';
-
-  @override
-  String get menuCut => 'Gearr';
-
-  @override
-  String get menuCopy => 'Cóipeáil';
-
-  @override
-  String get menuPaste => 'Greamaigh';
-
-  @override
-  String get menuSelectAll => 'Roghnaigh Uile';
 
   @override
   String get menuEnterFullScreen => 'Scáileán Iomlán';

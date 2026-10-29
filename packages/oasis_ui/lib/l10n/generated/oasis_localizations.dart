@@ -114,12 +114,6 @@ abstract class OasisLocalizations {
   /// **'File'**
   String get menuFile;
 
-  /// No description provided for @menuEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit'**
-  String get menuEdit;
-
   /// No description provided for @menuView.
   ///
   /// In en, this message translates to:
@@ -173,42 +167,6 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'New Window'**
   String get menuNewWindow;
-
-  /// No description provided for @menuUndo.
-  ///
-  /// In en, this message translates to:
-  /// **'Undo'**
-  String get menuUndo;
-
-  /// No description provided for @menuRedo.
-  ///
-  /// In en, this message translates to:
-  /// **'Redo'**
-  String get menuRedo;
-
-  /// No description provided for @menuCut.
-  ///
-  /// In en, this message translates to:
-  /// **'Cut'**
-  String get menuCut;
-
-  /// No description provided for @menuCopy.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy'**
-  String get menuCopy;
-
-  /// No description provided for @menuPaste.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste'**
-  String get menuPaste;
-
-  /// No description provided for @menuSelectAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Select All'**
-  String get menuSelectAll;
 
   /// No description provided for @menuEnterFullScreen.
   ///

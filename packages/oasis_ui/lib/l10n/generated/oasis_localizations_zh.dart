@@ -15,9 +15,6 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get menuFile => '文件';
 
   @override
-  String get menuEdit => '编辑';
-
-  @override
   String get menuView => '显示';
 
   @override
@@ -45,24 +42,6 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get menuNewWindow => '新建窗口';
-
-  @override
-  String get menuUndo => '撤销';
-
-  @override
-  String get menuRedo => '重做';
-
-  @override
-  String get menuCut => '剪切';
-
-  @override
-  String get menuCopy => '拷贝';
-
-  @override
-  String get menuPaste => '粘贴';
-
-  @override
-  String get menuSelectAll => '全选';
 
   @override
   String get menuEnterFullScreen => '进入全屏';
