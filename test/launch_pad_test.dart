@@ -135,6 +135,7 @@ void main() {
   testWidgets('paged grid swipes, dots and key jumps navigate', (tester) async {
     final controller = ShellController(
       apps: [for (var i = 0; i < 45; i++) _app('$i')],
+      batteryPollInterval: null,
     );
     addTearDown(controller.dispose);
     await pumpOasis(
