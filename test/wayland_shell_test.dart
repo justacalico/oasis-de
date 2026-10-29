@@ -927,9 +927,25 @@ void main() {
     expect(c.windows.last.surface?.id, 9);
     expect(c.windows.first.surface, isNull);
   });
+  testWidgets('failed launch removes window and sets error', (tester) async {
+    final host = _FailingLaunchHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    addTearDown(c.dispose);
+    c.openApp(c.apps.single);
+    await tester.pump();
+    expect(c.windows, isEmpty);
+    expect(c.launchError, isNotNull);
+  });
 }
 
 class _StubContext extends Fake implements BuildContext {}
+
+class _FailingLaunchHost extends FakeWaylandHost {
+  @override
+  Future<void> launch(List<String> argv) async =>
+      throw StateError('spawn failed');
+}
 
 const _onePxPng = <int>[
   0x89,

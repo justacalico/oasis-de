@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import '../wayland/wayland_service.dart';
+import 'menu_bar.dart';
 
 enum ShellWindowTransition { none, minimizing, restoring }
 
@@ -291,14 +292,21 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void dragWindow(int id, Offset delta) {
+  int? _dragWindowId;
+
+  void dragWindow(int id, Offset delta, Size screen) {
     final window = _byId(id);
     if (window == null ||
         window.zoomed ||
         window.transition != ShellWindowTransition.none) {
       return;
     }
-    window.position += delta;
+    final w = window.size?.width ?? 480;
+    window.position = Offset(
+      (window.position.dx + delta.dx).clamp(-w + 64, screen.width - 64),
+      (window.position.dy + delta.dy).clamp(0.0, screen.height - 24),
+    );
+    _dragWindowId = id;
     notifyListeners();
   }
 
@@ -345,9 +353,28 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void endSurfaceGesture() {
+  void endSurfaceGesture([Offset? pointer, Size? screen]) {
     _surfaceDragId = null;
     _surfaceResize = null;
+    final wid = _dragWindowId;
+    _dragWindowId = null;
+    final w = wid == null ? null : _byId(wid);
+    if (w == null || pointer == null || screen == null) return;
+    if (pointer.dy <= kMenuBarHeight + 4) {
+      if (!w.zoomed) {
+        w.zoomed = true;
+        w.adoptedSize = w.surface?.size;
+        notifyListeners();
+      }
+    } else if (pointer.dx <= 8 || pointer.dx >= screen.width - 8) {
+      final left = pointer.dx <= 8;
+      w
+        ..zoomed = false
+        ..size = Size(screen.width / 2, screen.height - kMenuBarHeight - 8)
+        ..position = Offset(left ? 0 : screen.width / 2, kMenuBarHeight + 4)
+        ..adoptedSize = w.surface?.size;
+      notifyListeners();
+    }
   }
 
   ShellWindowData? windowForSurface(int surfaceId) {

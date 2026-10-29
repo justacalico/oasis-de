@@ -69,11 +69,11 @@ void main() {
     final c = _controller();
     c.openApp(c.apps[0]);
     final w = c.windows.first;
-    c.dragWindow(w.id, const Offset(10, 20));
+    c.dragWindow(w.id, const Offset(10, 20), const Size(1280, 800));
     expect(w.position, const Offset(66, 72));
     c.toggleZoom(w.id);
     expect(w.zoomed, isTrue);
-    c.dragWindow(w.id, const Offset(5, 5));
+    c.dragWindow(w.id, const Offset(5, 5), const Size(1280, 800));
     expect(w.position, const Offset(66, 72));
     c.toggleZoom(w.id);
     c.minimizeWindow(w.id);
@@ -94,14 +94,14 @@ void main() {
     expect(w.transition, ShellWindowTransition.minimizing);
     c.minimizeWindow(w.id);
     expect(c.windows.length, 1);
-    c.dragWindow(w.id, const Offset(9, 9));
+    c.dragWindow(w.id, const Offset(9, 9), const Size(1280, 800));
     expect(w.position, const Offset(56, 52));
     c.finishTransition(w.id);
     expect(w.transition, ShellWindowTransition.none);
     c.restoreWindow(w.id);
     expect(w.minimized, isFalse);
     expect(w.transition, ShellWindowTransition.restoring);
-    c.dragWindow(w.id, const Offset(9, 9));
+    c.dragWindow(w.id, const Offset(9, 9), const Size(1280, 800));
     expect(w.position, const Offset(56, 52));
     c.finishTransition(w.id);
     expect(w.transition, ShellWindowTransition.none);
@@ -174,13 +174,43 @@ void main() {
     c.dispose();
   });
 
+  test('dragWindow clamps to screen and snap zones apply', () {
+    final c = _controller();
+    c.openApp(c.apps.first);
+    final w = c.windows.single;
+    w.size = const Size(500, 400);
+    const screen = Size(1280, 800);
+    c.dragWindow(w.id, const Offset(-2000, -500), screen);
+    expect(w.position.dx, greaterThan(-w.size!.width));
+    expect(w.position.dy, greaterThanOrEqualTo(0));
+    c.dragWindow(w.id, const Offset(4000, 3000), screen);
+    expect(w.position.dx, lessThanOrEqualTo(screen.width - 64));
+    expect(w.position.dy, lessThanOrEqualTo(screen.height - 24));
+    c.endSurfaceGesture(const Offset(640, 10), screen);
+    expect(w.zoomed, isTrue);
+    c.dragWindow(w.id, const Offset(1, 1), screen);
+    expect(w.position.dx, w.position.dx);
+
+    w.zoomed = false;
+    c.dragWindow(w.id, const Offset(5, 5), screen);
+    c.endSurfaceGesture(const Offset(4, 400), screen);
+    expect(w.size!.width, screen.width / 2);
+    expect(w.position.dx, 0);
+    c.dragWindow(w.id, const Offset(5, 5), screen);
+    c.endSurfaceGesture(const Offset(1279, 400), screen);
+    expect(w.position.dx, screen.width / 2);
+    c.dragWindow(w.id, const Offset(5, 5), screen);
+    c.endSurfaceGesture(const Offset(640, 400), screen);
+    c.dispose();
+  });
+
   test('mutating a missing window is a no-op', () {
     final c = _controller();
     c.minimizeWindow(999);
     c.restoreWindow(999);
     c.finishTransition(999);
     c.toggleZoom(999);
-    c.dragWindow(999, const Offset(1, 1));
+    c.dragWindow(999, const Offset(1, 1), const Size(1280, 800));
     c.resizeWindow(
       999,
       const Offset(1, 1),
