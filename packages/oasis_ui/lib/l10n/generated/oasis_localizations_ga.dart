@@ -74,7 +74,7 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get ccBrightness => 'Gile';
 
   @override
-  String get ccVolume => 'Airde';
+  String get ccVolume => 'Toirt';
 
   @override
   String get ccAppearance => 'Dealramh';
@@ -284,7 +284,7 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get menuQuit => 'Scoir Oasis';
 
   @override
-  String get ccOn => 'Air';
+  String get ccOn => 'Ar';
 
   @override
   String get ccOff => 'As';
