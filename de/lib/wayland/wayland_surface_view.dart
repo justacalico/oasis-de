@@ -56,6 +56,63 @@ Widget applyBufferTransform(Widget child, int transform) {
   }
 }
 
+MouseCursor waylandMouseCursor(WaylandService service) {
+  if (service.cursor != null) return SystemMouseCursors.none;
+  switch (service.cursorShape) {
+    case 4:
+      return SystemMouseCursors.click;
+    case 5:
+      return SystemMouseCursors.progress;
+    case 6:
+      return SystemMouseCursors.wait;
+    case 7:
+      return SystemMouseCursors.cell;
+    case 8:
+      return SystemMouseCursors.precise;
+    case 9:
+      return SystemMouseCursors.text;
+    case 11:
+      return SystemMouseCursors.alias;
+    case 12:
+      return SystemMouseCursors.copy;
+    case 13:
+      return SystemMouseCursors.move;
+    case 14:
+    case 15:
+      return SystemMouseCursors.forbidden;
+    case 16:
+      return SystemMouseCursors.grab;
+    case 17:
+      return SystemMouseCursors.grabbing;
+    case 18:
+    case 25:
+    case 26:
+      return SystemMouseCursors.resizeLeftRight;
+    case 19:
+    case 22:
+    case 27:
+      return SystemMouseCursors.resizeUpDown;
+    case 20:
+    case 23:
+    case 28:
+      return SystemMouseCursors.resizeUpRightDownLeft;
+    case 21:
+    case 24:
+    case 29:
+      return SystemMouseCursors.resizeUpLeftDownRight;
+    case 30:
+    case 31:
+    case 32:
+      return SystemMouseCursors.move;
+    case 33:
+      return SystemMouseCursors.zoomIn;
+    case 34:
+      return SystemMouseCursors.zoomOut;
+    default:
+      return MouseCursor.defer;
+  }
+}
+
 class SurfaceHitRegion extends SingleChildRenderObjectWidget {
   const SurfaceHitRegion({
     super.key,
@@ -247,6 +304,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                 surfaceSize: logicalSurfaceSize(surface),
                 child: MouseRegion(
                   onExit: (_) => service.pointerExit(surface.id),
+                  cursor: waylandMouseCursor(service),
                   child: Listener(
                     onPointerHover: (e) {
                       _motion(e, box);
@@ -338,6 +396,7 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
             height: size.height,
             child: MouseRegion(
               onExit: (_) => widget.service.pointerExit(widget.surface.id),
+              cursor: waylandMouseCursor(widget.service),
               child: Listener(
                 onPointerHover: (e) {
                   _motion(e);

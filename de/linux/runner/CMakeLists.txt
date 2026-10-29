@@ -28,6 +28,13 @@ set(WAYLAND_PROTOCOLS
 set(VENDORED_PROTOCOLS
   "viewporter"
   "fractional-scale-v1"
+  "cursor-shape-v1"
+  "idle-inhibit-unstable-v1"
+  "presentation-time"
+  "primary-selection-unstable-v1"
+  "text-input-unstable-v3"
+  "xdg-activation-v1"
+  "tablet-unstable-v2"
 )
 
 set(GENERATED_SOURCES "")
