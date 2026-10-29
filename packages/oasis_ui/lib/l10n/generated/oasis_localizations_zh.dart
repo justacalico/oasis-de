@@ -289,4 +289,22 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get menuQuit => '退出 Oasis';
+
+  @override
+  String get ccOn => '开';
+
+  @override
+  String get ccOff => '关';
+
+  @override
+  String get ccNightLight => '夜光';
+
+  @override
+  String get ccBattery => '电池';
+
+  @override
+  String get ccMedia => '媒体';
+
+  @override
+  String get ccNothingPlaying => '暂无播放';
 }

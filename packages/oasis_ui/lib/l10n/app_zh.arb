@@ -112,5 +112,11 @@
   "landingTryWeb": "在浏览器中体验",
   "landingWebBody": "整套桌面也能在网页中运行，无需安装。",
   "appNotes": "备忘录",
-  "menuQuit": "退出 Oasis"
+  "menuQuit": "退出 Oasis",
+  "ccOn": "开",
+  "ccOff": "关",
+  "ccNightLight": "夜光",
+  "ccBattery": "电池",
+  "ccMedia": "媒体",
+  "ccNothingPlaying": "暂无播放"
 }

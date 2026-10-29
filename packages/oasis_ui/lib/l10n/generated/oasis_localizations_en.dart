@@ -296,4 +296,22 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get menuQuit => 'Quit Oasis';
+
+  @override
+  String get ccOn => 'On';
+
+  @override
+  String get ccOff => 'Off';
+
+  @override
+  String get ccNightLight => 'Night Light';
+
+  @override
+  String get ccBattery => 'Battery';
+
+  @override
+  String get ccMedia => 'Media';
+
+  @override
+  String get ccNothingPlaying => 'Nothing playing';
 }

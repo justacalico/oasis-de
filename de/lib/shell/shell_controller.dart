@@ -43,9 +43,7 @@ class ShellWindowData {
   var launching = false;
 
   String get displayTitle =>
-      surface != null && surface!.title.isNotEmpty
-          ? surface!.title
-          : app.name;
+      surface != null && surface!.title.isNotEmpty ? surface!.title : app.name;
 }
 
 class ShellMenuItem {
@@ -73,7 +71,7 @@ class ShellMenu {
 
 class ShellController extends ChangeNotifier {
   ShellController({required List<OasisApp> apps, this.wayland})
-      : apps = List.of(apps) {
+    : apps = List.of(apps) {
     wayland?.addListener(_syncSurfaces);
     _requestSub = wayland?.requests.listen(_onWaylandRequest);
   }
@@ -95,8 +93,10 @@ class ShellController extends ChangeNotifier {
   var wifiOn = true;
   var bluetoothOn = true;
   var focusOn = false;
+  var nightLightOn = false;
   var brightness = 0.8;
   var volume = 0.6;
+  var batteryPercent = 100;
 
   int? get focusedId => _focusedId;
   String? get openMenu => _openMenu;
@@ -235,8 +235,7 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void resizeWindow(int id, Offset delta, OasisResizeEdge edge,
-      Size fallback) {
+  void resizeWindow(int id, Offset delta, OasisResizeEdge edge, Size fallback) {
     final window = _byId(id);
     if (window == null ||
         window.zoomed ||
@@ -251,12 +250,10 @@ class ShellController extends ChangeNotifier {
     if (s != null) {
       if (s.minSize.width > 0 && s.minSize.height > 0) {
         minW = math.max(minW, s.minSize.width);
-        minH = math.max(
-            minH, s.minSize.height + kOasisWindowTitleBarHeight);
+        minH = math.max(minH, s.minSize.height + kOasisWindowTitleBarHeight);
       } else if (!s.size.isEmpty) {
         minW = math.min(minW, s.size.width);
-        minH = math.min(
-            minH, s.size.height + kOasisWindowTitleBarHeight);
+        minH = math.min(minH, s.size.height + kOasisWindowTitleBarHeight);
       }
       if (s.maxSize.width > 0 && s.maxSize.height > 0) {
         maxW = s.maxSize.width;
@@ -266,8 +263,7 @@ class ShellController extends ChangeNotifier {
     final base = window.size ?? fallback;
     final size = Size(
       math.max(minW, math.min(maxW, base.width + delta.dx * edge.dx)),
-      math.max(
-          minH, math.min(maxH, base.height + delta.dy * edge.dy)),
+      math.max(minH, math.min(maxH, base.height + delta.dy * edge.dy)),
     );
     window.position = Offset(
       edge.dx < 0
@@ -352,7 +348,9 @@ class ShellController extends ChangeNotifier {
           id: _nextId++,
           app: _appForSurface(s),
           position: Offset(
-              56 + windows.length * 28.0, 52 + windows.length * 24.0),
+            56 + windows.length * 28.0,
+            52 + windows.length * 24.0,
+          ),
         );
         windows.add(w);
         return w;
@@ -376,8 +374,10 @@ class ShellController extends ChangeNotifier {
       if (s == null || w.zoomed || s.size.isEmpty) continue;
       if (s.size == w.adoptedSize) continue;
       w.adoptedSize = s.size;
-      final fit = Size(s.size.width,
-          s.size.height + kOasisWindowTitleBarHeight);
+      final fit = Size(
+        s.size.width,
+        s.size.height + kOasisWindowTitleBarHeight,
+      );
       if (w.size == fit) continue;
       w.size = fit;
       changed = true;
@@ -458,6 +458,7 @@ class ShellController extends ChangeNotifier {
   set wifiOnValue(bool v) => _set(() => wifiOn = v);
   set bluetoothOnValue(bool v) => _set(() => bluetoothOn = v);
   set focusOnValue(bool v) => _set(() => focusOn = v);
+  set nightLightOnValue(bool v) => _set(() => nightLightOn = v);
   set brightnessValue(double v) => _set(() => brightness = v);
   set volumeValue(double v) => _set(() => volume = v);
 

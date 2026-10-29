@@ -112,5 +112,11 @@
   "landingTryWeb": "Попробуйте в браузере",
   "landingWebBody": "Весь рабочий стол работает и в вебе. Установка не нужна.",
   "appNotes": "Заметки",
-  "menuQuit": "Выйти из Oasis"
+  "menuQuit": "Выйти из Oasis",
+  "ccOn": "Вкл",
+  "ccOff": "Выкл",
+  "ccNightLight": "Ночной свет",
+  "ccBattery": "Батарея",
+  "ccMedia": "Медиа",
+  "ccNothingPlaying": "Ничего не воспроизводится"
 }
