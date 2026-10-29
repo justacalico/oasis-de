@@ -22,6 +22,8 @@ Oasis is a desktop environment for people, not nerds. A floating dock, a translu
 
 Grab a build from [GitLab Releases](https://gitlab.com/HttpAnimations/oasis-de/-/releases). The landing page lives at [httpanimations.gitlab.io/oasis-de](https://httpanimations.gitlab.io/oasis-de/) and always links to the latest release.
 
+On Fedora and other RPM distros, install the `.rpm` for your architecture. It registers an Oasis session so you can pick it from the login screen (SDDM, GDM).
+
 ### Web
 
 The shell also runs as a normal app in your browser: [open it here](https://httpanimations.gitlab.io/oasis-de/app/).
