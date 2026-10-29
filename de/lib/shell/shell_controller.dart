@@ -578,6 +578,9 @@ class ShellController extends ChangeNotifier {
         }
       case WaylandRequestType.minimize:
         minimizeWindow(w.id);
+      case WaylandRequestType.activate:
+        if (w.minimized) restoreWindow(w.id);
+        _focus(w.id);
       case WaylandRequestType.resize:
         final edge = _waylandResizeEdges[request.edges];
         if (edge != null) {

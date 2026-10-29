@@ -31,6 +31,7 @@ class WaylandSurface {
   double scale = 1;
   int transform = 0;
   List<Rect>? inputRegion;
+  bool idleInhibit = false;
   Size minSize = Size.zero;
   Size maxSize = Size.zero;
 
@@ -44,6 +45,7 @@ enum WaylandRequestType {
   fullscreen,
   minimize,
   windowMenu,
+  activate,
 }
 
 class WaylandRequest {
@@ -85,6 +87,7 @@ class WaylandService extends ChangeNotifier {
   final _requests = StreamController<WaylandRequest>.broadcast();
   StreamSubscription<Map<String, Object?>>? _sub;
   WaylandCursor? cursor;
+  int cursorShape = 0;
 
   var socket = '';
   var started = false;
@@ -164,6 +167,11 @@ class WaylandService extends ChangeNotifier {
                 ),
               )
             : null;
+      case 'cursorShape':
+        cursorShape = (e['shape'] as num?)?.toInt() ?? 0;
+      case 'idleInhibit':
+        final s = surfaces[id];
+        if (s != null) s.idleInhibit = e['on'] == true;
       case 'inputRegion':
         final s = surfaces[id];
         final rects = e['rects'] as List<Object?>?;
@@ -258,6 +266,8 @@ class WaylandService extends ChangeNotifier {
         );
       case 'minimize':
         _requests.add(WaylandRequest(WaylandRequestType.minimize, id));
+      case 'activate':
+        _requests.add(WaylandRequest(WaylandRequestType.activate, id));
       case 'windowMenu':
         _requests.add(
           WaylandRequest(

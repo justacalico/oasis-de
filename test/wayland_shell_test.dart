@@ -1109,6 +1109,54 @@ void main() {
     expect(find.text('Minimise'), findsOneWidget);
   });
 
+  test('activate request focuses the window', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    _emitToplevel(host, id: 1, appId: 'x');
+    await pumpEventQueue();
+    host.emit({'event': 'activate', 'id': 1});
+    await pumpEventQueue();
+    expect(c.focusedWindow?.surface?.id, 1);
+    c.dispose();
+    service.dispose();
+  });
+
+  test('cursorShape maps to a system mouse cursor', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    for (var shape = 0; shape <= 35; shape++) {
+      host.emit({'event': 'cursorShape', 'shape': shape});
+      await pumpEventQueue();
+      expect(waylandMouseCursor(service), isNotNull);
+    }
+    host.emit({
+      'event': 'cursor',
+      'id': 9,
+      'texture': 42,
+      'w': 8,
+      'h': 8,
+      'hx': 0,
+      'hy': 0,
+    });
+    await pumpEventQueue();
+    expect(waylandMouseCursor(service), SystemMouseCursors.none);
+    service.dispose();
+  });
+
+  test('idleInhibit event marks the surface', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    _emitToplevel(host, id: 1, appId: 'x');
+    host.emit({'event': 'idleInhibit', 'id': 1, 'on': true});
+    await pumpEventQueue();
+    expect(service.surfaces[1]!.idleInhibit, isTrue);
+    host.emit({'event': 'idleInhibit', 'id': 1, 'on': false});
+    await pumpEventQueue();
+    expect(service.surfaces[1]!.idleInhibit, isFalse);
+    service.dispose();
+  });
+
   test('size event carries buffer scale and transform', () async {
     final host = FakeWaylandHost();
     final service = await _service(host);

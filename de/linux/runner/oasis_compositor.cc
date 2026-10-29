@@ -19,6 +19,7 @@
 #include <cstring>
 #include <set>
 #include <string>
+#include <unordered_set>
 #include <unordered_map>
 #include <vector>
 
@@ -31,15 +32,41 @@
 #include <wayland-server.h>
 #include <xkbcommon/xkbcommon.h>
 
+#include "cursor-shape-v1-server-protocol.h"
 #include "fractional-scale-v1-server-protocol.h"
+#include "idle-inhibit-unstable-v1-server-protocol.h"
 #include "linux-dmabuf-v1-server-protocol.h"
+#include "presentation-time-server-protocol.h"
+#include "primary-selection-unstable-v1-server-protocol.h"
+#include "text-input-unstable-v3-server-protocol.h"
 #include "viewporter-server-protocol.h"
+#include "xdg-activation-v1-server-protocol.h"
 #include "xdg-decoration-unstable-v1-server-protocol.h"
 #include "xdg-shell-server-protocol.h"
 
 
 static bool is_dmabuf_buffer(wl_resource* b);
 static void emit_cursor(struct _OasisCompositor* c);
+static void send_presented(struct Surface* s);
+static void sync_text_input_focus(struct _OasisCompositor* c);
+static void send_primary_selection(struct _OasisCompositor* c,
+                                   wl_resource* device);
+
+struct TextInput {
+  wl_resource* res;
+  wl_client* client;
+  OasisCompositor* client_comp = nullptr;
+  struct Surface* entered = nullptr;
+  bool enabled = false;
+  uint32_t serial = 0;
+  uint32_t cause = 0;
+  uint32_t hint = 0;
+  uint32_t purpose = 0;
+  std::string surrounding;
+  int32_t cursor_pos = 0;
+  int32_t anchor = 0;
+  std::array<int32_t, 4> rect{0, 0, 0, 0};
+};
 
 enum SurfaceRole {
   SURFACE_NONE,
@@ -75,6 +102,8 @@ struct Surface {
   std::vector<std::array<int32_t, 4>> pending_input;
   std::vector<std::array<int32_t, 4>> pending_opaque;
   std::vector<std::array<int32_t, 4>> pending_damage;
+  std::vector<wl_resource*> idle_inhibitors;
+  std::vector<wl_resource*> presentation_feedbacks;
   bool pending_input_set = false;
   bool pending_opaque_set = false;
   int buf_scale = 1;
@@ -223,6 +252,12 @@ struct _OasisCompositor {
   Surface* cursor_surface = nullptr;
   int cursor_hx = 0;
   int cursor_hy = 0;
+  uint32_t cursor_shape = 0;
+  std::vector<wl_resource*> text_inputs;
+  std::vector<wl_resource*> primary_devices;
+  wl_resource* primary_source = nullptr;
+  std::vector<std::string> primary_mimes;
+  std::unordered_set<std::string> activation_tokens;
 
   char* keymap = nullptr;
   size_t keymap_len = 0;
@@ -507,6 +542,7 @@ static void surface_commit(Surface* s) {
     }
     if (s == s->comp->cursor_surface) emit_cursor(s->comp);
   }
+  send_presented(s);
 }
 
 // wl_surface
@@ -691,6 +727,17 @@ static void free_surface(Surface* s) {
   }
   for (wl_resource* fs : s->fractional_scales) {
     wl_resource_set_user_data(fs, nullptr);
+  }
+  for (wl_resource* inh : s->idle_inhibitors) {
+    wl_resource_set_user_data(inh, nullptr);
+  }
+  for (wl_resource* fb : s->presentation_feedbacks) {
+    wl_resource_set_user_data(fb, nullptr);
+  }
+  for (wl_resource* res : c->text_inputs) {
+    TextInput* ti =
+        static_cast<TextInput*>(wl_resource_get_user_data(res));
+    if (ti != nullptr && ti->entered == s) ti->entered = nullptr;
   }
   c->by_id.erase(s->public_id);
   c->surfaces.erase(
@@ -960,7 +1007,13 @@ static void set_kb_focus(OasisCompositor* c, Surface* s) {
     }
     send_modifiers(c);
     offer_selection(c, s->client);
+    for (wl_resource* dev : c->primary_devices) {
+      if (wl_resource_get_client(dev) == s->client) {
+        send_primary_selection(c, dev);
+      }
+    }
   }
+  sync_text_input_focus(c);
 }
 
 static void pointer_enter(OasisCompositor* c, Surface* s, double x, double y) {
@@ -2332,6 +2385,536 @@ static void bind_fs_manager(wl_client* client,
   wl_resource_set_implementation(res, &fs_manager_impl, data, nullptr);
 }
 
+// zwp_idle_inhibit_v1
+
+static void emit_idle_inhibit(Surface* s) {
+  FlValue* m = new_event("idleInhibit");
+  ev_id(m, s->public_id);
+  fl_value_set_string_take(
+      m, "on", fl_value_new_bool(!s->idle_inhibitors.empty()));
+  send_event(s->comp, m);
+}
+
+static void inhibitor_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void inhibitor_res_destroyed(wl_resource* res) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
+  auto& v = s->idle_inhibitors;
+  v.erase(std::remove(v.begin(), v.end(), res), v.end());
+  if (v.empty() && s->announced != SURFACE_NONE) emit_idle_inhibit(s);
+}
+
+static const struct zwp_idle_inhibitor_v1_interface inhibitor_impl = {
+    inhibitor_destroy};
+
+static void inhibit_manager_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void inhibit_manager_create(wl_client* client,
+                                   wl_resource* res,
+                                   uint32_t id,
+                                   wl_resource* surface_res) {
+  Surface* s =
+      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  wl_resource* inh =
+      wl_resource_create(client, &zwp_idle_inhibitor_v1_interface,
+                         wl_resource_get_version(res), id);
+  s->idle_inhibitors.push_back(inh);
+  wl_resource_set_implementation(inh, &inhibitor_impl, s,
+                                 inhibitor_res_destroyed);
+  if (s->idle_inhibitors.size() == 1 &&
+      s->announced != SURFACE_NONE) {
+    emit_idle_inhibit(s);
+  }
+}
+
+static const struct zwp_idle_inhibit_manager_v1_interface
+    inhibit_manager_impl = {inhibit_manager_destroy,
+                            inhibit_manager_create};
+
+static void bind_inhibit_manager(wl_client* client,
+                                 void* data,
+                                 uint32_t ver,
+                                 uint32_t id) {
+  wl_resource* res = wl_resource_create(
+      client, &zwp_idle_inhibit_manager_v1_interface, ver, id);
+  wl_resource_set_implementation(res, &inhibit_manager_impl, data,
+                                 nullptr);
+}
+
+// wp_cursor_shape_v1
+
+static void shape_device_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void shape_device_set_shape(wl_client* client,
+                                   wl_resource* res,
+                                   uint32_t serial,
+                                   uint32_t shape) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  c->cursor_shape = shape;
+  FlValue* m = new_event("cursorShape");
+  fl_value_set_string_take(m, "shape", fl_value_new_int(shape));
+  send_event(c, m);
+}
+
+static const struct wp_cursor_shape_device_v1_interface
+    shape_device_impl = {shape_device_destroy, shape_device_set_shape};
+
+static void shape_manager_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void shape_manager_get_pointer(wl_client* client,
+                                      wl_resource* res,
+                                      uint32_t id,
+                                      wl_resource* pointer) {
+  wl_resource* dev =
+      wl_resource_create(client, &wp_cursor_shape_device_v1_interface,
+                         wl_resource_get_version(res), id);
+  wl_resource_set_implementation(dev, &shape_device_impl,
+                                 wl_resource_get_user_data(res), nullptr);
+}
+
+static void shape_manager_get_tablet_tool(wl_client* client,
+                                          wl_resource* res,
+                                          uint32_t id,
+                                          wl_resource* tablet_tool) {
+  wl_resource* dev =
+      wl_resource_create(client, &wp_cursor_shape_device_v1_interface,
+                         wl_resource_get_version(res), id);
+  wl_resource_set_implementation(dev, &shape_device_impl,
+                                 wl_resource_get_user_data(res), nullptr);
+}
+
+static const struct wp_cursor_shape_manager_v1_interface
+    shape_manager_impl = {shape_manager_destroy,
+                          shape_manager_get_pointer,
+                          shape_manager_get_tablet_tool};
+
+static void bind_shape_manager(wl_client* client,
+                               void* data,
+                               uint32_t ver,
+                               uint32_t id) {
+  wl_resource* res = wl_resource_create(
+      client, &wp_cursor_shape_manager_v1_interface, ver, id);
+  wl_resource_set_implementation(res, &shape_manager_impl, data, nullptr);
+}
+
+// wp_presentation
+
+static void presentation_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void feedback_res_destroyed(wl_resource* res) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
+  auto& v = s->presentation_feedbacks;
+  v.erase(std::remove(v.begin(), v.end(), res), v.end());
+}
+
+static void presentation_feedback(wl_client* client,
+                                  wl_resource* res,
+                                  wl_resource* surface_res,
+                                  uint32_t callback) {
+  Surface* s =
+      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  wl_resource* fb =
+      wl_resource_create(client, &wp_presentation_feedback_interface,
+                         wl_resource_get_version(res), callback);
+  s->presentation_feedbacks.push_back(fb);
+  wl_resource_set_implementation(fb, nullptr, s,
+                                 feedback_res_destroyed);
+}
+
+static const struct wp_presentation_interface presentation_impl = {
+    presentation_destroy, presentation_feedback};
+
+static void send_presented(Surface* s) {
+  if (s->presentation_feedbacks.empty()) return;
+  timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  for (wl_resource* fb : s->presentation_feedbacks) {
+    wp_presentation_feedback_send_presented(
+        fb, static_cast<uint32_t>(ts.tv_sec >> 32),
+        static_cast<uint32_t>(ts.tv_sec & 0xffffffffu),
+        static_cast<uint32_t>(ts.tv_nsec), 16666666, 0, 0, 0);
+    wl_resource_destroy(fb);
+  }
+  s->presentation_feedbacks.clear();
+}
+
+static void bind_presentation(wl_client* client,
+                              void* data,
+                              uint32_t ver,
+                              uint32_t id) {
+  wl_resource* res =
+      wl_resource_create(client, &wp_presentation_interface, ver, id);
+  wl_resource_set_implementation(res, &presentation_impl, data, nullptr);
+  wp_presentation_send_clock_id(res, CLOCK_MONOTONIC);
+}
+
+// xdg_activation_v1
+
+static void activation_token_destroy(wl_client* client,
+                                     wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void activation_token_noop(wl_client* client,
+                                  wl_resource* res,
+                                  uint32_t serial,
+                                  wl_resource* seat) {}
+
+static void activation_token_set_app_id(wl_client* client,
+                                        wl_resource* res,
+                                        const char* app_id) {}
+
+static void activation_token_set_surface(wl_client* client,
+                                         wl_resource* res,
+                                         wl_resource* surface) {}
+
+static void activation_token_commit(wl_client* client,
+                                    wl_resource* res) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  char token[17];
+  snprintf(token, sizeof(token), "%08x%08x", (unsigned)rand(),
+           (unsigned)now_ms());
+  c->activation_tokens.insert(token);
+  xdg_activation_token_v1_send_done(res, token);
+  wl_resource_destroy(res);
+}
+
+static const struct xdg_activation_token_v1_interface
+    activation_token_impl = {
+        activation_token_noop,
+        activation_token_set_app_id,
+        activation_token_set_surface,
+        activation_token_commit,
+        activation_token_destroy};
+
+static void activation_manager_destroy(wl_client* client,
+                                       wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void activation_manager_get_token(wl_client* client,
+                                         wl_resource* res,
+                                         uint32_t id) {
+  wl_resource* tok =
+      wl_resource_create(client, &xdg_activation_token_v1_interface,
+                         wl_resource_get_version(res), id);
+  wl_resource_set_implementation(tok, &activation_token_impl,
+                                 wl_resource_get_user_data(res), nullptr);
+}
+
+static void activation_manager_activate(wl_client* client,
+                                        wl_resource* res,
+                                        const char* token,
+                                        wl_resource* surface_res) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  Surface* s =
+      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  if (s == nullptr || s->announced != SURFACE_TOPLEVEL) return;
+  if (c->activation_tokens.erase(token) == 0) return;
+  FlValue* m = new_event("activate");
+  ev_id(m, s->public_id);
+  send_event(c, m);
+}
+
+static const struct xdg_activation_v1_interface activation_manager_impl =
+    {activation_manager_destroy, activation_manager_get_token,
+     activation_manager_activate};
+
+static void bind_activation_manager(wl_client* client,
+                                    void* data,
+                                    uint32_t ver,
+                                    uint32_t id) {
+  wl_resource* res = wl_resource_create(
+      client, &xdg_activation_v1_interface, ver, id);
+  wl_resource_set_implementation(res, &activation_manager_impl, data,
+                                 nullptr);
+}
+
+// zwp_text_input_v3
+
+static void text_input_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void text_input_res_destroyed(wl_resource* res) {
+  TextInput* ti = static_cast<TextInput*>(wl_resource_get_user_data(res));
+  auto& v = ti->client_comp->text_inputs;
+  v.erase(std::remove(v.begin(), v.end(), res), v.end());
+  delete ti;
+}
+
+static void text_input_enable(wl_client* client, wl_resource* res) {
+  auto* ti = static_cast<TextInput*>(wl_resource_get_user_data(res));
+  ti->enabled = true;
+}
+
+static void text_input_disable(wl_client* client, wl_resource* res) {
+  auto* ti = static_cast<TextInput*>(wl_resource_get_user_data(res));
+  ti->enabled = false;
+}
+
+static void text_input_set_surrounding(wl_client* client,
+                                       wl_resource* res,
+                                       const char* text,
+                                       int32_t cursor,
+                                       int32_t anchor) {
+  auto* ti = static_cast<TextInput*>(wl_resource_get_user_data(res));
+  ti->surrounding = text != nullptr ? text : "";
+  ti->cursor_pos = cursor;
+  ti->anchor = anchor;
+}
+
+static void text_input_set_cause(wl_client* client,
+                                 wl_resource* res,
+                                 uint32_t cause) {
+  auto* ti = static_cast<TextInput*>(wl_resource_get_user_data(res));
+  ti->cause = cause;
+}
+
+static void text_input_set_content_type(wl_client* client,
+                                        wl_resource* res,
+                                        uint32_t hint,
+                                        uint32_t purpose) {
+  auto* ti = static_cast<TextInput*>(wl_resource_get_user_data(res));
+  ti->hint = hint;
+  ti->purpose = purpose;
+}
+
+static void text_input_set_rect(wl_client* client,
+                                wl_resource* res,
+                                int32_t x,
+                                int32_t y,
+                                int32_t w,
+                                int32_t h) {
+  auto* ti = static_cast<TextInput*>(wl_resource_get_user_data(res));
+  ti->rect = {x, y, w, h};
+}
+
+static void text_input_commit(wl_client* client, wl_resource* res) {
+  auto* ti = static_cast<TextInput*>(wl_resource_get_user_data(res));
+  zwp_text_input_v3_send_done(res, ti->serial++);
+}
+
+static const struct zwp_text_input_v3_interface text_input_impl = {
+    text_input_destroy,
+    text_input_enable,
+    text_input_disable,
+    text_input_set_surrounding,
+    text_input_set_cause,
+    text_input_set_content_type,
+    text_input_set_rect,
+    text_input_commit};
+
+static void text_input_manager_destroy(wl_client* client,
+                                       wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void text_input_manager_get(wl_client* client,
+                                   wl_resource* res,
+                                   uint32_t id,
+                                   wl_resource* seat) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  wl_resource* ti_res =
+      wl_resource_create(client, &zwp_text_input_v3_interface,
+                         wl_resource_get_version(res), id);
+  auto* ti = new TextInput{ti_res, client};
+  ti->client_comp = c;
+  c->text_inputs.push_back(ti_res);
+  wl_resource_set_implementation(ti_res, &text_input_impl, ti,
+                                 text_input_res_destroyed);
+}
+
+static const struct zwp_text_input_manager_v3_interface
+    text_input_manager_impl = {text_input_manager_destroy,
+                               text_input_manager_get};
+
+static void bind_text_input_manager(wl_client* client,
+                                    void* data,
+                                    uint32_t ver,
+                                    uint32_t id) {
+  wl_resource* res = wl_resource_create(
+      client, &zwp_text_input_manager_v3_interface, ver, id);
+  wl_resource_set_implementation(res, &text_input_manager_impl, data,
+                                 nullptr);
+}
+
+static void sync_text_input_focus(OasisCompositor* c) {
+  for (wl_resource* res : c->text_inputs) {
+    TextInput* ti =
+        static_cast<TextInput*>(wl_resource_get_user_data(res));
+    if (ti->client == (c->kb_focus != nullptr ? c->kb_focus->client
+                                             : nullptr) &&
+        ti->entered != c->kb_focus && c->kb_focus != nullptr) {
+      zwp_text_input_v3_send_enter(res, c->kb_focus->wl_surface);
+      ti->entered = c->kb_focus;
+    } else if (ti->entered != nullptr &&
+               (c->kb_focus == nullptr ||
+                ti->client != c->kb_focus->client)) {
+      zwp_text_input_v3_send_leave(res, ti->entered->wl_surface);
+      ti->entered = nullptr;
+    }
+  }
+}
+
+// zwp_primary_selection_v1
+
+static void primary_source_offer(wl_client* client,
+                                 wl_resource* res,
+                                 const char* mime) {
+  auto* mimes = static_cast<std::vector<std::string>*>(
+      wl_resource_get_user_data(res));
+  if (mime != nullptr) mimes->push_back(mime);
+}
+
+static void primary_source_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void primary_source_res_destroyed(wl_resource* res) {
+  auto* mimes = static_cast<std::vector<std::string>*>(
+      wl_resource_get_user_data(res));
+  delete mimes;
+}
+
+static const struct zwp_primary_selection_source_v1_interface
+    primary_source_impl = {primary_source_offer,
+                           primary_source_destroy};
+
+static void primary_offer_receive(wl_client* client,
+                                  wl_resource* res,
+                                  const char* mime,
+                                  int32_t fd) {
+  auto* data = static_cast<OasisCompositor*>(
+      wl_resource_get_user_data(res));
+  if (data->primary_source != nullptr) {
+    zwp_primary_selection_source_v1_send_send(
+        data->primary_source, mime != nullptr ? mime : "", fd);
+  }
+  close(fd);
+}
+
+static void primary_offer_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static const struct zwp_primary_selection_offer_v1_interface
+    primary_offer_impl = {primary_offer_receive,
+                          primary_offer_destroy};
+
+static void primary_device_res_destroyed(wl_resource* res) {
+  auto* c = static_cast<OasisCompositor*>(
+      wl_resource_get_user_data(res));
+  auto& v = c->primary_devices;
+  v.erase(std::remove(v.begin(), v.end(), res), v.end());
+}
+
+static void send_primary_selection(OasisCompositor* c,
+                                   wl_resource* device) {
+  if (c->primary_source == nullptr || c->primary_mimes.empty()) {
+    zwp_primary_selection_device_v1_send_selection(device, nullptr);
+    return;
+  }
+  wl_resource* offer = wl_resource_create(
+      wl_resource_get_client(device),
+      &zwp_primary_selection_offer_v1_interface,
+      wl_resource_get_version(device), 0);
+  wl_resource_set_implementation(offer, &primary_offer_impl, c,
+                                 nullptr);
+  zwp_primary_selection_device_v1_send_data_offer(device, offer);
+  for (const auto& mime : c->primary_mimes) {
+    zwp_primary_selection_offer_v1_send_offer(offer, mime.c_str());
+  }
+  zwp_primary_selection_device_v1_send_selection(device, offer);
+}
+
+static void primary_device_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void primary_device_set_selection(wl_client* client,
+                                         wl_resource* res,
+                                         wl_resource* source,
+                                         uint32_t serial) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  c->primary_source = source;
+  c->primary_mimes.clear();
+  if (source != nullptr) {
+    c->primary_mimes = *static_cast<std::vector<std::string>*>(
+        wl_resource_get_user_data(source));
+  }
+  for (wl_resource* dev : c->primary_devices) {
+    send_primary_selection(c, dev);
+  }
+}
+
+static const struct zwp_primary_selection_device_v1_interface
+    primary_device_impl = {primary_device_set_selection,
+                           primary_device_destroy};
+
+static void primary_manager_destroy(wl_client* client,
+                                    wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void primary_manager_create_source(wl_client* client,
+                                          wl_resource* res,
+                                          uint32_t id) {
+  wl_resource* source = wl_resource_create(
+      client, &zwp_primary_selection_source_v1_interface,
+      wl_resource_get_version(res), id);
+  wl_resource_set_implementation(
+      source, &primary_source_impl, new std::vector<std::string>(),
+      primary_source_res_destroyed);
+}
+
+static void primary_manager_get_device(wl_client* client,
+                                       wl_resource* res,
+                                       uint32_t id,
+                                       wl_resource* seat) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  wl_resource* dev = wl_resource_create(
+      client, &zwp_primary_selection_device_v1_interface,
+      wl_resource_get_version(res), id);
+  c->primary_devices.push_back(dev);
+  wl_resource_set_implementation(dev, &primary_device_impl, c,
+                                 primary_device_res_destroyed);
+}
+
+static const struct zwp_primary_selection_device_manager_v1_interface
+    primary_manager_impl = {primary_manager_create_source,
+                            primary_manager_get_device,
+                            primary_manager_destroy};
+
+static void bind_primary_manager(wl_client* client,
+                                 void* data,
+                                 uint32_t ver,
+                                 uint32_t id) {
+  wl_resource* res = wl_resource_create(
+      client, &zwp_primary_selection_device_manager_v1_interface, ver,
+      id);
+  wl_resource_set_implementation(res, &primary_manager_impl, data,
+                                 nullptr);
+}
+
 // xdg decoration
 
 static void deco_destroy(wl_client* client, wl_resource* res) {
@@ -2791,6 +3374,22 @@ static bool display_start(OasisCompositor* c, GError** error) {
   wl_global_create(c->display,
                    &wp_fractional_scale_manager_v1_interface, 1, c,
                    bind_fs_manager);
+  wl_global_create(c->display,
+                   &zwp_idle_inhibit_manager_v1_interface, 1, c,
+                   bind_inhibit_manager);
+  wl_global_create(c->display,
+                   &wp_cursor_shape_manager_v1_interface, 2, c,
+                   bind_shape_manager);
+  wl_global_create(c->display, &wp_presentation_interface, 1, c,
+                   bind_presentation);
+  wl_global_create(c->display, &xdg_activation_v1_interface, 1, c,
+                   bind_activation_manager);
+  wl_global_create(c->display,
+                   &zwp_text_input_manager_v3_interface, 1, c,
+                   bind_text_input_manager);
+  wl_global_create(
+      c->display, &zwp_primary_selection_device_manager_v1_interface,
+      1, c, bind_primary_manager);
   const char* name = wl_display_add_socket_auto(c->display);
   if (name == nullptr) {
     wl_display_destroy(c->display);
