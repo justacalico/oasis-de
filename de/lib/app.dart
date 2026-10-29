@@ -81,6 +81,8 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       wayland: _wayland,
       backend: widget.backend ?? const CliSystemBackend(),
     );
+    _controller.unknownAppName = () =>
+        lookupOasisLocalizations(_locale ?? const Locale('en')).appUnknown;
     _restoreState();
     _appearance.addListener(_persistState);
     _controller.addListener(_persistState);

@@ -1,6 +1,7 @@
 {
   "@@locale": "en",
   "appName": "Oasis",
+  "appUnknown": "Application",
   "menuFile": "File",
   "menuView": "View",
   "menuWindow": "Window",

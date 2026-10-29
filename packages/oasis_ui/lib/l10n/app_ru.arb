@@ -1,6 +1,7 @@
 {
   "@@locale": "ru",
   "appName": "Oasis",
+  "appUnknown": "Приложение",
   "menuFile": "Файл",
   "menuView": "Вид",
   "menuWindow": "Окно",

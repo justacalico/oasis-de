@@ -108,6 +108,12 @@ abstract class OasisLocalizations {
   /// **'Oasis'**
   String get appName;
 
+  /// No description provided for @appUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Application'**
+  String get appUnknown;
+
   /// No description provided for @menuFile.
   ///
   /// In en, this message translates to:
