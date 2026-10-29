@@ -774,9 +774,25 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
+  final Set<int> _desktopHiddenIds = {};
+
   void showDesktop() {
+    _desktopHiddenIds.removeWhere((id) {
+      final w = _byId(id);
+      return w == null || !w.minimized;
+    });
+    if (_desktopHiddenIds.isNotEmpty) {
+      for (final id in _desktopHiddenIds.toList()) {
+        restoreWindow(id);
+      }
+      _desktopHiddenIds.clear();
+      return;
+    }
     for (final w in switcherWindows) {
-      minimizeWindow(w.id);
+      if (!w.minimized) {
+        _desktopHiddenIds.add(w.id);
+        minimizeWindow(w.id);
+      }
     }
   }
 

@@ -109,6 +109,22 @@ void main() {
     c.dispose();
   });
 
+  test('showDesktop toggles minimize and restore', () {
+    final c = _controller();
+    c.openApp(c.apps[0]);
+    c.openApp(c.apps[1]);
+    c.showDesktop();
+    expect(c.windows.every((w) => w.minimized), isTrue);
+    c.showDesktop();
+    expect(c.windows.every((w) => !w.minimized), isTrue);
+
+    c.showDesktop();
+    c.restoreWindow(c.windows.first.id);
+    c.showDesktop();
+    expect(c.windows.every((w) => !w.minimized), isTrue);
+    c.dispose();
+  });
+
   test('resizeWindow sizes, moves and clamps windows', () {
     final c = _controller();
     c.openApp(c.apps[0]);
