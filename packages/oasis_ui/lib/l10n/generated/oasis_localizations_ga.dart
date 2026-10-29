@@ -312,4 +312,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get appCalculator => 'Áireamhán';
+
+  @override
+  String ctxMoveToDesktop(int n) {
+    return 'Bog go deasc $n';
+  }
 }

@@ -31,6 +31,6 @@ run_oasis() {
 
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && \
    command -v dbus-run-session >/dev/null 2>&1; then
-  exec dbus-run-session -- sh -c "exec $(realpath "$0") --inner \"\$@\"" -- "$@"
+  exec dbus-run-session -- "$0" "$@"
 fi
 run_oasis "$@"

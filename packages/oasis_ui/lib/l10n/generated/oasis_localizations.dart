@@ -683,6 +683,12 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Calculator'**
   String get appCalculator;
+
+  /// No description provided for @ctxMoveToDesktop.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to desktop {n}'**
+  String ctxMoveToDesktop(int n);
 }
 
 class _OasisLocalizationsDelegate

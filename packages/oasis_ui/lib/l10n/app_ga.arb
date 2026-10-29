@@ -117,5 +117,13 @@
   "wallpaperPeaks": "Sléibhte",
   "wallpaperAurora": "Na Saobhrí",
   "wallpaperEmber": "Smóidí",
-  "appCalculator": "Áireamhán"
+  "appCalculator": "Áireamhán",
+  "ctxMoveToDesktop": "Bog go deasc {n}",
+  "@ctxMoveToDesktop": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  }
 }

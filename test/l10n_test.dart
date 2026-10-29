@@ -8,6 +8,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.appName;
   l.menuFile;
   l.dockPin;
+  l.ctxMoveToDesktop(2);
   l.dockUnpin;
   l.menuView;
   l.menuWindow;
