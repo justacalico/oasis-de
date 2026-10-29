@@ -18,6 +18,13 @@ class OasisSystemState {
   final bool? nightLight;
 }
 
+class OasisBattery {
+  const OasisBattery({required this.level, required this.charging});
+
+  final double? level;
+  final bool charging;
+}
+
 abstract class OasisSystemBackend {
   void wifi(bool enabled);
   void bluetooth(bool enabled);
@@ -25,6 +32,7 @@ abstract class OasisSystemBackend {
   void volume(double level);
   void nightLight(bool enabled);
   Future<OasisSystemState> read();
+  Future<OasisBattery> battery();
 }
 
 class NoopSystemBackend implements OasisSystemBackend {
@@ -47,12 +55,17 @@ class NoopSystemBackend implements OasisSystemBackend {
 
   @override
   Future<OasisSystemState> read() async => const OasisSystemState();
+
+  @override
+  Future<OasisBattery> battery() async =>
+      const OasisBattery(level: null, charging: false);
 }
 
 class CliSystemBackend implements OasisSystemBackend {
-  const CliSystemBackend({this.run});
+  const CliSystemBackend({this.run, this.powerSupplyDir});
 
   final Future<ProcessResult> Function(String, List<String>)? run;
+  final Directory? powerSupplyDir;
 
   void _exec(String exe, List<String> args) {
     if (kIsWeb) return;
@@ -126,5 +139,30 @@ class CliSystemBackend implements OasisSystemBackend {
     final v = RegExp(r'Volume:\s*([\d.]+)').firstMatch(out)?.group(1);
     if (v == null) return null;
     return double.parse(v).clamp(0.0, 1.0);
+  }
+
+  @override
+  Future<OasisBattery> battery() async {
+    if (kIsWeb) return const OasisBattery(level: null, charging: false);
+    try {
+      final dir = powerSupplyDir ?? Directory('/sys/class/power_supply');
+      if (!dir.existsSync()) {
+        return const OasisBattery(level: null, charging: false);
+      }
+      for (final e in dir.listSync()) {
+        final name = e.path.split('/').last;
+        if (!name.startsWith('BAT')) continue;
+        final cap = await File('${e.path}/capacity').readAsString();
+        final status = await File('${e.path}/status').readAsString();
+        return OasisBattery(
+          level: (int.tryParse(cap.trim()) ?? 0) / 100,
+          charging: status.trim() == 'Charging' ||
+              status.trim() == 'Full',
+        );
+      }
+    } on FileSystemException {
+      return const OasisBattery(level: null, charging: false);
+    }
+    return const OasisBattery(level: null, charging: false);
   }
 }

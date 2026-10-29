@@ -480,4 +480,8 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<OasisSystemState> read() async => const OasisSystemState();
+
+  @override
+  Future<OasisBattery> battery() async =>
+      const OasisBattery(level: null, charging: false);
 }
