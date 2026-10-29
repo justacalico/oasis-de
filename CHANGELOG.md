@@ -2,6 +2,20 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## 0.2.0 - 2026-10-29
+#### Features
+- 窗口最小化添加精灵动画 - (ea08d12) - Calico
+#### Continuous Integration
+- 页面部署覆盖唯一域路径 - (45d0398) - Calico
+- 发布脚本支持已存在的 release - (e858ee2) - Calico
+- 修复 workflow 语法 - (0cb49a1) - Calico
+- 修复产物路径、发布权限与构建监听 - (9a92710) - Calico
+- tag 流水线只推送标签不推主分支 - (dcbee36) - Calico
+- tag 构建触发与 GitHub 发布创建 - (5f222fb) - Calico
+- 单独推送标签 - (a29244d) - Calico
+
+- - -
+
 ## 0.1.0 - 2026-10-28
 #### Features
 - 初始提交 Oasis 桌面环境 - (e2e06fe) - Calico
