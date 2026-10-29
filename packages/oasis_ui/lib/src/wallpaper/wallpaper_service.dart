@@ -49,7 +49,11 @@ class OasisWallpaperService extends ChangeNotifier {
   void usePreset(String id) {
     _preset = id;
     _store.write(kPresetKey, id);
-    imagePath = null;
+    if (_imagePath != null) {
+      imagePath = null;
+    } else {
+      notifyListeners();
+    }
   }
 
   static BoxFit _fitFromName(String? name) {
