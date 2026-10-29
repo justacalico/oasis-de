@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:ui';
+
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -35,74 +37,87 @@ class ShellMenuBar extends StatelessWidget {
       ],
     );
 
-    return SizedBox(
-      height: kMenuBarHeight,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          children: [
-            const Icon(Icons.water_drop, size: 15, color: Color(0xFFFFFFFF)),
-            const SizedBox(width: 10),
-            for (var i = 0; i < menus.length; i++) ...[
-              _MenuLabel(
-                key: labelKeys[i],
-                label: menus[i].label,
-                bold: i == 0,
-                open: controller.openMenu == menus[i].label,
-                style: textStyle,
-                onTap: () => controller.selectMenu(
-                  controller.openMenu == menus[i].label ? null : menus[i].label,
+    final p = OasisStyle.of(context).palette;
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          height: kMenuBarHeight,
+          color: p.glassFill.withValues(alpha: 0.55),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.water_drop,
+                  size: 15,
+                  color: Color(0xFFFFFFFF),
                 ),
-                onHover: () {
-                  if (controller.openMenu != null &&
-                      controller.openMenu != menus[i].label) {
-                    controller.selectMenu(menus[i].label);
-                  }
-                },
-              ),
-              const SizedBox(width: 2),
-            ],
-            const Spacer(),
-            _StatusIcon(
-              icon: Icons.search,
-              onTap: controller.toggleLauncher,
-              style: textStyle,
+                const SizedBox(width: 10),
+                for (var i = 0; i < menus.length; i++) ...[
+                  _MenuLabel(
+                    key: labelKeys[i],
+                    label: menus[i].label,
+                    bold: i == 0,
+                    open: controller.openMenu == menus[i].label,
+                    style: textStyle,
+                    onTap: () => controller.selectMenu(
+                      controller.openMenu == menus[i].label
+                          ? null
+                          : menus[i].label,
+                    ),
+                    onHover: () {
+                      if (controller.openMenu != null &&
+                          controller.openMenu != menus[i].label) {
+                        controller.selectMenu(menus[i].label);
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 2),
+                ],
+                const Spacer(),
+                _StatusIcon(
+                  icon: Icons.search,
+                  onTap: controller.toggleLauncher,
+                  style: textStyle,
+                ),
+                _StatusIcon(
+                  icon: controller.wifiOn ? Icons.wifi : Icons.wifi_off,
+                  onTap: controller.toggleControlCenter,
+                  style: textStyle,
+                ),
+                if (controller.batteryLevel != null)
+                  _StatusIcon(
+                    icon: controller.batteryCharging
+                        ? Icons.battery_charging_full
+                        : switch ((controller.batteryLevel! * 10).round()) {
+                            <= 2 => Icons.battery_1_bar,
+                            <= 4 => Icons.battery_3_bar,
+                            <= 6 => Icons.battery_4_bar,
+                            <= 8 => Icons.battery_6_bar,
+                            _ => Icons.battery_full,
+                          },
+                    onTap: () {},
+                    style: textStyle,
+                  ),
+                _StatusIcon(
+                  icon: Icons.tune,
+                  onTap: controller.toggleControlCenter,
+                  style: textStyle,
+                ),
+                _StatusIcon(
+                  icon: controller.notifications.isEmpty
+                      ? Icons.notifications_none
+                      : Icons.notifications,
+                  onTap: controller.toggleNotificationCenter,
+                  style: textStyle,
+                ),
+                _SessionMenu(controller: controller, style: textStyle),
+                const SizedBox(width: 6),
+                _MenuClock(style: textStyle),
+              ],
             ),
-            _StatusIcon(
-              icon: controller.wifiOn ? Icons.wifi : Icons.wifi_off,
-              onTap: controller.toggleControlCenter,
-              style: textStyle,
-            ),
-            if (controller.batteryLevel != null)
-              _StatusIcon(
-                icon: controller.batteryCharging
-                    ? Icons.battery_charging_full
-                    : switch ((controller.batteryLevel! * 10).round()) {
-                        <= 2 => Icons.battery_1_bar,
-                        <= 4 => Icons.battery_3_bar,
-                        <= 6 => Icons.battery_4_bar,
-                        <= 8 => Icons.battery_6_bar,
-                        _ => Icons.battery_full,
-                      },
-                onTap: () {},
-                style: textStyle,
-              ),
-            _StatusIcon(
-              icon: Icons.tune,
-              onTap: controller.toggleControlCenter,
-              style: textStyle,
-            ),
-            _StatusIcon(
-              icon: controller.notifications.isEmpty
-                  ? Icons.notifications_none
-                  : Icons.notifications,
-              onTap: controller.toggleNotificationCenter,
-              style: textStyle,
-            ),
-            _SessionMenu(controller: controller, style: textStyle),
-            const SizedBox(width: 6),
-            _MenuClock(style: textStyle),
-          ],
+          ),
         ),
       ),
     );
@@ -352,11 +367,7 @@ class _SessionMenu extends StatelessWidget {
     final l10n = OasisLocalizations.of(context);
     return PopupMenuButton<OasisSessionAction>(
       tooltip: '',
-      icon: Icon(
-        Icons.power_settings_new,
-        size: 15,
-        color: style?.color,
-      ),
+      icon: Icon(Icons.power_settings_new, size: 15, color: style?.color),
       onSelected: controller.session,
       itemBuilder: (context) => [
         PopupMenuItem(
