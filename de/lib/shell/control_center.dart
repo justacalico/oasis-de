@@ -84,6 +84,35 @@ class ShellControlCenter extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     _CcCard(
+                      child: Row(
+                        children: [
+                          for (
+                            var i = 0;
+                            i < ShellController.workspaceCount;
+                            i++
+                          )
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  right: i < ShellController.workspaceCount - 1
+                                      ? 6
+                                      : 0,
+                                ),
+                                child: OasisButton(
+                                  key: ValueKey('ws$i'),
+                                  variant: i == c.activeWorkspace
+                                      ? OasisButtonVariant.primary
+                                      : OasisButtonVariant.secondary,
+                                  onPressed: () => c.setWorkspace(i),
+                                  label: '${i + 1}',
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _CcCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -98,6 +127,7 @@ class ShellControlCenter extends StatelessWidget {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 10),
                     _CcCard(
                       child: Column(
@@ -114,6 +144,7 @@ class ShellControlCenter extends StatelessWidget {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 10),
                     _CcCard(
                       child: Row(
@@ -137,6 +168,7 @@ class ShellControlCenter extends StatelessWidget {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 10),
                     _CcCard(
                       child: Row(

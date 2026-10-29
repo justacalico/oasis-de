@@ -364,6 +364,16 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('control center workspace pager switches', (tester) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ws1')).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ws0')).first);
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('control center bluetooth and volume slider', (tester) async {
     await pumpDesktop(
       tester,

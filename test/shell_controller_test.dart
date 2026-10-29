@@ -242,6 +242,28 @@ void main() {
     c.dispose();
   });
 
+  test('workspaces switch and move windows', () {
+    final c = _controller();
+    c.openApp(c.apps.first);
+    final w = c.windows.single;
+    expect(w.workspace, 0);
+    c.setWorkspace(0);
+    c.setWorkspace(9);
+    c.setWorkspace(-1);
+    expect(c.activeWorkspace, 0);
+    c.setWorkspace(2);
+    expect(c.activeWorkspace, 2);
+    expect(c.focusedId, isNull);
+    c.moveWindowToWorkspace(w.id, 2);
+    expect(w.workspace, 2);
+    c.moveWindowToWorkspace(w.id, 2);
+    c.setWorkspace(0);
+    expect(c.focusedId, isNull);
+    c.setWorkspace(2);
+    expect(c.focusedId, w.id);
+    c.dispose();
+  });
+
   test('menus and overlays are mutually exclusive', () {
     final c = _controller();
     c.selectMenu('File');

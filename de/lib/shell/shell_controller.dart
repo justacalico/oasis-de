@@ -29,6 +29,7 @@ class ShellWindowData {
     required this.id,
     required this.app,
     required this.position,
+    this.workspace = 0,
   });
 
   final int id;
@@ -40,6 +41,7 @@ class ShellWindowData {
   var minimized = false;
   var zoomed = false;
   var fullscreen = false;
+  var workspace = 0;
   var transition = ShellWindowTransition.none;
   WaylandSurface? surface;
   var launching = false;
@@ -95,6 +97,7 @@ class ShellController extends ChangeNotifier {
   var launcherOpen = false;
   var launchPadOpen = false;
   var controlCenterOpen = false;
+  var activeWorkspace = 0;
   var wifiOn = true;
   var bluetoothOn = true;
   var focusOn = false;
@@ -559,6 +562,27 @@ class ShellController extends ChangeNotifier {
     final to = pinned.indexWhere((a) => a.id == overId);
     if (from < 0 || to < 0 || from == to) return;
     pinned.insert(to, pinned.removeAt(from));
+    notifyListeners();
+  }
+
+  static const workspaceCount = 4;
+
+  void setWorkspace(int i) {
+    if (i == activeWorkspace || i < 0 || i >= workspaceCount) {
+      return;
+    }
+    activeWorkspace = i;
+    _focusedId = null;
+    final visible = [for (final w in windows) if (w.workspace == i) w];
+    if (visible.isNotEmpty) _focus(visible.last.id);
+    notifyListeners();
+  }
+
+  void moveWindowToWorkspace(int id, int i) {
+    final w = _byId(id);
+    if (w == null || i == w.workspace) return;
+    w.workspace = i;
+    if (_focusedId == id) _focusedId = null;
     notifyListeners();
   }
 
