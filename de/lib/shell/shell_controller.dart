@@ -54,12 +54,14 @@ class ShellMenuItem {
     required this.label,
     this.enabled = true,
     this.separatorAfter = false,
+    this.checked = false,
     this.action,
   });
 
   final String label;
   final bool enabled;
   final bool separatorAfter;
+  final bool checked;
   final void Function(BuildContext context)? action;
 }
 
@@ -264,6 +266,14 @@ class ShellController extends ChangeNotifier {
     final window = _byId(id);
     if (window == null) return;
     window.transition = ShellWindowTransition.none;
+    notifyListeners();
+  }
+
+  void toggleFullscreen(int id) {
+    final w = _byId(id);
+    if (w == null) return;
+    w.fullscreen = !w.fullscreen;
+    w.adoptedSize = w.surface?.size;
     notifyListeners();
   }
 

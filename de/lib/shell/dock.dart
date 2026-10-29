@@ -156,14 +156,15 @@ class _ShellDockState extends State<ShellDock> {
                           child: _DockIcon(
                             app: app,
                             running: false,
-                            measure: (_) => kDockIconSize,
-                            onTap: () {},
+                            measure: _sizeAt,
+                            onTap: null,
                           ),
                         ),
                         child: _dockMenu(
                           context,
                           _DockIcon(
                             key: pinnedMinimizedKeys[app.id],
+                            triggerMode: TooltipTriggerMode.manual,
                             app: app,
                             running: running.contains(app.id),
                             measure: _sizeAt,
@@ -231,13 +232,15 @@ class _DockIcon extends StatelessWidget {
     required this.app,
     required this.running,
     required this.measure,
-    required this.onTap,
+    this.onTap,
+    this.triggerMode,
   });
 
   final OasisApp app;
   final bool running;
   final double Function(double centerX) measure;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final TooltipTriggerMode? triggerMode;
 
   @override
   Widget build(BuildContext context) {
@@ -257,6 +260,7 @@ class _DockIcon extends StatelessWidget {
               Tooltip(
                 message: app.name,
                 preferBelow: false,
+                triggerMode: triggerMode,
                 child: GestureDetector(
                   onTap: onTap,
                   child: SizedBox(

@@ -23,14 +23,17 @@ class ShellMenuBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: const Color(0xFFFFFFFF),
-          fontWeight: FontWeight.w500,
-          fontSize: 13,
-          shadows: [
-            const Shadow(
-                color: Color(0x66000000), blurRadius: 4, offset: Offset(0, 1)),
-          ],
-        );
+      color: const Color(0xFFFFFFFF),
+      fontWeight: FontWeight.w500,
+      fontSize: 13,
+      shadows: [
+        const Shadow(
+          color: Color(0x66000000),
+          blurRadius: 4,
+          offset: Offset(0, 1),
+        ),
+      ],
+    );
 
     return SizedBox(
       height: kMenuBarHeight,
@@ -38,8 +41,7 @@ class ShellMenuBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
           children: [
-            const Icon(Icons.water_drop,
-                size: 15, color: Color(0xFFFFFFFF)),
+            const Icon(Icons.water_drop, size: 15, color: Color(0xFFFFFFFF)),
             const SizedBox(width: 10),
             for (var i = 0; i < menus.length; i++) ...[
               _MenuLabel(
@@ -49,9 +51,8 @@ class ShellMenuBar extends StatelessWidget {
                 open: controller.openMenu == menus[i].label,
                 style: textStyle,
                 onTap: () => controller.selectMenu(
-                    controller.openMenu == menus[i].label
-                        ? null
-                        : menus[i].label),
+                  controller.openMenu == menus[i].label ? null : menus[i].label,
+                ),
                 onHover: () {
                   if (controller.openMenu != null &&
                       controller.openMenu != menus[i].label) {
@@ -177,8 +178,13 @@ class _MenuClockState extends State<_MenuClock> {
   }
 
   void _scheduleTick() {
-    final next =
-        DateTime(_now.year, _now.month, _now.day, _now.hour, _now.minute + 1);
+    final next = DateTime(
+      _now.year,
+      _now.month,
+      _now.day,
+      _now.hour,
+      _now.minute + 1,
+    );
     _timer = Timer(next.difference(_now), _tick);
   }
 
@@ -228,20 +234,21 @@ class MenuDropdown extends StatelessWidget {
         constraints: const BoxConstraints(minWidth: 210),
         child: IntrinsicWidth(
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final item in items) ...[
-              _MenuEntry(item: item, controller: controller),
-              if (item.separatorAfter)
-                Divider(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final item in items) ...[
+                _MenuEntry(item: item, controller: controller),
+                if (item.separatorAfter)
+                  Divider(
                     height: 9,
                     thickness: 0.5,
                     indent: 12,
                     endIndent: 12,
-                    color: style.palette.divider),
+                    color: style.palette.divider,
+                  ),
+              ],
             ],
-          ],
           ),
         ),
       ),
@@ -269,8 +276,8 @@ class _MenuEntryState extends State<_MenuEntry> {
     final color = !enabled
         ? p.textTertiary
         : _hovered
-            ? const Color(0xFFFFFFFF)
-            : p.textPrimary;
+        ? const Color(0xFFFFFFFF)
+        : p.textPrimary;
     return MouseRegion(
       onEnter: (_) {
         if (enabled) setState(() => _hovered = true);
@@ -294,12 +301,21 @@ class _MenuEntryState extends State<_MenuEntry> {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            child: Text(
-              widget.item.label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: color),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  child: widget.item.checked
+                      ? Icon(Icons.check, size: 14, color: color)
+                      : null,
+                ),
+                Text(
+                  widget.item.label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: color),
+                ),
+              ],
             ),
           ),
         ),
