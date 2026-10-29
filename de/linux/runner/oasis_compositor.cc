@@ -2203,6 +2203,8 @@ static void launch_app(OasisCompositor* c, FlValue* args) {
   if (argv->len == 0) return;
   g_ptr_array_add(argv, nullptr);
   g_auto(GStrv) env = g_get_environ();
+  env = g_environ_unsetenv(env, "DISPLAY");
+  env = g_environ_unsetenv(env, "XAUTHORITY");
   env = g_environ_setenv(env, "WAYLAND_DISPLAY", c->socket_name, TRUE);
   env = g_environ_setenv(env, "GDK_BACKEND", "wayland", TRUE);
   env = g_environ_setenv(env, "GTK_CSD", "0", TRUE);

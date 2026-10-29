@@ -43,7 +43,7 @@ Each external toplevel maps to a `WaylandSurface` in Dart and gets an `OasisWind
 | `wp_viewporter`, `xdg_foreign`, `zwp_pointer_constraints`, `relative-pointer` | not implemented | |
 | `zxdg_idle_inhibit`, `wp_fractional_scale`, `ext-session-lock` | not implemented | |
 
-X11 clients are out of scope; run them through the host session's Xwayland (they appear as plain Wayland surfaces to Oasis).
+X11 clients are unsupported until the compositor embeds Xwayland: `DISPLAY` and `XAUTHORITY` are stripped from spawned apps so they cannot escape to the host X server. Apps must run as Wayland clients.
 
 ## Bundled apps vs external apps
 
