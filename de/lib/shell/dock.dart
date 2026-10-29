@@ -74,11 +74,7 @@ class _ShellDockState extends State<ShellDock> {
     final c = widget.controller;
     final pinnedIds = {for (final a in c.pinned) a.id};
     final minimized = c.windows
-        .where(
-          (w) =>
-              (w.minimized || w.transition != ShellWindowTransition.none) &&
-              !pinnedIds.contains(w.app.id),
-        )
+        .where((w) => w.minimized && !pinnedIds.contains(w.app.id))
         .toList(growable: false);
     final running = {for (final w in c.windows) w.app.id};
     final pinnedMinimizedKeys = {
@@ -87,9 +83,12 @@ class _ShellDockState extends State<ShellDock> {
             pinnedIds.contains(w.app.id))
           w.app.id: w.dockIconKey,
     };
-    final external = c.windows
-        .where((w) => w.surface != null && !w.minimized)
-        .toList(growable: false);
+    final unpinnedRunning = <ShellWindowData>[];
+    final seenRunning = <String>{};
+    for (final w in c.windows) {
+      if (w.minimized || pinnedIds.contains(w.app.id)) continue;
+      if (seenRunning.add(w.app.id)) unpinnedRunning.add(w);
+    }
 
     return MouseRegion(
       onHover: (e) => setState(() => _pointerX = e.position.dx),
@@ -163,7 +162,7 @@ class _ShellDockState extends State<ShellDock> {
                         ),
                       ),
                     ),
-                  for (final w in external)
+                  for (final w in unpinnedRunning)
                     _dockMenu(
                       context,
                       _DockIcon(
