@@ -1031,6 +1031,143 @@ void main() {
     expect(find.text('Minimise'), findsOneWidget);
   });
 
+  test('size event carries buffer scale and transform', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    _emitToplevel(host, id: 1, appId: 'x');
+    host.emit({
+      'event': 'size',
+      'id': 1,
+      'w': 200,
+      'h': 100,
+      'bw': 400,
+      'bh': 200,
+      'scale': 2,
+      'transform': 1,
+    });
+    await pumpEventQueue();
+    final s = service.surfaces[1]!;
+    expect(s.scale, 2);
+    expect(s.transform, 1);
+    expect(s.size, const Size(200, 100));
+    service.dispose();
+  });
+
+  test('inputRegion event stores rect list', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    _emitToplevel(host, id: 1, appId: 'x');
+    host.emit({
+      'event': 'inputRegion',
+      'id': 1,
+      'rects': [0, 0, 10, 10, 20, 20, 30, 40],
+    });
+    await pumpEventQueue();
+    final s = service.surfaces[1]!;
+    expect(s.inputRegion!.length, 2);
+    expect(s.inputRegion![1], const Rect.fromLTWH(20, 20, 30, 40));
+    service.dispose();
+  });
+
+  test('logicalSurfaceSize applies scale and transform', () {
+    final s = WaylandSurface(id: 1)
+      ..bufferSize = const Size(400, 200)
+      ..scale = 2;
+    expect(logicalSurfaceSize(s), const Size(200, 100));
+    s.transform = 1;
+    expect(logicalSurfaceSize(s), const Size(100, 200));
+    s.scale = 0;
+    s.transform = 0;
+    expect(logicalSurfaceSize(s), const Size(400, 200));
+    s.bufferSize = Size.zero;
+    s.size = const Size(50, 60);
+    expect(logicalSurfaceSize(s), const Size(50, 60));
+  });
+
+  test('applyBufferTransform maps all buffer transforms', () {
+    const child = SizedBox();
+    for (var t = 0; t <= 8; t++) {
+      final w = applyBufferTransform(child, t);
+      if (t == 0 || t > 7) {
+        expect(w, same(child));
+      }
+    }
+    expect(applyBufferTransform(child, 2), isA<RotatedBox>());
+    expect(applyBufferTransform(child, 4), isA<Transform>());
+    expect(
+      (applyBufferTransform(child, 6) as Transform).child,
+      isA<RotatedBox>(),
+    );
+  });
+
+  testWidgets('input region gates pointer delivery', (tester) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        backend: const NoopSystemBackend(),
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: service,
+        externalAppsLoader: () async => [_external('x')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    _emitToplevel(host, id: 1, appId: 'x');
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    host.emit({
+      'event': 'inputRegion',
+      'id': 1,
+      'rects': [0, 0, 100, 100],
+    });
+    await tester.pumpAndSettle();
+    final dynamic st = tester.state(find.byType(OasisDesktopApp));
+    final c = st.controller as ShellController;
+    final win = c.windowForSurface(1)!;
+    final base = win.position + const Offset(0, kOasisWindowTitleBarHeight);
+    await tester.tapAt(base + const Offset(300, 200));
+    await tester.pump();
+    expect(host.calls.where((c) => c.startsWith('motion:1:')), isEmpty);
+    await tester.tapAt(base + const Offset(50, 50));
+    await tester.pump();
+    expect(host.calls.where((c) => c.startsWith('motion:1:')), isNotEmpty);
+  });
+
+  testWidgets('transformed buffer renders inside RotatedBox', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        backend: const NoopSystemBackend(),
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: service,
+        externalAppsLoader: () async => [_external('x')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    _emitToplevel(host, id: 1, appId: 'x');
+    host.emit({
+      'event': 'size',
+      'id': 1,
+      'w': 300,
+      'h': 400,
+      'bw': 400,
+      'bh': 300,
+      'transform': 1,
+    });
+    await tester.pumpAndSettle();
+    expect(find.byType(RotatedBox), findsWidgets);
+  });
+
   testWidgets('clicking a nested popup keeps its ancestors open', (
     tester,
   ) async {

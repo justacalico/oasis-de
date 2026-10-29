@@ -328,7 +328,7 @@ class _DesktopShellState extends State<DesktopShell> {
     if (parent == null) return null;
     final w = controller.windowForSurface(parent.id);
     if (w == null) return null;
-    final buf = parent.bufferSize;
+    final buf = logicalSurfaceSize(parent);
     final sx = buf.width > 0 ? parent.size.width / buf.width : 1.0;
     final sy = buf.height > 0 ? parent.size.height / buf.height : 1.0;
     final base = w.zoomed ? const Offset(0, kMenuBarHeight + 4) : w.position;

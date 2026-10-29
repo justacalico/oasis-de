@@ -28,6 +28,9 @@ class WaylandSurface {
   Offset offset;
   Size size;
   Size bufferSize = Size.zero;
+  double scale = 1;
+  int transform = 0;
+  List<Rect>? inputRegion;
   Size minSize = Size.zero;
   Size maxSize = Size.zero;
 
@@ -129,6 +132,23 @@ class WaylandService extends ChangeNotifier {
             (e['bw'] as num?)?.toDouble() ?? s.size.width,
             (e['bh'] as num?)?.toDouble() ?? s.size.height,
           );
+          final scale = (e['scale'] as num?)?.toDouble();
+          if (scale != null && scale > 0) s.scale = scale;
+          s.transform = (e['transform'] as num?)?.toInt() ?? 0;
+        }
+      case 'inputRegion':
+        final s = surfaces[id];
+        final rects = e['rects'] as List<Object?>?;
+        if (s != null && rects != null) {
+          s.inputRegion = [
+            for (var i = 0; i + 3 < rects.length; i += 4)
+              Rect.fromLTWH(
+                (rects[i] as num).toDouble(),
+                (rects[i + 1] as num).toDouble(),
+                (rects[i + 2] as num).toDouble(),
+                (rects[i + 3] as num).toDouble(),
+              ),
+          ];
         }
       case 'minSize':
         final s = surfaces[id];
