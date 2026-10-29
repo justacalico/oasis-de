@@ -456,10 +456,16 @@ abstract class OasisLocalizations {
   /// **'System'**
   String get languageSystem;
 
+  /// No description provided for @languageEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEn;
+
   /// No description provided for @languageEnGb.
   ///
   /// In en, this message translates to:
-  /// **'Traditional English'**
+  /// **'English (UK)'**
   String get languageEnGb;
 
   /// No description provided for @languageZh.
