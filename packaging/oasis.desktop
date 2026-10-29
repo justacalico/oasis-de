@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Oasis
+Comment=A calm, glassy desktop environment
+Exec=/usr/bin/oasis-session
+Type=Application
+DesktopNames=Oasis
+X-GDM-SessionRegisters=true

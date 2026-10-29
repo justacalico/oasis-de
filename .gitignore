@@ -18,3 +18,5 @@ web/favicon.png.bak
 test/failures/
 *.keystore
 flatpak-key.asc
+rpmbuild/
+dist/
