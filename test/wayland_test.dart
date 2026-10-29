@@ -684,6 +684,18 @@ Size=32
       endsWith('scalable/apps/second.svg'),
     );
     expect(
+      findIconPath('scaled', roots: [dir.path], theme: 'adwaita', size: 16),
+      endsWith('scalable/apps/scaled.svg'),
+    );
+    expect(
+      findIconPath('scaled', roots: [dir.path], theme: 'adwaita', size: 300),
+      endsWith('scalable/apps/scaled.svg'),
+    );
+    expect(
+      findIconPath('near', roots: [dir.path], theme: 'adwaita', size: 62),
+      endsWith('64x64/apps/near.png'),
+    );
+    expect(
       findIconPath('missing-xyz', roots: [dir.path], theme: 'adwaita'),
       isNull,
     );
