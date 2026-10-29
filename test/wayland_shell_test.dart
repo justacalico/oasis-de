@@ -393,6 +393,42 @@ void main() {
     service.dispose();
   });
 
+  testWidgets('surface view stretches the buffer to fill',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    await tester.pump();
+    final surface = service.surfaces[1]!;
+
+    await pumpOasis(
+        tester,
+        Center(
+          child: SizedBox(
+            width: 200,
+            height: 100,
+            child: WaylandSurfaceView(
+                surface: surface,
+                service: service,
+                focused: true,
+                maximized: false),
+          ),
+        ),
+        size: const Size(400, 300));
+    await tester.pump();
+
+    final fitted = tester.widget<FittedBox>(find.byType(FittedBox));
+    expect(fitted.fit, BoxFit.fill);
+
+    await tester.sendEventToBinding(
+        TestPointer(1, PointerDeviceKind.mouse).hover(
+            tester.getCenter(find.byType(WaylandSurfaceView))));
+    await tester.pump();
+    expect(host.calls, contains('motion:1:200.0:150.0'));
+    service.dispose();
+  });
+
   testWidgets('surface view focus transitions', (tester) async {
     final host = FakeWaylandHost();
     final service = await _service(host);
