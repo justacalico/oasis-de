@@ -174,6 +174,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get wallpaperApply => 'Apply';
 
   @override
+  String get wallpaperInvalidPath => 'Image not found';
+
+  @override
   String get wallpaperFit => 'Fit';
 
   @override

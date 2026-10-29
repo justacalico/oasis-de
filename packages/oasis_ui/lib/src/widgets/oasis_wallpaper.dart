@@ -49,11 +49,19 @@ class OasisWallpaper extends StatelessWidget {
           Image.file(
             File(path),
             fit: s?.fit ?? BoxFit.cover,
+            cacheWidth: _decodeWidth(context),
             errorBuilder: (context, error, stackTrace) =>
                 const SizedBox.shrink(),
           ),
       ],
     );
+  }
+
+  int? _decodeWidth(BuildContext context) {
+    final mq = MediaQuery.maybeOf(context);
+    if (mq == null) return null;
+    final w = (mq.size.width * mq.devicePixelRatio).round();
+    return w > 0 ? w : null;
   }
 }
 

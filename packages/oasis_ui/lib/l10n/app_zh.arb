@@ -74,6 +74,7 @@
   "wallpaperCustom": "自定义图片",
   "wallpaperPathHint": "图片路径",
   "wallpaperApply": "应用",
+  "wallpaperInvalidPath": "找不到图片",
   "wallpaperFit": "填充方式",
   "wallpaperFitCover": "填满屏幕",
   "wallpaperFitContain": "适应屏幕",

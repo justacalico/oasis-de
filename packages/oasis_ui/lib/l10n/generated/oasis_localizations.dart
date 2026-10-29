@@ -420,6 +420,12 @@ abstract class OasisLocalizations {
   /// **'Apply'**
   String get wallpaperApply;
 
+  /// No description provided for @wallpaperInvalidPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Image not found'**
+  String get wallpaperInvalidPath;
+
   /// No description provided for @wallpaperFit.
   ///
   /// In en, this message translates to:

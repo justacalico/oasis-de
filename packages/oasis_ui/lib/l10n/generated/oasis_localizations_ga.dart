@@ -175,6 +175,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get wallpaperApply => 'Cuir i bhfeidhm';
 
   @override
+  String get wallpaperInvalidPath => 'Íomhá gan aimsiú';
+
+  @override
   String get wallpaperFit => 'Oiriúnú';
 
   @override

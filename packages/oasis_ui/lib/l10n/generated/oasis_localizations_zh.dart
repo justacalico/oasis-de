@@ -174,6 +174,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get wallpaperApply => '应用';
 
   @override
+  String get wallpaperInvalidPath => '找不到图片';
+
+  @override
   String get wallpaperFit => '填充方式';
 
   @override
