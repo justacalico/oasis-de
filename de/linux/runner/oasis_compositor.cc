@@ -158,6 +158,7 @@ struct _OasisCompositor {
   std::unordered_map<int64_t, Surface*> by_id;
   int64_t next_id = 1;
   Surface* kb_focus = nullptr;
+  Surface* activated = nullptr;
   Surface* ptr_focus = nullptr;
   Surface* ptr_entered = nullptr;
   wl_resource* ptr_entered_res = nullptr;
@@ -445,6 +446,7 @@ static void free_surface(Surface* s) {
   OasisCompositor* c = s->comp;
   if (s->announced != SURFACE_NONE) emit_closed(c, s);
   if (c->kb_focus == s) c->kb_focus = nullptr;
+  if (c->activated == s) c->activated = nullptr;
   if (c->ptr_focus == s) c->ptr_focus = nullptr;
   if (c->ptr_entered == s) {
     c->ptr_entered = nullptr;
@@ -2285,7 +2287,8 @@ static void method_call_cb(FlMethodChannel* channel,
     if (s != nullptr && s->role == SURFACE_TOPLEVEL) {
       toplevel_configure(c, s, (int)arg_int(args, "w"),
                          (int)arg_int(args, "h"),
-                         arg_int(args, "maximized") != 0, true);
+                         arg_int(args, "maximized") != 0,
+                         s == c->activated);
     }
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (g_strcmp0(name, "close") == 0) {
@@ -2306,11 +2309,25 @@ static void method_call_cb(FlMethodChannel* channel,
     if (s != nullptr && (s->role == SURFACE_TOPLEVEL ||
                          s->role == SURFACE_POPUP)) {
       set_kb_focus(c, s);
-      if (s->role == SURFACE_TOPLEVEL) {
+      if (s->role == SURFACE_TOPLEVEL && c->activated != s) {
+        if (c->activated != nullptr &&
+            c->activated->role == SURFACE_TOPLEVEL) {
+          toplevel_configure(c, c->activated, c->activated->cfg_w,
+                             c->activated->cfg_h, c->activated->cfg_max,
+                             false);
+        }
         toplevel_configure(c, s, s->cfg_w, s->cfg_h, s->cfg_max, true);
+        c->activated = s;
       }
     } else {
       set_kb_focus(c, nullptr);
+      if (c->activated != nullptr &&
+          c->activated->role == SURFACE_TOPLEVEL) {
+        toplevel_configure(c, c->activated, c->activated->cfg_w,
+                           c->activated->cfg_h, c->activated->cfg_max,
+                           false);
+        c->activated = nullptr;
+      }
     }
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (g_strcmp0(name, "pointerMotion") == 0) {
