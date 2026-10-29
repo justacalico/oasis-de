@@ -14,6 +14,7 @@ import 'launch_pad.dart';
 import 'launcher.dart';
 import 'menu_bar.dart';
 import 'shell_controller.dart';
+import 'window_switcher.dart';
 
 class DesktopShell extends StatefulWidget {
   const DesktopShell({
@@ -87,8 +88,23 @@ class _DesktopShellState extends State<DesktopShell> {
         _menuLabelKeys.length = menus.length;
         return CallbackShortcuts(
           bindings: {
-            const SingleActivator(LogicalKeyboardKey.tab, alt: true):
-                controller.cycleWindows,
+            const SingleActivator(LogicalKeyboardKey.tab, alt: true): () =>
+                controller.cycleWindows(),
+            const SingleActivator(
+              LogicalKeyboardKey.tab,
+              alt: true,
+              shift: true,
+            ): () => controller.cycleWindows(backwards: true),
+            const SingleActivator(LogicalKeyboardKey.escape): () {
+              controller.closeSwitcher();
+              controller.closeOverlays();
+            },
+            const SingleActivator(LogicalKeyboardKey.keyD, meta: true):
+                controller.showDesktop,
+            const SingleActivator(LogicalKeyboardKey.arrowUp, meta: true):
+                controller.toggleZoomFocused,
+            const SingleActivator(LogicalKeyboardKey.space, meta: true):
+                controller.toggleLaunchPad,
           },
           child: Listener(
             onPointerDown: _onShellPointerDown,
@@ -205,6 +221,10 @@ class _DesktopShellState extends State<DesktopShell> {
                 if (controller.launchPadOpen)
                   Positioned.fill(
                     child: ShellLaunchPad(controller: controller),
+                  ),
+                if (controller.switcherIndex != null)
+                  Positioned.fill(
+                    child: WindowSwitcher(controller: controller),
                   ),
                 Positioned.fill(
                   child: IgnorePointer(
