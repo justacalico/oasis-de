@@ -297,4 +297,22 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get menuQuit => 'Scoir Oasis';
+
+  @override
+  String get ccOn => 'Air';
+
+  @override
+  String get ccOff => 'As';
+
+  @override
+  String get ccNightLight => 'Solais Oíche';
+
+  @override
+  String get ccBattery => 'Cadhnra';
+
+  @override
+  String get ccMedia => 'Meáin';
+
+  @override
+  String get ccNothingPlaying => 'Níl aon rud á sheinm';
 }

@@ -112,5 +112,11 @@
   "landingTryWeb": "Try it in your browser",
   "landingWebBody": "The whole desktop runs on the web too. No install required.",
   "appNotes": "Notes",
-  "menuQuit": "Quit Oasis"
+  "menuQuit": "Quit Oasis",
+  "ccOn": "On",
+  "ccOff": "Off",
+  "ccNightLight": "Night Light",
+  "ccBattery": "Battery",
+  "ccMedia": "Media",
+  "ccNothingPlaying": "Nothing playing"
 }

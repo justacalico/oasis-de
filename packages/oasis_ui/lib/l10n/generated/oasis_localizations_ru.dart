@@ -298,4 +298,22 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get menuQuit => 'Выйти из Oasis';
+
+  @override
+  String get ccOn => 'Вкл';
+
+  @override
+  String get ccOff => 'Выкл';
+
+  @override
+  String get ccNightLight => 'Ночной свет';
+
+  @override
+  String get ccBattery => 'Батарея';
+
+  @override
+  String get ccMedia => 'Медиа';
+
+  @override
+  String get ccNothingPlaying => 'Ничего не воспроизводится';
 }

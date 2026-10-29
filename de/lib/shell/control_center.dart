@@ -11,7 +11,6 @@ class ShellControlCenter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = OasisLocalizations.of(context);
-    final p = OasisStyle.of(context).palette;
     final c = controller;
 
     return Align(
@@ -24,84 +23,156 @@ class ShellControlCenter extends StatelessWidget {
             borderRadius: 18,
             blur: 40,
             padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 560),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _CcToggle(
-                      icon: Icons.wifi,
-                      label: l10n.ccWifi,
-                      value: c.wifiOn,
-                      onChanged: (v) => c.wifiOnValue = v,
+                    Row(
+                      children: [
+                        _CcToggle(
+                          icon: Icons.wifi,
+                          label: l10n.ccWifi,
+                          subtitle: c.wifiOn ? l10n.ccOn : l10n.ccOff,
+                          value: c.wifiOn,
+                          onChanged: (v) => c.wifiOnValue = v,
+                        ),
+                        const SizedBox(width: 10),
+                        _CcToggle(
+                          icon: Icons.bluetooth,
+                          label: l10n.ccBluetooth,
+                          subtitle: c.bluetoothOn ? l10n.ccOn : l10n.ccOff,
+                          value: c.bluetoothOn,
+                          onChanged: (v) => c.bluetoothOnValue = v,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    _CcToggle(
-                      icon: Icons.bluetooth,
-                      label: l10n.ccBluetooth,
-                      value: c.bluetoothOn,
-                      onChanged: (v) => c.bluetoothOnValue = v,
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _CcToggle(
+                          icon: Icons.do_not_disturb_on,
+                          label: l10n.ccFocus,
+                          value: c.focusOn,
+                          onChanged: (v) => c.focusOnValue = v,
+                        ),
+                        const SizedBox(width: 10),
+                        _CcToggle(
+                          icon: Icons.dark_mode,
+                          label: l10n.ccDarkMode,
+                          value: OasisStyle.of(context).palette.isDark,
+                          onChanged: (v) {
+                            final host = OasisHost.maybeOf(context);
+                            host?.appearance.themeMode = v
+                                ? OasisThemeMode.dark
+                                : OasisThemeMode.light;
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _CcToggle(
+                          icon: Icons.nightlight,
+                          label: l10n.ccNightLight,
+                          value: c.nightLightOn,
+                          onChanged: (v) => c.nightLightOnValue = v,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _CcCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.ccBrightness,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          OasisSlider(
+                            value: c.brightness,
+                            onChanged: (v) => c.brightnessValue = v,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _CcCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.ccVolume,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          OasisSlider(
+                            value: c.volume,
+                            onChanged: (v) => c.volumeValue = v,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _CcCard(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.battery_full,
+                            size: 18,
+                            color: OasisStyle.of(context).palette.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.ccBattery,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                          Text(
+                            '${c.batteryPercent}%',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _CcCard(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.music_note,
+                            size: 18,
+                            color: OasisStyle.of(context).palette.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.ccMedia,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                Text(
+                                  l10n.ccNothingPlaying,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: OasisStyle.of(
+                                          context,
+                                        ).palette.textTertiary,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _CcToggle(
-                      icon: Icons.do_not_disturb_on,
-                      label: l10n.ccFocus,
-                      value: c.focusOn,
-                      onChanged: (v) => c.focusOnValue = v,
-                    ),
-                    const SizedBox(width: 10),
-                    _CcToggle(
-                      icon: Icons.dark_mode,
-                      label: l10n.ccDarkMode,
-                      value: OasisStyle.of(context).palette.isDark,
-                      onChanged: (v) {
-                        final host = OasisHost.maybeOf(context);
-                        host?.appearance.themeMode = v
-                            ? OasisThemeMode.dark
-                            : OasisThemeMode.light;
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                _CcCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.ccBrightness,
-                          style: Theme.of(context).textTheme.bodySmall),
-                      OasisSlider(
-                        value: c.brightness,
-                        onChanged: (v) => c.brightnessValue = v,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _CcCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.ccVolume,
-                          style: Theme.of(context).textTheme.bodySmall),
-                      OasisSlider(
-                        value: c.volume,
-                        onChanged: (v) => c.volumeValue = v,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Icon(Icons.circle,
-                      size: 6, color: p.textTertiary),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -116,12 +187,14 @@ class _CcToggle extends StatelessWidget {
   const _CcToggle({
     required this.icon,
     required this.label,
+    this.subtitle,
     required this.value,
     required this.onChanged,
   });
 
   final IconData icon;
   final String label;
+  final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
@@ -143,18 +216,32 @@ class _CcToggle extends StatelessWidget {
                       ? p.accent
                       : p.textTertiary.withValues(alpha: 0.3),
                 ),
-                child: Icon(icon,
-                    size: 16,
-                    color: value
-                        ? const Color(0xFFFFFFFF)
-                        : p.textSecondary),
+                child: Icon(
+                  icon,
+                  size: 16,
+                  color: value ? const Color(0xFFFFFFFF) : p.textSecondary,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 10,
+                          color: p.textTertiary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
               ),
             ],

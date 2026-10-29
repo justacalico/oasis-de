@@ -653,6 +653,42 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Quit Oasis'**
   String get menuQuit;
+
+  /// No description provided for @ccOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get ccOn;
+
+  /// No description provided for @ccOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get ccOff;
+
+  /// No description provided for @ccNightLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Night Light'**
+  String get ccNightLight;
+
+  /// No description provided for @ccBattery.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery'**
+  String get ccBattery;
+
+  /// No description provided for @ccMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get ccMedia;
+
+  /// No description provided for @ccNothingPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing playing'**
+  String get ccNothingPlaying;
 }
 
 class _OasisLocalizationsDelegate

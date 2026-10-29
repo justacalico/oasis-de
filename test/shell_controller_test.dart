@@ -193,14 +193,16 @@ void main() {
     c.wifiOnValue = false;
     c.bluetoothOnValue = false;
     c.focusOnValue = true;
+    c.nightLightOnValue = true;
     c.brightnessValue = 0.4;
     c.volumeValue = 0.2;
     expect(c.wifiOn, isFalse);
     expect(c.bluetoothOn, isFalse);
     expect(c.focusOn, isTrue);
+    expect(c.nightLightOn, isTrue);
     expect(c.brightness, 0.4);
     expect(c.volume, 0.2);
-    expect(notified, 5);
+    expect(notified, 6);
     c.dispose();
   });
 
