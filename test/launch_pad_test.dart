@@ -158,6 +158,10 @@ void main() {
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
+    expect(find.text('App 40'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
     expect(find.text('App 40'), findsNothing);
 
     await tester.tap(dots.last);
