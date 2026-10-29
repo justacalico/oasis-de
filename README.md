@@ -32,6 +32,22 @@ The shell also runs as a normal app in your browser: [open it here](https://http
 
 Requires a stable Flutter SDK. The desktop shell targets Linux and web.
 
+The Linux shell embeds a small Wayland compositor (`de/linux/runner/oasis_compositor.cc`), so native build deps are needed beyond the usual Flutter toolchain:
+
+```sh
+# Fedora / RHEL
+sudo dnf install clang cmake ninja-build pkg-config gtk3-devel \
+  wayland-devel wayland-protocols-devel libxkbcommon-devel \
+  libdrm-devel mesa-libEGL-devel mesa-libGLES-devel
+
+# Debian / Ubuntu
+sudo apt-get install clang cmake ninja-build pkg-config libgtk-3-dev \
+  liblzma-dev libwayland-dev wayland-protocols libwayland-bin \
+  libxkbcommon-dev libdrm-dev libegl-dev libgles-dev
+```
+
+Then:
+
 ```sh
 flutter pub get
 (cd packages/oasis_ui && flutter pub get)
@@ -47,7 +63,15 @@ flutter test test/goldens_test.dart --update-goldens
 
 ## Writing apps for Oasis
 
-Bundled apps live in `apps/` and are styled by the shared `oasis_ui` package, so anything built on it looks and behaves like a native part of the shell. Host services (theme, locale, updates, opening links) come from `OasisHost`.
+Bundled apps live in `apps/` and are styled by the shared `oasis_ui` package, so anything built on it looks and behaves like a native part of the shell. Host services (theme, locale, updates, opening links) come from `OasisHost`. See [docs/apps.md](docs/apps.md) for the full contract.
+
+## Architecture
+
+Oasis is a nested compositor: the Flutter shell itself runs on GTK/Wayland and embeds a small wayland-server that hosts real Wayland clients inside shell windows. See [docs/architecture.md](docs/architecture.md) for the design and the protocol support matrix.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
