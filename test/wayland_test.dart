@@ -622,7 +622,7 @@ TryExec=/bin/sh
   test('findIconPath honours index.theme', () {
     final dir = _tmpDir('themeicons');
     void png(String rel) {
-      final f = File('${dir.path}/$rel')
+      File('${dir.path}/$rel')
         ..createSync(recursive: true)
         ..writeAsBytesSync(const [0x89]);
     }
@@ -699,6 +699,21 @@ Size=32
       findIconPath('missing-xyz', roots: [dir.path], theme: 'adwaita'),
       isNull,
     );
+  });
+
+  test('watchDesktopDirs emits on change', () async {
+    final dir = _tmpDir('watch');
+    final events = watchDesktopDirs(
+      dirs: [dir.path],
+      debounce: const Duration(milliseconds: 10),
+    ).first;
+    File('${dir.path}/x.desktop').writeAsStringSync('x');
+    await events.timeout(const Duration(seconds: 5));
+    final missing = watchDesktopDirs(
+      dirs: ['${dir.path}/nope'],
+      debounce: const Duration(milliseconds: 10),
+    ).listen((_) {});
+    await missing.cancel();
   });
 
   test('loadDesktopEntries scans directories', () async {

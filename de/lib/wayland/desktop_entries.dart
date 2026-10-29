@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -464,3 +465,31 @@ OasisApp desktopAppToOasis(DesktopAppEntry entry) => OasisApp(
       : entry.argv,
   builder: (_) => const SizedBox.shrink(),
 );
+
+Stream<void> watchDesktopDirs({
+  List<String>? dirs,
+  Duration debounce = const Duration(milliseconds: 300),
+}) {
+  final controller = StreamController<void>();
+  final subs = <StreamSubscription<FileSystemEvent>>[];
+  Timer? pending;
+  for (final dirPath in dirs ?? desktopSearchDirs()) {
+    final dir = Directory(dirPath);
+    if (!dir.existsSync()) continue;
+    subs.add(
+      dir.watch().listen((_) {
+        pending?.cancel();
+        pending = Timer(debounce, () {
+          if (!controller.isClosed) controller.add(null);
+        });
+      }),
+    );
+  }
+  controller.onCancel = () {
+    pending?.cancel();
+    for (final sub in subs) {
+      sub.cancel();
+    }
+  };
+  return controller.stream;
+}

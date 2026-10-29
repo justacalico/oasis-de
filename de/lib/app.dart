@@ -29,6 +29,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.wallpaper,
     this.wayland,
     this.externalAppsLoader = loadExternalApps,
+    this.appDirWatcher,
   });
 
   final String version;
@@ -38,6 +39,7 @@ class OasisDesktopApp extends StatefulWidget {
   final OasisWallpaperService? wallpaper;
   final WaylandService? wayland;
   final Future<List<OasisApp>> Function() externalAppsLoader;
+  final Stream<void> Function()? appDirWatcher;
 
   @override
   State<OasisDesktopApp> createState() => _OasisDesktopAppState();
@@ -51,6 +53,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final WaylandService _wayland;
   List<OasisApp> _externalApps = const [];
   Locale? _locale;
+  StreamSubscription<void>? _appDirWatch;
 
   ShellController get controller => _controller;
   WaylandService get wayland => _wayland;
@@ -65,20 +68,28 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       currentVersion: () async => widget.version,
     );
     _wayland = widget.wayland ?? WaylandService();
-    _controller =
-        ShellController(apps: const [], wayland: _wayland);
+    _controller = ShellController(apps: const [], wayland: _wayland);
     unawaited(_init());
   }
 
   Future<void> _init() async {
     await _wayland.start();
     if (!mounted || !_wayland.available) return;
-    final apps = await widget.externalAppsLoader();
-    if (mounted) setState(() => _externalApps = apps);
+    Future<void> reload() async {
+      final apps = await widget.externalAppsLoader();
+      if (mounted) setState(() => _externalApps = apps);
+    }
+
+    await reload();
+    final watcher = widget.appDirWatcher;
+    if (watcher != null) {
+      _appDirWatch = watcher().listen((_) => reload());
+    }
   }
 
   @override
   void dispose() {
+    _appDirWatch?.cancel();
     _controller.dispose();
     _wayland.dispose();
     _updates.dispose();
@@ -89,14 +100,13 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   Widget build(BuildContext context) {
     final platformDark =
         View.of(context).platformDispatcher.platformBrightness ==
-            Brightness.dark;
+        Brightness.dark;
     return AnimatedBuilder(
       animation: _appearance,
       builder: (context, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          onGenerateTitle: (context) =>
-              OasisLocalizations.of(context).appName,
+          onGenerateTitle: (context) => OasisLocalizations.of(context).appName,
           theme: _appearance.themeForBrightness(platformDark),
           locale: _locale,
           supportedLocales: OasisLocalizations.supportedLocales,
