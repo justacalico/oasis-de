@@ -144,7 +144,10 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get settingsEnabled => '已启用';
 
   @override
-  String get settingsNetworkBody => '切换演示桌面的无线开关。';
+  String get settingsWifiBody => '开启或关闭 Wi-Fi。';
+
+  @override
+  String get settingsBluetoothBody => '开启或关闭蓝牙。';
 
   @override
   String get themeSystem => '跟随系统';

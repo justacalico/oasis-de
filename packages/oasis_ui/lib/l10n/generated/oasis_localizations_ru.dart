@@ -145,8 +145,10 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get settingsEnabled => 'Включено';
 
   @override
-  String get settingsNetworkBody =>
-      'Переключите радиомодуль этого демо-рабочего стола.';
+  String get settingsWifiBody => 'Включение и отключение Wi-Fi.';
+
+  @override
+  String get settingsBluetoothBody => 'Включение и отключение Bluetooth.';
 
   @override
   String get themeSystem => 'Как в системе';

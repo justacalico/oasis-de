@@ -144,7 +144,10 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get settingsEnabled => 'Enabled';
 
   @override
-  String get settingsNetworkBody => 'Toggle the radio for this demo desktop.';
+  String get settingsWifiBody => 'Toggle Wi-Fi on or off.';
+
+  @override
+  String get settingsBluetoothBody => 'Toggle Bluetooth on or off.';
 
   @override
   String get themeSystem => 'System';

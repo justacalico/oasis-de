@@ -360,11 +360,17 @@ abstract class OasisLocalizations {
   /// **'Enabled'**
   String get settingsEnabled;
 
-  /// No description provided for @settingsNetworkBody.
+  /// No description provided for @settingsWifiBody.
   ///
   /// In en, this message translates to:
-  /// **'Toggle the radio for this demo desktop.'**
-  String get settingsNetworkBody;
+  /// **'Toggle Wi-Fi on or off.'**
+  String get settingsWifiBody;
+
+  /// No description provided for @settingsBluetoothBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Bluetooth on or off.'**
+  String get settingsBluetoothBody;
 
   /// No description provided for @themeSystem.
   ///

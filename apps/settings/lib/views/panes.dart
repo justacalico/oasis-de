@@ -257,12 +257,14 @@ class NetworkPane extends StatelessWidget {
     required this.icon,
     required this.enabled,
     required this.onChanged,
+    required this.subtitle,
   });
 
   final String title;
   final IconData icon;
   final bool enabled;
   final ValueChanged<bool> onChanged;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -280,7 +282,7 @@ class NetworkPane extends StatelessWidget {
             OasisRow(
               leading: Icon(icon, size: 20, color: p.accent),
               title: title,
-              subtitle: l10n.settingsNetworkBody,
+              subtitle: subtitle,
               trailing: OasisToggle(value: enabled, onChanged: onChanged),
             ),
           ],
