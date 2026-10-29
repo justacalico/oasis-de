@@ -104,7 +104,9 @@ pages:
     - (cd landing && flutter pub get)
     - mkdir -p public
     - cd landing && flutter build web --release --base-href /oasis-de/ -o ../public
+    - cp -r ../public ../public-oasisde
     - cd ../de && flutter pub get && flutter build web --release --base-href /oasis-de/app/ -o ../public/app
+    - cd .. && mkdir -p public/oasis-de && cp -r public-oasisde/. public/oasis-de/ && mkdir -p public/oasis-de/app && cp -r public/app/. public/oasis-de/app/
   artifacts:
     paths:
       - public
