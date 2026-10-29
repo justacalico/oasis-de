@@ -4,12 +4,12 @@ import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 OasisApp _app(String id) => OasisApp(
-      id: id,
-      name: 'App $id',
-      icon: Icons.circle,
-      iconColors: const [Color(0xFF000000), Color(0xFF111111)],
-      builder: (_) => const SizedBox(),
-    );
+  id: id,
+  name: 'App $id',
+  icon: Icons.circle,
+  iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+  builder: (_) => const SizedBox(),
+);
 
 ShellController _controller() =>
     ShellController(apps: [_app('a'), _app('b'), _app('notes')]);
@@ -22,8 +22,10 @@ void main() {
     c.openApp(apps[1]);
     expect(c.windows.length, 2);
     expect(c.focusedId, c.windows.last.id);
-    expect(c.windows.last.position.dx,
-        greaterThan(c.windows.first.position.dx));
+    expect(
+      c.windows.last.position.dx,
+      greaterThan(c.windows.first.position.dx),
+    );
     c.dispose();
   });
 
@@ -37,8 +39,7 @@ void main() {
     c.openApp(c.apps[0]);
     expect(c.windows.length, 1);
     expect(c.windows.first.minimized, isFalse);
-    expect(
-        c.windows.first.transition, ShellWindowTransition.restoring);
+    expect(c.windows.first.transition, ShellWindowTransition.restoring);
     expect(c.focusedId, id);
     c.dispose();
   });
@@ -113,39 +114,62 @@ void main() {
     final w = c.windows.first;
     const fallback = Size(800, 600);
 
-    c.resizeWindow(w.id, const Offset(40, 30),
-        OasisResizeEdge.bottomRight, fallback);
+    c.resizeWindow(
+      w.id,
+      const Offset(40, 30),
+      OasisResizeEdge.bottomRight,
+      fallback,
+    );
     expect(w.size, const Size(840, 630));
     expect(w.position, const Offset(56, 52));
 
-    c.resizeWindow(w.id, const Offset(10, 12),
-        OasisResizeEdge.topLeft, fallback);
+    c.resizeWindow(
+      w.id,
+      const Offset(10, 12),
+      OasisResizeEdge.topLeft,
+      fallback,
+    );
     expect(w.size, const Size(830, 618));
     expect(w.position, const Offset(66, 64));
 
-    c.resizeWindow(w.id, const Offset(-2000, -2000),
-        OasisResizeEdge.bottomRight, fallback);
+    c.resizeWindow(
+      w.id,
+      const Offset(-2000, -2000),
+      OasisResizeEdge.bottomRight,
+      fallback,
+    );
     expect(w.size, const Size(kMinWindowWidth, kMinWindowHeight));
     expect(w.position, const Offset(66, 64));
 
-    c.resizeWindow(w.id, const Offset(470, 330),
-        OasisResizeEdge.bottomRight, fallback);
+    c.resizeWindow(
+      w.id,
+      const Offset(470, 330),
+      OasisResizeEdge.bottomRight,
+      fallback,
+    );
     expect(w.size, const Size(830, 630));
 
-    c.resizeWindow(w.id, const Offset(600, 0), OasisResizeEdge.left,
-        fallback);
+    c.resizeWindow(w.id, const Offset(600, 0), OasisResizeEdge.left, fallback);
     expect(w.size, const Size(kMinWindowWidth, 630));
     expect(w.position, Offset(66 + 830 - kMinWindowWidth, 64));
 
     c.toggleZoom(w.id);
-    c.resizeWindow(w.id, const Offset(5, 5),
-        OasisResizeEdge.bottomRight, fallback);
+    c.resizeWindow(
+      w.id,
+      const Offset(5, 5),
+      OasisResizeEdge.bottomRight,
+      fallback,
+    );
     expect(w.size, const Size(kMinWindowWidth, 630));
     c.toggleZoom(w.id);
 
     w.transition = ShellWindowTransition.restoring;
-    c.resizeWindow(w.id, const Offset(5, 5),
-        OasisResizeEdge.bottomRight, fallback);
+    c.resizeWindow(
+      w.id,
+      const Offset(5, 5),
+      OasisResizeEdge.bottomRight,
+      fallback,
+    );
     expect(w.size, const Size(kMinWindowWidth, 630));
     c.dispose();
   });
@@ -157,8 +181,12 @@ void main() {
     c.finishTransition(999);
     c.toggleZoom(999);
     c.dragWindow(999, const Offset(1, 1));
-    c.resizeWindow(999, const Offset(1, 1),
-        OasisResizeEdge.bottomRight, const Size(800, 600));
+    c.resizeWindow(
+      999,
+      const Offset(1, 1),
+      OasisResizeEdge.bottomRight,
+      const Size(800, 600),
+    );
     expect(c.windows, isEmpty);
     c.dispose();
   });
@@ -214,6 +242,40 @@ void main() {
     expect(c.filterApps('NOTES').single.id, 'notes');
     expect(c.filterApps('zzz'), isEmpty);
     c.dispose();
+  });
+
+  test('filterApps ranks prefix, keyword, fuzzy and recency', () {
+    OasisApp app(
+      String id,
+      String name, {
+      List<String> kw = const [],
+      String? gen,
+    }) => OasisApp(
+      id: id,
+      name: name,
+      icon: Icons.circle,
+      iconColors: const [Color(0xFF000000)],
+      keywords: kw,
+      genericName: gen,
+      builder: (_) => const SizedBox(),
+    );
+    final c = ShellController(
+      apps: [
+        app('exact', 'Settings'),
+        app('sub', 'Sunset Settings'),
+        app('kw', 'Other', kw: const ['settings prefs']),
+        app('fz', 'SrEtTuS'),
+        app('gen', 'Editor', gen: 'Set text'),
+      ],
+    );
+    addTearDown(c.dispose);
+    final ranked = c.filterApps('sett');
+    expect(ranked.first.id, 'exact');
+    expect(ranked.map((a) => a.id), containsAll(['sub', 'kw', 'fz', 'gen']));
+    c.launchCounts['gen'] = 5;
+    final ids = [for (final a in c.filterApps('sett')) a.id];
+    expect(ids.indexOf('gen'), lessThan(ids.indexOf('fz')));
+    expect(c.filterApps('nada'), isEmpty);
   });
 
   test('syncApps refreshes app refs on open windows', () {
