@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import '../wayland/wayland_service.dart';
@@ -45,125 +46,136 @@ class _DesktopShellState extends State<DesktopShell> {
           );
         }
         _menuLabelKeys.length = menus.length;
-        return Listener(
-          onPointerDown: _onShellPointerDown,
-          onPointerHover: (e) {
-            if (e.buttons == 0) controller.endSurfaceGesture();
+        return CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.tab, alt: true):
+                controller.cycleWindows,
           },
-          onPointerMove: (e) =>
-              _onShellPointerMove(e, MediaQuery.sizeOf(context)),
-          onPointerUp: (e) => controller.endSurfaceGesture(
-            e.position,
-            MediaQuery.sizeOf(context),
-          ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                  onSecondaryTapUp: (e) =>
-                      _wallpaperMenu(context, e.globalPosition),
-                  child: OasisWallpaper(service: widget.wallpaper),
+          child: Listener(
+            onPointerDown: _onShellPointerDown,
+            onPointerHover: (e) {
+              if (e.buttons == 0) controller.endSurfaceGesture();
+            },
+            onPointerMove: (e) =>
+                _onShellPointerMove(e, MediaQuery.sizeOf(context)),
+            onPointerUp: (e) => controller.endSurfaceGesture(
+              e.position,
+              MediaQuery.sizeOf(context),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    onSecondaryTapUp: (e) =>
+                        _wallpaperMenu(context, e.globalPosition),
+                    child: OasisWallpaper(service: widget.wallpaper),
+                  ),
                 ),
-              ),
-              for (final w in controller.windows)
-                if (!w.minimized || w.transition != ShellWindowTransition.none)
-                  Positioned(
-                    key: ValueKey(w.id),
-                    left: w.zoomed || w.fullscreen ? 0 : w.position.dx,
-                    top: w.zoomed
-                        ? kMenuBarHeight + 4
-                        : w.fullscreen
-                        ? 0
-                        : w.position.dy,
-                    child: GenieWindow(
-                      window: w,
-                      rect: _windowRect(w, context),
-                      onEnd: () => controller.finishTransition(w.id),
-                      child: Listener(
-                        onPointerDown: (_) => controller.focusWindow(w.id),
-                        child: GestureDetector(
-                          onSecondaryTapUp: (e) {
-                            if (e.localPosition.dy <=
-                                kOasisWindowTitleBarHeight) {
-                              _windowMenu(context, e.globalPosition, w);
-                            }
-                          },
-                          child: w.zoomed || w.fullscreen
-                              ? SizedBox(
-                                  width: MediaQuery.sizeOf(context).width,
-                                  height: w.fullscreen
-                                      ? MediaQuery.sizeOf(context).height
-                                      : MediaQuery.sizeOf(context).height -
-                                            kMenuBarHeight -
-                                            8,
-                                  child: _windowContent(w, context),
-                                )
-                              : _windowContent(w, context),
+                for (final w in controller.windows)
+                  if (!w.minimized ||
+                      w.transition != ShellWindowTransition.none)
+                    Positioned(
+                      key: ValueKey(w.id),
+                      left: w.zoomed || w.fullscreen ? 0 : w.position.dx,
+                      top: w.zoomed
+                          ? kMenuBarHeight + 4
+                          : w.fullscreen
+                          ? 0
+                          : w.position.dy,
+                      child: GenieWindow(
+                        window: w,
+                        rect: _windowRect(w, context),
+                        onEnd: () => controller.finishTransition(w.id),
+                        child: Listener(
+                          onPointerDown: (_) => controller.focusWindow(w.id),
+                          child: GestureDetector(
+                            onSecondaryTapUp: (e) {
+                              if (e.localPosition.dy <=
+                                  kOasisWindowTitleBarHeight) {
+                                _windowMenu(context, e.globalPosition, w);
+                              }
+                            },
+                            child: w.zoomed || w.fullscreen
+                                ? SizedBox(
+                                    width: MediaQuery.sizeOf(context).width,
+                                    height: w.fullscreen
+                                        ? MediaQuery.sizeOf(context).height
+                                        : MediaQuery.sizeOf(context).height -
+                                              kMenuBarHeight -
+                                              8,
+                                    child: _windowContent(w, context),
+                                  )
+                                : _windowContent(w, context),
+                          ),
                         ),
                       ),
                     ),
+                if (controller.wayland != null)
+                  for (final popup in controller.wayland!.popups)
+                    Builder(
+                      builder: (context) {
+                        final offset = _popupOffset(popup);
+                        if (offset == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return Positioned(
+                          left: offset.dx,
+                          top: offset.dy,
+                          child: WaylandPopupView(
+                            surface: popup,
+                            service: controller.wayland!,
+                          ),
+                        );
+                      },
+                    ),
+                if (controller.openMenu != null || controller.controlCenterOpen)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: controller.closeOverlays,
+                    ),
                   ),
-              if (controller.wayland != null)
-                for (final popup in controller.wayland!.popups)
-                  Builder(
-                    builder: (context) {
-                      final offset = _popupOffset(popup);
-                      if (offset == null) {
-                        return const SizedBox.shrink();
-                      }
-                      return Positioned(
-                        left: offset.dx,
-                        top: offset.dy,
-                        child: WaylandPopupView(
-                          surface: popup,
-                          service: controller.wayland!,
-                        ),
-                      );
-                    },
+                if (!controller.windows.any(
+                  (w) => w.fullscreen && !w.minimized,
+                ))
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: ShellMenuBar(
+                      controller: controller,
+                      menus: menus,
+                      labelKeys: _menuLabelKeys,
+                    ),
                   ),
-              if (controller.openMenu != null || controller.controlCenterOpen)
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: controller.closeOverlays,
+                if (controller.openMenu != null)
+                  Positioned(
+                    top: kMenuBarHeight + 2,
+                    left: _menuLeft(context, menus),
+                    child: MenuDropdown(
+                      menuIndex: _menuIndex(menus),
+                      menus: menus,
+                      controller: controller,
+                    ),
                   ),
-                ),
-              if (!controller.windows.any((w) => w.fullscreen && !w.minimized))
+                if (controller.controlCenterOpen)
+                  Positioned.fill(
+                    child: ShellControlCenter(controller: controller),
+                  ),
+                if (controller.launchPadOpen)
+                  Positioned.fill(
+                    child: ShellLaunchPad(controller: controller),
+                  ),
                 Positioned(
-                  top: 0,
                   left: 0,
                   right: 0,
-                  child: ShellMenuBar(
-                    controller: controller,
-                    menus: menus,
-                    labelKeys: _menuLabelKeys,
-                  ),
+                  bottom: 0,
+                  child: Center(child: ShellDock(controller: controller)),
                 ),
-              if (controller.openMenu != null)
-                Positioned(
-                  top: kMenuBarHeight + 2,
-                  left: _menuLeft(context, menus),
-                  child: MenuDropdown(
-                    menuIndex: _menuIndex(menus),
-                    menus: menus,
-                    controller: controller,
-                  ),
-                ),
-              if (controller.controlCenterOpen)
-                Positioned.fill(
-                  child: ShellControlCenter(controller: controller),
-                ),
-              if (controller.launchPadOpen)
-                Positioned.fill(child: ShellLaunchPad(controller: controller)),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Center(child: ShellDock(controller: controller)),
-              ),
-              if (controller.launcherOpen)
-                Positioned.fill(child: ShellLauncher(controller: controller)),
-            ],
+                if (controller.launcherOpen)
+                  Positioned.fill(child: ShellLauncher(controller: controller)),
+              ],
+            ),
           ),
         );
       },

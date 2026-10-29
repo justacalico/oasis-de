@@ -242,6 +242,23 @@ void main() {
     c.dispose();
   });
 
+  test('cycleWindows focuses next visible window', () {
+    final c = _controller();
+    c.cycleWindows();
+    c.openApp(c.apps[0]);
+    c.openApp(c.apps[1]);
+    final w1 = c.windows[0];
+    final w2 = c.windows[1];
+    c.cycleWindows();
+    expect(c.focusedId, w1.id);
+    c.cycleWindows();
+    expect(c.focusedId, w2.id);
+    w1.minimized = true;
+    c.cycleWindows();
+    expect(c.focusedId, w2.id);
+    c.dispose();
+  });
+
   test('workspaces switch and move windows', () {
     final c = _controller();
     c.openApp(c.apps.first);
