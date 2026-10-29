@@ -87,6 +87,7 @@ struct Surface {
   bool cfg_max = false;
   uint32_t pending_serial = 0;
   uint32_t acked_serial = 0;
+  uint32_t grab_serial = 0;
   int rep_w = 0;
   int rep_h = 0;
   int rep_bw = 0;
@@ -1834,7 +1835,11 @@ static void popup_destroy(wl_client* client, wl_resource* res) {
 static void popup_grab(wl_client* client,
                        wl_resource* res,
                        wl_resource* seat,
-                       uint32_t serial) {}
+                       uint32_t serial) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->grab_serial = serial;
+  set_kb_focus(s->comp, s);
+}
 
 static void popup_reposition(wl_client* client,
                              wl_resource* res,
