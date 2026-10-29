@@ -13,10 +13,12 @@ class ShellMenuBar extends StatelessWidget {
     super.key,
     required this.controller,
     required this.menus,
+    required this.labelKeys,
   });
 
   final ShellController controller;
   final List<ShellMenu> menus;
+  final List<GlobalKey> labelKeys;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +43,7 @@ class ShellMenuBar extends StatelessWidget {
             const SizedBox(width: 10),
             for (var i = 0; i < menus.length; i++) ...[
               _MenuLabel(
+                key: labelKeys[i],
                 label: menus[i].label,
                 bold: i == 0,
                 open: controller.openMenu == menus[i].label,
@@ -90,6 +93,7 @@ class ShellMenuBar extends StatelessWidget {
 
 class _MenuLabel extends StatelessWidget {
   const _MenuLabel({
+    super.key,
     required this.label,
     required this.bold,
     required this.open,

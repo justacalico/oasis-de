@@ -11,7 +11,7 @@ import 'launcher.dart';
 import 'menu_bar.dart';
 import 'shell_controller.dart';
 
-class DesktopShell extends StatelessWidget {
+class DesktopShell extends StatefulWidget {
   const DesktopShell({
     super.key,
     required this.controller,
@@ -24,11 +24,25 @@ class DesktopShell extends StatelessWidget {
   final List<ShellMenu> Function() menusBuilder;
 
   @override
+  State<DesktopShell> createState() => _DesktopShellState();
+}
+
+class _DesktopShellState extends State<DesktopShell> {
+  final List<GlobalKey> _menuLabelKeys = [];
+
+  ShellController get controller => widget.controller;
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
-        final menus = menusBuilder();
+        final menus = widget.menusBuilder();
+        while (_menuLabelKeys.length < menus.length) {
+          _menuLabelKeys.add(
+              GlobalKey(debugLabel: menus[_menuLabelKeys.length].label));
+        }
+        _menuLabelKeys.length = menus.length;
         return Listener(
           onPointerDown: _onShellPointerDown,
           onPointerHover: (e) {
@@ -40,7 +54,7 @@ class DesktopShell extends StatelessWidget {
           child: Stack(
             children: [
               Positioned.fill(
-                  child: OasisWallpaper(service: wallpaper)),
+                  child: OasisWallpaper(service: widget.wallpaper)),
               for (final w in controller.windows)
                 if (!w.minimized ||
                     w.transition != ShellWindowTransition.none)
@@ -102,6 +116,7 @@ class DesktopShell extends StatelessWidget {
                 child: ShellMenuBar(
                   controller: controller,
                   menus: menus,
+                  labelKeys: _menuLabelKeys,
                 ),
               ),
               if (controller.openMenu != null)
@@ -261,10 +276,8 @@ class DesktopShell extends StatelessWidget {
 
   double _menuLeft(BuildContext context, List<ShellMenu> menus) {
     final idx = _menuIndex(menus);
-    var x = 40.0;
-    for (var i = 0; i < idx; i++) {
-      x += menus[i].label.length * 8.5 + 22;
-    }
-    return x;
+    final box = _menuLabelKeys[idx].currentContext?.findRenderObject()
+        as RenderBox?;
+    return box?.localToGlobal(Offset.zero).dx ?? 40;
   }
 }
