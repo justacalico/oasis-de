@@ -56,6 +56,11 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get launchPad => 'Панель запуска';
 
   @override
+  String launchFailed(String app) {
+    return 'Не удалось открыть $app';
+  }
+
+  @override
   String get launcherHint => 'Поиск приложений';
 
   @override

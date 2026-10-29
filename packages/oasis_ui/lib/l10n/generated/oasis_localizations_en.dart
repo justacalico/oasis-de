@@ -56,6 +56,11 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get launchPad => 'Launch Pad';
 
   @override
+  String launchFailed(String app) {
+    return 'Couldn\'t open $app';
+  }
+
+  @override
   String get launcherHint => 'Search apps';
 
   @override

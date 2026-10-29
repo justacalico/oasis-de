@@ -192,6 +192,12 @@ abstract class OasisLocalizations {
   /// **'Launch Pad'**
   String get launchPad;
 
+  /// No description provided for @launchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open {app}'**
+  String launchFailed(String app);
+
   /// No description provided for @launcherHint.
   ///
   /// In en, this message translates to:

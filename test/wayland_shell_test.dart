@@ -1031,6 +1031,7 @@ void main() {
     await tester.pump(const Duration(seconds: 9));
     expect(c.windows, isEmpty);
     expect(c.launchError, isNotNull);
+    await tester.pump(const Duration(seconds: 6));
   });
 
   test('appId binds to the matching launching window', () async {
@@ -1059,6 +1060,31 @@ void main() {
     await tester.pump();
     expect(c.windows, isEmpty);
     expect(c.launchError, isNotNull);
+    await tester.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('failed launch surfaces a localized banner', (tester) async {
+    final host = _FailingLaunchHost();
+    final service = await _service(host);
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        backend: const NoopSystemBackend(),
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: service,
+        externalAppsLoader: () async => [_external('x')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    final dynamic state = tester.state(find.byType(OasisDesktopApp));
+    final c = state.controller as ShellController;
+    c.openApp(c.apps.firstWhere((a) => a.isExternal));
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't open Ext x"), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
   });
 
   test('transient windows stay above and minimize with parent', () async {

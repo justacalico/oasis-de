@@ -22,6 +22,14 @@
   "menuEnterFullScreen": "Scáileán Iomlán",
   "menuAbout": "Faoi Oasis",
   "launchPad": "Painéal Tosaithe",
+  "launchFailed": "Níorbh fhéidir {app} a oscailt",
+  "@launchFailed": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
   "launcherHint": "Cuardaigh aipeanna",
   "launcherNoResults": "Torthaí ar bith",
   "ccWifi": "Wi-Fi",

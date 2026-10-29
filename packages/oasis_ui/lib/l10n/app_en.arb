@@ -22,6 +22,14 @@
   "menuEnterFullScreen": "Enter Full Screen",
   "menuAbout": "About Oasis",
   "launchPad": "Launch Pad",
+  "launchFailed": "Couldn't open {app}",
+  "@launchFailed": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
   "launcherHint": "Search apps",
   "launcherNoResults": "No results",
   "ccWifi": "Wi-Fi",

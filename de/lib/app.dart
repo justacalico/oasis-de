@@ -83,6 +83,9 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     );
     _controller.unknownAppName = () =>
         lookupOasisLocalizations(_locale ?? const Locale('en')).appUnknown;
+    _controller.launchFailedMessage = (app) =>
+        lookupOasisLocalizations(_locale ?? const Locale('en'))
+            .launchFailed(app);
     _restoreState();
     _appearance.addListener(_persistState);
     _controller.addListener(_persistState);

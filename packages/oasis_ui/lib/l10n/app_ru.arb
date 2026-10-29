@@ -22,6 +22,14 @@
   "menuEnterFullScreen": "На весь экран",
   "menuAbout": "О Oasis",
   "launchPad": "Панель запуска",
+  "launchFailed": "Не удалось открыть {app}",
+  "@launchFailed": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
   "launcherHint": "Поиск приложений",
   "launcherNoResults": "Ничего не найдено",
   "ccWifi": "Wi-Fi",
