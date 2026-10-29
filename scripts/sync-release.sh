@@ -10,7 +10,7 @@ import json, sys
 rel = json.load(sys.stdin)
 links = []
 for a in rel.get('assets', []):
-    links.append({'name': a['name'], 'url': a['browser_download_url'], 'link_type': 'package', 'direct_asset_path': a['browser_download_url']})
+    links.append({'name': a['name'], 'url': a['browser_download_url'], 'link_type': 'package'})
 print(json.dumps({'assets': {'links': links}}))
 ")
 DESCRIPTION=$(echo "$RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('body','') or 'Oasis release')")
