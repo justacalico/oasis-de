@@ -145,7 +145,10 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get settingsEnabled => 'Cumasaithe';
 
   @override
-  String get settingsNetworkBody => 'Scoraigh raidió an deisce thaispeána seo.';
+  String get settingsWifiBody => 'Cas Wi-Fi air nó as.';
+
+  @override
+  String get settingsBluetoothBody => 'Cas Bluetooth air nó as.';
 
   @override
   String get themeSystem => 'Córas';
