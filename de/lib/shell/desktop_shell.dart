@@ -237,11 +237,14 @@ class _DesktopShellState extends State<DesktopShell> {
                   Positioned.fill(
                     child: WindowSwitcher(controller: controller),
                   ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: NotificationBanner(controller: controller),
+                if (!controller.windows.any(
+                  (w) => w.fullscreen && !w.minimized,
+                ))
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: NotificationBanner(controller: controller),
+                    ),
                   ),
-                ),
                 Positioned.fill(
                   child: IgnorePointer(
                     child: ValueListenableBuilder<Offset>(
@@ -262,12 +265,17 @@ class _DesktopShellState extends State<DesktopShell> {
                     ),
                   ),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Center(child: ShellDock(controller: controller)),
-                ),
+                if (!controller.windows.any(
+                  (w) => w.fullscreen && !w.minimized,
+                ))
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: ShellDock(controller: controller),
+                    ),
+                  ),
                 if (controller.launcherOpen)
                   Positioned.fill(child: ShellLauncher(controller: controller)),
               ],
