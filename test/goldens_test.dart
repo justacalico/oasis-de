@@ -84,6 +84,28 @@ void main() {
     });
   });
 
+  testWidgets('desktop genie minimise', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+    await _size(tester, const Size(1280, 800));
+    await tester.pumpWidget(OasisDesktopApp(
+      version: '1.0.0',
+      appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+      updateChecker: _FakeChecker(),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.edit_note).first);
+    await tester.pumpAndSettle();
+    final light = tester
+        .getRect(find.byType(OasisTrafficLights).first)
+        .centerLeft;
+    await tester.tapAt(light + const Offset(26, 0));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 210));
+    await expectLater(find.byType(MaterialApp),
+        matchesGoldenFile('goldens/genie_minimise.png'));
+    });
+  });
+
   testWidgets('desktop launcher', (tester) async {
     await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
     await _size(tester, const Size(1280, 800));

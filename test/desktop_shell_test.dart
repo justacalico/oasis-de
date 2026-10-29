@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
+import 'package:oasis_de/shell/genie_window.dart';
+import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 
@@ -218,5 +220,68 @@ void main() {
     await tester.tap(find.byIcon(Icons.wifi).first);
     await tester.pumpAndSettle();
     expect(find.text('Brightness'), findsOneWidget);
+  });
+
+  testWidgets('window genies into the dock and back out',
+      (tester) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.edit_note).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsWidgets);
+
+    final light = tester
+        .getRect(find.byType(OasisTrafficLights).first)
+        .centerLeft;
+    await tester.tapAt(light + const Offset(26, 0));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Notes'), findsWidgets);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.edit_note).last);
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsWidgets);
+  });
+
+  testWidgets('tapping the dock icon mid-genie pulls the window back',
+      (tester) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.edit_note).first);
+    await tester.pumpAndSettle();
+    final light = tester
+        .getRect(find.byType(OasisTrafficLights).first)
+        .centerLeft;
+    await tester.tapAt(light + const Offset(26, 0));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(find.byIcon(Icons.edit_note).last);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsWidgets);
+  });
+
+  testWidgets('genie falls back when the dock icon is unmounted',
+      (tester) async {
+    final window = ShellWindowData(
+      id: 1,
+      app: OasisApp(
+        id: 'x',
+        name: 'X',
+        icon: Icons.circle,
+        iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+        builder: (_) => const SizedBox(),
+      ),
+      position: Offset.zero,
+    )..transition = ShellWindowTransition.minimizing;
+    await tester.pumpWidget(MaterialApp(
+      home: GenieWindow(
+        window: window,
+        rect: const Rect.fromLTWH(40, 40, 400, 300),
+        onEnd: () {},
+        child: const SizedBox(width: 400, height: 300),
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 400));
   });
 }

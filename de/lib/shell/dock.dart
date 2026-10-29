@@ -35,8 +35,11 @@ class _ShellDockState extends State<ShellDock> {
   Widget build(BuildContext context) {
     final p = OasisStyle.of(context).palette;
     final c = widget.controller;
-    final minimized =
-        c.windows.where((w) => w.minimized).toList(growable: false);
+    final minimized = c.windows
+        .where((w) =>
+            w.minimized ||
+            w.transition != ShellWindowTransition.none)
+        .toList(growable: false);
     final running = {for (final w in c.windows) w.app.id};
 
     return MouseRegion(
@@ -83,6 +86,7 @@ class _ShellDockState extends State<ShellDock> {
                     ),
                   for (final w in minimized)
                     _DockIcon(
+                      key: w.dockIconKey,
                       app: w.app,
                       running: true,
                       measure: _sizeAt,
@@ -100,6 +104,7 @@ class _ShellDockState extends State<ShellDock> {
 
 class _DockIcon extends StatelessWidget {
   const _DockIcon({
+    super.key,
     required this.app,
     required this.running,
     required this.measure,
