@@ -88,10 +88,12 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
       return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (_selected < 0) return false;
       _move(1);
       return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (_selected < 0) return false;
       _move(-1);
       return true;
     }
