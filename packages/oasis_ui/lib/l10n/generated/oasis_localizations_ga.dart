@@ -71,6 +71,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get menuAbout => 'Faoi Oasis';
 
   @override
+  String get launchPad => 'Painéal Tosaithe';
+
+  @override
   String get launcherHint => 'Cuardaigh aipeanna';
 
   @override

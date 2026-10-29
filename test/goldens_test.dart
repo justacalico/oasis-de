@@ -124,6 +124,22 @@ void main() {
     });
   });
 
+  testWidgets('desktop launch pad', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+    await _size(tester, const Size(1280, 800));
+    await tester.pumpWidget(OasisDesktopApp(
+      version: '1.0.0',
+      appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+      updateChecker: _FakeChecker(),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.rocket_launch));
+    await tester.pumpAndSettle();
+    await expectLater(find.byType(MaterialApp),
+        matchesGoldenFile('goldens/launch_pad.png'));
+    });
+  });
+
   testWidgets('desktop control center', (tester) async {
     await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
     await _size(tester, const Size(1280, 800));

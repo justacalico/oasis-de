@@ -72,6 +72,7 @@ class ShellController extends ChangeNotifier {
   String? _openMenu;
   int? _surfaceDragId;
   var launcherOpen = false;
+  var launchPadOpen = false;
   var controlCenterOpen = false;
   var wifiOn = true;
   var bluetoothOn = true;
@@ -336,6 +337,17 @@ class ShellController extends ChangeNotifier {
   void toggleLauncher() {
     launcherOpen = !launcherOpen;
     if (launcherOpen) {
+      launchPadOpen = false;
+      controlCenterOpen = false;
+      _openMenu = null;
+    }
+    notifyListeners();
+  }
+
+  void toggleLaunchPad() {
+    launchPadOpen = !launchPadOpen;
+    if (launchPadOpen) {
+      launcherOpen = false;
       controlCenterOpen = false;
       _openMenu = null;
     }
@@ -346,6 +358,7 @@ class ShellController extends ChangeNotifier {
     controlCenterOpen = !controlCenterOpen;
     if (controlCenterOpen) {
       launcherOpen = false;
+      launchPadOpen = false;
       _openMenu = null;
     }
     notifyListeners();
@@ -353,6 +366,7 @@ class ShellController extends ChangeNotifier {
 
   void closeOverlays() {
     launcherOpen = false;
+    launchPadOpen = false;
     controlCenterOpen = false;
     _openMenu = null;
     notifyListeners();

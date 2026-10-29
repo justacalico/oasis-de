@@ -7,6 +7,18 @@ import 'shell_controller.dart';
 
 const kDockIconSize = 52.0;
 
+OasisApp launchPadEntry(OasisLocalizations l10n, OasisPalette palette) =>
+    OasisApp(
+      id: 'launch-pad',
+      name: l10n.launchPad,
+      icon: Icons.rocket_launch,
+      iconColors: [
+        palette.accent,
+        Color.lerp(palette.accent, const Color(0xFF000000), 0.35)!,
+      ],
+      builder: (_) => const SizedBox.shrink(),
+    );
+
 class ShellDock extends StatefulWidget {
   const ShellDock({super.key, required this.controller});
 
@@ -33,6 +45,7 @@ class _ShellDockState extends State<ShellDock> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
     final p = OasisStyle.of(context).palette;
     final c = widget.controller;
     final minimized = c.windows
@@ -73,6 +86,13 @@ class _ShellDockState extends State<ShellDock> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  _DockIcon(
+                    app: launchPadEntry(l10n, p),
+                    running: c.launchPadOpen,
+                    measure: _sizeAt,
+                    onTap: c.toggleLaunchPad,
+                  ),
+                  const _DockDivider(),
                   for (final app in c.pinned)
                     _DockIcon(
                       app: app,
@@ -87,13 +107,7 @@ class _ShellDockState extends State<ShellDock> {
                       measure: _sizeAt,
                       onTap: () => c.focusWindow(w.id),
                     ),
-                  if (minimized.isNotEmpty)
-                    Container(
-                      width: 1,
-                      height: kDockIconSize * 0.8,
-                      margin: const EdgeInsets.symmetric(horizontal: 8),
-                      color: p.glassBorder,
-                    ),
+                  if (minimized.isNotEmpty) const _DockDivider(),
                   for (final w in minimized)
                     _DockIcon(
                       key: w.dockIconKey,
@@ -108,6 +122,21 @@ class _ShellDockState extends State<ShellDock> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DockDivider extends StatelessWidget {
+  const _DockDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final p = OasisStyle.of(context).palette;
+    return Container(
+      width: 1,
+      height: kDockIconSize * 0.8,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      color: p.glassBorder,
     );
   }
 }

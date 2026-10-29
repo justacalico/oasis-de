@@ -71,6 +71,9 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get menuAbout => 'О Oasis';
 
   @override
+  String get launchPad => 'Панель запуска';
+
+  @override
   String get launcherHint => 'Поиск приложений';
 
   @override

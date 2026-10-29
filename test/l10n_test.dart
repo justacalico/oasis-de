@@ -25,6 +25,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.menuSelectAll;
   l.menuEnterFullScreen;
   l.menuAbout;
+  l.launchPad;
   l.launcherHint;
   l.launcherNoResults;
   l.ccWifi;
