@@ -254,47 +254,51 @@ class _DockIcon extends StatelessWidget {
         }
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Tooltip(
-                message: app.name,
-                preferBelow: false,
-                triggerMode: triggerMode,
-                child: GestureDetector(
-                  onTap: onTap,
-                  child: SizedBox(
-                    width: kDockIconSize,
-                    height: kDockIconSize,
-                    child: Transform.scale(
-                      scale: s / kDockIconSize,
-                      alignment: Alignment.bottomCenter,
-                      child: OasisAppIcon(
-                        icon: app.icon,
-                        colors: app.iconColors,
-                        iconPath: app.iconPath,
-                        size: kDockIconSize,
+          child: Semantics(
+            button: true,
+            label: app.name,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Tooltip(
+                  message: app.name,
+                  preferBelow: false,
+                  triggerMode: triggerMode,
+                  child: GestureDetector(
+                    onTap: onTap,
+                    child: SizedBox(
+                      width: kDockIconSize,
+                      height: kDockIconSize,
+                      child: Transform.scale(
+                        scale: s / kDockIconSize,
+                        alignment: Alignment.bottomCenter,
+                        child: OasisAppIcon(
+                          icon: app.icon,
+                          colors: app.iconColors,
+                          iconPath: app.iconPath,
+                          size: kDockIconSize,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 3),
-              AnimatedOpacity(
-                duration: const Duration(milliseconds: 120),
-                opacity: running ? 1 : 0,
-                child: Container(
-                  width: 4,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: p.isDark
-                        ? const Color(0xFFFFFFFF)
-                        : const Color(0x99000000),
+                const SizedBox(height: 3),
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 120),
+                  opacity: running ? 1 : 0,
+                  child: Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: p.isDark
+                          ? const Color(0xFFFFFFFF)
+                          : const Color(0x99000000),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

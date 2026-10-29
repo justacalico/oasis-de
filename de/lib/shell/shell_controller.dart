@@ -586,6 +586,17 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void cycleWindows() {
+    final visible = [
+      for (final w in windows)
+        if (w.workspace == activeWorkspace && !w.minimized) w,
+    ];
+    if (visible.isEmpty) return;
+    final idx =
+        visible.indexWhere((w) => w.id == _focusedId);
+    _focus(visible[(idx + 1) % visible.length].id);
+  }
+
   void selectMenu(String? label) {
     if (_openMenu == label) return;
     _openMenu = label;

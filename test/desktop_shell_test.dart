@@ -511,6 +511,16 @@ void main() {
     expect(c.pinned.map((a) => a.id), contains('ext'));
   });
 
+  testWidgets('dock icons expose semantics and alt tab cycles', (tester) async {
+    await pumpDesktop(tester);
+    expect(find.bySemanticsLabel('Settings'), findsWidgets);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    await tester.pump();
+  });
+
   testWidgets('dock unpin via context menu', (tester) async {
     OasisApp mk(String id) => OasisApp(
       id: id,
