@@ -145,29 +145,35 @@ class ShellControlCenter extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 10),
-                    _CcCard(
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.battery_full,
-                            size: 18,
-                            color: OasisStyle.of(context).palette.textSecondary,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              l10n.ccBattery,
+                    if (c.batteryLevel != null) ...[
+                      const SizedBox(height: 10),
+                      _CcCard(
+                        child: Row(
+                          children: [
+                            Icon(
+                              c.batteryCharging
+                                  ? Icons.battery_charging_full
+                                  : Icons.battery_full,
+                              size: 18,
+                              color: OasisStyle.of(
+                                context,
+                              ).palette.textSecondary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                l10n.ccBattery,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                            Text(
+                              '${(c.batteryLevel! * 100).round()}%',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
-                          ),
-                          Text(
-                            '${c.batteryPercent}%',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
 
                     const SizedBox(height: 10),
                     _CcCard(
