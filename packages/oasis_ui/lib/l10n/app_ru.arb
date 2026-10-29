@@ -118,5 +118,7 @@
   "ccNightLight": "Ночной свет",
   "ccBattery": "Батарея",
   "ccMedia": "Медиа",
-  "ccNothingPlaying": "Ничего не воспроизводится"
+  "ccNothingPlaying": "Ничего не воспроизводится",
+  "dockPin": "Закрепить в доке",
+  "dockUnpin": "Открепить"
 }

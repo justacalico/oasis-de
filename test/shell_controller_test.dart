@@ -221,6 +221,26 @@ void main() {
     c.dispose();
   });
 
+  test('pinApp, unpinApp and movePinned mutate pinned list', () {
+    final c = _controller();
+    c.unpinApp('a');
+    expect(c.pinned, isEmpty);
+    c.pinned.add(c.apps.first);
+    c.unpinApp('a');
+    expect(c.pinned, isEmpty);
+    c.pinApp('missing');
+    c.pinApp('a');
+    c.pinApp('a');
+    c.pinApp('b');
+    expect([for (final a in c.pinned) a.id], ['a', 'b']);
+    c.movePinned('b', 'a');
+    expect([for (final a in c.pinned) a.id], ['b', 'a']);
+    c.movePinned('a', 'a');
+    c.movePinned('x', 'a');
+    expect(c.pinned.first.id, 'b');
+    c.dispose();
+  });
+
   test('menus and overlays are mutually exclusive', () {
     final c = _controller();
     c.selectMenu('File');

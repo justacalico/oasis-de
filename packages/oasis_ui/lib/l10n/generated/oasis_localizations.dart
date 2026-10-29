@@ -689,6 +689,18 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Nothing playing'**
   String get ccNothingPlaying;
+
+  /// No description provided for @dockPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin to Dock'**
+  String get dockPin;
+
+  /// No description provided for @dockUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get dockUnpin;
 }
 
 class _OasisLocalizationsDelegate

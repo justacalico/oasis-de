@@ -868,7 +868,26 @@ void main() {
     expect(c.wifiOn, isFalse);
     expect(c.focusOn, isTrue);
     expect(c.brightness, 0.5);
-    c.wifiOnValue = true;
+    await store.write('shell.pinned', 'desktop:x');
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    final service2 = WaylandService(host: FakeWaylandHost());
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: service2,
+        externalAppsLoader: () async => [_external('x')],
+        store: store,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final dynamic state2 =
+        tester.state(find.byType(OasisDesktopApp));
+    final c2 = state2.controller as ShellController;
+    expect([for (final a in c2.pinned) a.id],
+        contains('desktop:x'));
+    c2.wifiOnValue = true;
     await tester.pump();
     expect(store.read('shell.wifi'), '1');
   });
