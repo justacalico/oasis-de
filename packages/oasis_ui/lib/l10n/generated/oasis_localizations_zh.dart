@@ -282,7 +282,7 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get ccOff => '关';
 
   @override
-  String get ccNightLight => '夜光';
+  String get ccNightLight => '夜间模式';
 
   @override
   String get ccBattery => '电池';
