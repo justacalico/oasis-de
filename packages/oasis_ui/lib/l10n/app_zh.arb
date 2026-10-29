@@ -150,5 +150,6 @@
   "sessionConfirmSuspend": "挂起系统？",
   "sessionConfirmRestart": "重启系统？",
   "sessionConfirmPoweroff": "关闭系统？",
-  "dialogCancel": "取消"
+  "dialogCancel": "取消",
+  "tipControlCenter": "控制中心"
 }

@@ -150,5 +150,6 @@
   "sessionConfirmSuspend": "Cuir an córas ar fionraí?",
   "sessionConfirmRestart": "Atosaigh an córas?",
   "sessionConfirmPoweroff": "Múch an córas?",
-  "dialogCancel": "Cealaigh"
+  "dialogCancel": "Cealaigh",
+  "tipControlCenter": "Lárionad Rialaithe"
 }

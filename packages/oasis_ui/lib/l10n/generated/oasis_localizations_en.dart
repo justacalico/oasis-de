@@ -372,4 +372,7 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get dialogCancel => 'Cancel';
+
+  @override
+  String get tipControlCenter => 'Control Center';
 }

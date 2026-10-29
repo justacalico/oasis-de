@@ -373,4 +373,7 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get dialogCancel => 'Отмена';
+
+  @override
+  String get tipControlCenter => 'Центр управления';
 }

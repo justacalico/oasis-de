@@ -797,6 +797,12 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get dialogCancel;
+
+  /// No description provided for @tipControlCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Control Center'**
+  String get tipControlCenter;
 }
 
 class _OasisLocalizationsDelegate

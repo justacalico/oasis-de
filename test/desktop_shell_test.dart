@@ -271,8 +271,12 @@ void main() {
   testWidgets('status icons open launcher and control center', (tester) async {
     await pumpDesktop(tester, backend: _BatteryBackend(0.9, false));
     await tester.tap(find.byIcon(Icons.battery_full));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(find.text('Brightness'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.wifi).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Brightness'), findsNothing);
+    await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
     expect(find.text('Brightness'), findsOneWidget);
   });
