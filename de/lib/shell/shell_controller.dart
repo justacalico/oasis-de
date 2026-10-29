@@ -639,14 +639,60 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void cycleWindows() {
-    final visible = [
-      for (final w in windows)
+  int? _switcherIndex;
+  List<ShellWindowData>? _switcherList;
+  int? get switcherIndex => _switcherIndex;
+
+  List<ShellWindowData> get switcherWindows {
+    final src = _switcherList ?? windows;
+    return [
+      for (final w in src)
         if (w.workspace == activeWorkspace && !w.minimized) w,
     ];
-    if (visible.isEmpty) return;
-    final idx = visible.indexWhere((w) => w.id == _focusedId);
-    _focus(visible[(idx + 1) % visible.length].id);
+  }
+
+  void cycleWindows({bool backwards = false}) {
+    _switcherList ??= [...windows];
+    final visible = switcherWindows;
+    if (visible.isEmpty) {
+      closeSwitcher();
+      return;
+    }
+    var idx = _switcherIndex;
+    if (idx == null) {
+      final cur = visible.indexWhere((w) => w.id == _focusedId);
+      idx = backwards ? cur - 1 : cur + 1;
+    } else {
+      idx += backwards ? -1 : 1;
+    }
+    _switcherIndex =
+        ((idx % visible.length) + visible.length) % visible.length;
+    _focus(visible[_switcherIndex!].id);
+  }
+
+  void closeSwitcher() {
+    if (_switcherIndex == null && _switcherList == null) return;
+    _switcherIndex = null;
+    _switcherList = null;
+    notifyListeners();
+  }
+
+  void selectSwitcherWindow(int id) {
+    focusWindow(id);
+    closeSwitcher();
+  }
+
+  void toggleZoomFocused() {
+    final w = focusedWindow;
+    if (w == null) return;
+    w.zoomed = !w.zoomed;
+    notifyListeners();
+  }
+
+  void showDesktop() {
+    for (final w in switcherWindows) {
+      minimizeWindow(w.id);
+    }
   }
 
   void selectMenu(String? label) {

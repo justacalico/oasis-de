@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
 import 'package:oasis_de/shell/desktop_shell.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
+import 'package:oasis_de/shell/window_switcher.dart';
 import 'package:oasis_de/wayland/wayland_service.dart';
 import 'package:oasis_de/wayland/wayland_surface_view.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -1109,6 +1110,65 @@ void main() {
     expect(find.text('Minimise'), findsOneWidget);
   });
 
+  test('window switcher cycles in both directions', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    _emitToplevel(host, id: 1, appId: 'x');
+    _emitToplevel(host, id: 2, appId: 'x');
+    await pumpEventQueue();
+    expect(c.switcherIndex, isNull);
+    c.cycleWindows();
+    expect(c.switcherIndex, isNotNull);
+    final first = c.focusedWindow;
+    c.cycleWindows();
+    expect(c.focusedWindow, isNot(first));
+    c.cycleWindows(backwards: true);
+    expect(c.focusedWindow, first);
+    c.closeSwitcher();
+    expect(c.switcherIndex, isNull);
+    c.closeSwitcher();
+    c.cycleWindows(backwards: true);
+    expect(c.switcherIndex, isNotNull);
+    final target = c.switcherWindows.firstWhere(
+      (w) => w.surface?.id == 1,
+    );
+    c.selectSwitcherWindow(target.id);
+    expect(c.switcherIndex, isNull);
+    expect(c.focusedWindow?.surface?.id, 1);
+    c.dispose();
+    service.dispose();
+  });
+
+  test('showDesktop minimizes everything visible', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    _emitToplevel(host, id: 1, appId: 'x');
+    _emitToplevel(host, id: 2, appId: 'x');
+    await pumpEventQueue();
+    c.showDesktop();
+    expect(c.windows.every((w) => w.minimized), isTrue);
+    c.dispose();
+    service.dispose();
+  });
+
+  test('toggleZoomFocused zooms and unzooms', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    c.toggleZoomFocused();
+    _emitToplevel(host, id: 1, appId: 'x');
+    await pumpEventQueue();
+    final w = c.windows.single;
+    c.toggleZoomFocused();
+    expect(w.zoomed, isTrue);
+    c.toggleZoomFocused();
+    expect(w.zoomed, isFalse);
+    c.dispose();
+    service.dispose();
+  });
+
   test('activate request focuses the window', () async {
     final host = FakeWaylandHost();
     final service = await _service(host);
@@ -1325,6 +1385,78 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(find.byType(RotatedBox), findsWidgets);
+  });
+
+  testWidgets('alt-tab switcher overlay selects and dismisses', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        backend: const NoopSystemBackend(),
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: service,
+        externalAppsLoader: () async => [_external('x')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    _emitToplevel(host, id: 1, appId: 'x', title: 'First');
+    _emitToplevel(host, id: 2, appId: 'x', title: 'Second');
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    host.emit({'event': 'size', 'id': 2, 'w': 400, 'h': 300});
+    await tester.pumpAndSettle();
+    expect(find.byType(WindowSwitcher), findsNothing);
+    final dynamic st = tester.state(find.byType(OasisDesktopApp));
+    final c = st.controller as ShellController;
+    final shortcuts = tester.widget<CallbackShortcuts>(
+      find.byType(CallbackShortcuts),
+    );
+    final bindings = shortcuts.bindings;
+    bindings[const SingleActivator(LogicalKeyboardKey.tab, alt: true)]!();
+    await tester.pumpAndSettle();
+    expect(find.byType(WindowSwitcher), findsOneWidget);
+    bindings[
+        const SingleActivator(
+          LogicalKeyboardKey.tab,
+          alt: true,
+          shift: true,
+        )]!();
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(WindowSwitcher),
+        matching: find.text('First'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(WindowSwitcher), findsNothing);
+    bindings[const SingleActivator(LogicalKeyboardKey.tab, alt: true)]!();
+    await tester.pump();
+    expect(find.byType(WindowSwitcher), findsOneWidget);
+    bindings[const SingleActivator(LogicalKeyboardKey.escape)]!();
+    await tester.pump();
+    expect(find.byType(WindowSwitcher), findsNothing);
+    bindings[
+        const SingleActivator(
+          LogicalKeyboardKey.arrowUp,
+          meta: true,
+        )]!();
+    bindings[
+        const SingleActivator(LogicalKeyboardKey.space, meta: true)]!();
+    await tester.pump();
+    expect(c.launchPadOpen, isTrue);
+    bindings[
+        const SingleActivator(LogicalKeyboardKey.space, meta: true)]!();
+    await tester.pump();
+    expect(c.launchPadOpen, isFalse);
+    bindings[const SingleActivator(LogicalKeyboardKey.keyD, meta: true)]!();
+    await tester.pump();
+    expect(c.windows.every((w) => w.minimized), isTrue);
   });
 
   testWidgets('client cursor texture follows the pointer', (
