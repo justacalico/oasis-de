@@ -213,6 +213,33 @@ void main() {
     expect(find.byType(Texture), findsNWidgets(3));
     expect(find.byType(WaylandPopupView), findsNWidgets(2));
 
+    host.emit({
+      'event': 'subsurface',
+      'id': 9,
+      'parent': 1,
+      'x': 10,
+      'y': 20,
+    });
+    host.emit({'event': 'size', 'id': 9, 'w': 40, 'h': 30});
+    host.emit({'event': 'texture', 'id': 9, 'textureId': 60});
+    host.emit({
+      'event': 'subsurface',
+      'id': 10,
+      'parent': 9,
+      'x': 2,
+      'y': 3,
+    });
+    host.emit({'event': 'size', 'id': 10, 'w': 8, 'h': 8});
+    host.emit({'event': 'texture', 'id': 10, 'textureId': 61});
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(Texture), findsNWidgets(5));
+    host.emit({'event': 'subsurfaceClosed', 'id': 10});
+    host.emit({'event': 'subsurfaceClosed', 'id': 9});
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(Texture), findsNWidgets(3));
+
     c.openApp(c.apps.first);
     await tester.pump();
     await tester.tap(find.byIcon(Icons.apps).first);

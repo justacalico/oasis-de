@@ -153,8 +153,8 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                       child: SizedBox(
                         width: size.width <= 0 ? 1 : size.width,
                         height: size.height <= 0 ? 1 : size.height,
-                        child:
-                            Texture(textureId: surface.textureId),
+                        child: WaylandLayerTree(
+                            service: service, surface: surface),
                       ),
                     ),
                   ),
@@ -212,10 +212,54 @@ class WaylandPopupView extends StatelessWidget {
                     e.scrollDelta.dx, e.scrollDelta.dy);
               }
             },
-            child: Texture(textureId: surface.textureId),
+            child: WaylandLayerTree(
+                service: service, surface: surface),
           ),
         );
       },
+    );
+  }
+}
+
+class WaylandLayerTree extends StatelessWidget {
+  const WaylandLayerTree({
+    super.key,
+    required this.service,
+    required this.surface,
+  });
+
+  final WaylandService service;
+  final WaylandSurface surface;
+
+  List<Widget> _layers(WaylandSurface root, Offset base) {
+    final out = <Widget>[];
+    for (final id in root.children) {
+      final sub = service.surfaces[id];
+      if (sub == null) continue;
+      final pos = base + sub.offset;
+      out.add(Positioned(
+        left: pos.dx,
+        top: pos.dy,
+        width: sub.size.width <= 0 ? 1 : sub.size.width,
+        height: sub.size.height <= 0 ? 1 : sub.size.height,
+        child: sub.textureId >= 0
+            ? Texture(textureId: sub.textureId)
+            : const SizedBox.shrink(),
+      ));
+      out.addAll(_layers(sub, pos));
+    }
+    return out;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        if (surface.textureId >= 0)
+          Positioned.fill(
+              child: Texture(textureId: surface.textureId)),
+        ..._layers(surface, Offset.zero),
+      ],
     );
   }
 }
