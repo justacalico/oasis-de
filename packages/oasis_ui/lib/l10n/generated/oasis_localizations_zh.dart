@@ -307,4 +307,10 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get ccNothingPlaying => '暂无播放';
+
+  @override
+  String get dockPin => '固定到 Dock';
+
+  @override
+  String get dockUnpin => '取消固定';
 }

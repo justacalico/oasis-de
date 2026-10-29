@@ -118,5 +118,7 @@
   "ccNightLight": "Night Light",
   "ccBattery": "Battery",
   "ccMedia": "Media",
-  "ccNothingPlaying": "Nothing playing"
+  "ccNothingPlaying": "Nothing playing",
+  "dockPin": "Pin to Dock",
+  "dockUnpin": "Unpin"
 }

@@ -118,5 +118,7 @@
   "ccNightLight": "夜光",
   "ccBattery": "电池",
   "ccMedia": "媒体",
-  "ccNothingPlaying": "暂无播放"
+  "ccNothingPlaying": "暂无播放",
+  "dockPin": "固定到 Dock",
+  "dockUnpin": "取消固定"
 }

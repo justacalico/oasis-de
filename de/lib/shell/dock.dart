@@ -43,6 +43,42 @@ class _ShellDockState extends State<ShellDock> {
     return kDockIconSize + _maxBoost * falloff * falloff;
   }
 
+  Widget _dockMenu(
+    BuildContext context,
+    Widget child,
+    OasisApp app, {
+    required bool pinned,
+  }) {
+    final l10n = OasisLocalizations.of(context);
+    final c = widget.controller;
+    return GestureDetector(
+      onSecondaryTapUp: (e) async {
+        final overlay = Overlay.of(context);
+        final box = overlay.context.findRenderObject()! as RenderBox;
+        final action = await showMenu<String>(
+          context: context,
+          position: RelativeRect.fromRect(
+            e.globalPosition & const Size(1, 1),
+            Offset.zero & box.size,
+          ),
+          items: [
+            PopupMenuItem(
+              value: 'pin',
+              child: Text(pinned ? l10n.dockUnpin : l10n.dockPin),
+            ),
+          ],
+        );
+        if (action != 'pin') return;
+        if (pinned) {
+          c.unpinApp(app.id);
+        } else {
+          c.pinApp(app.id);
+        }
+      },
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = OasisLocalizations.of(context);
@@ -110,28 +146,59 @@ class _ShellDockState extends State<ShellDock> {
                   ),
                   const _DockDivider(),
                   for (final app in c.pinned)
-                    _DockIcon(
-                      key: pinnedMinimizedKeys[app.id],
-                      app: app,
-                      running: running.contains(app.id),
-                      measure: _sizeAt,
-                      onTap: () => c.openApp(app),
+                    DragTarget<OasisApp>(
+                      onAcceptWithDetails: (d) =>
+                          c.movePinned(d.data.id, app.id),
+                      builder: (_, _, _) => LongPressDraggable<OasisApp>(
+                        data: app,
+                        feedback: Material(
+                          type: MaterialType.transparency,
+                          child: _DockIcon(
+                            app: app,
+                            running: false,
+                            measure: (_) => kDockIconSize,
+                            onTap: () {},
+                          ),
+                        ),
+                        child: _dockMenu(
+                          context,
+                          _DockIcon(
+                            key: pinnedMinimizedKeys[app.id],
+                            app: app,
+                            running: running.contains(app.id),
+                            measure: _sizeAt,
+                            onTap: () => c.openApp(app),
+                          ),
+                          app,
+                          pinned: true,
+                        ),
+                      ),
                     ),
                   for (final w in external)
-                    _DockIcon(
-                      app: w.app,
-                      running: true,
-                      measure: _sizeAt,
-                      onTap: () => c.focusWindow(w.id),
+                    _dockMenu(
+                      context,
+                      _DockIcon(
+                        app: w.app,
+                        running: true,
+                        measure: _sizeAt,
+                        onTap: () => c.focusWindow(w.id),
+                      ),
+                      w.app,
+                      pinned: pinnedIds.contains(w.app.id),
                     ),
                   if (minimized.isNotEmpty) const _DockDivider(),
                   for (final w in minimized)
-                    _DockIcon(
-                      key: w.dockIconKey,
-                      app: w.app,
-                      running: true,
-                      measure: _sizeAt,
-                      onTap: () => c.restoreWindow(w.id),
+                    _dockMenu(
+                      context,
+                      _DockIcon(
+                        key: w.dockIconKey,
+                        app: w.app,
+                        running: true,
+                        measure: _sizeAt,
+                        onTap: () => c.restoreWindow(w.id),
+                      ),
+                      w.app,
+                      pinned: pinnedIds.contains(w.app.id),
                     ),
                 ],
               ),

@@ -314,4 +314,10 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get ccNothingPlaying => 'Nothing playing';
+
+  @override
+  String get dockPin => 'Pin to Dock';
+
+  @override
+  String get dockUnpin => 'Unpin';
 }

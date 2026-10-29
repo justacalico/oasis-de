@@ -112,6 +112,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     s.write('shell.nightLight', c.nightLightOn ? '1' : '0');
     s.write('shell.brightness', '${c.brightness}');
     s.write('shell.volume', '${c.volume}');
+    s.write('shell.pinned', [for (final a in c.pinned) a.id].join(','));
   }
 
   Future<void> _init() async {
@@ -174,8 +175,17 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 openUrl: widget.openUrl,
               );
               final apps = [...builtins, ..._externalApps];
-              _controller.syncApps(apps, pinned: builtins);
               final appsById = {for (final a in apps) a.id: a};
+              final savedPins = widget.store?.read('shell.pinned');
+              _controller.syncApps(
+                apps,
+                pinned: savedPins == null
+                    ? builtins
+                    : [
+                        for (final id in savedPins.split(','))
+                          if (appsById[id] != null) appsById[id]!,
+                      ],
+              );
               return OasisHost(
                 appearance: _appearance,
                 updates: _updates,

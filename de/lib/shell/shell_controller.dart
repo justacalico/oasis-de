@@ -527,6 +527,31 @@ class ShellController extends ChangeNotifier {
     }
   }
 
+  void pinApp(String appId) {
+    if (pinned.any((a) => a.id == appId)) return;
+    for (final a in apps) {
+      if (a.id == appId) {
+        pinned.add(a);
+        notifyListeners();
+        return;
+      }
+    }
+  }
+
+  void unpinApp(String appId) {
+    if (pinned.isEmpty) return;
+    pinned.removeWhere((a) => a.id == appId);
+    notifyListeners();
+  }
+
+  void movePinned(String dragId, String overId) {
+    final from = pinned.indexWhere((a) => a.id == dragId);
+    final to = pinned.indexWhere((a) => a.id == overId);
+    if (from < 0 || to < 0 || from == to) return;
+    pinned.insert(to, pinned.removeAt(from));
+    notifyListeners();
+  }
+
   void selectMenu(String? label) {
     if (_openMenu == label) return;
     _openMenu = label;

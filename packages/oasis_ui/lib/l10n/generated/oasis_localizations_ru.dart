@@ -316,4 +316,10 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get ccNothingPlaying => 'Ничего не воспроизводится';
+
+  @override
+  String get dockPin => 'Закрепить в доке';
+
+  @override
+  String get dockUnpin => 'Открепить';
 }

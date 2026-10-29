@@ -467,4 +467,92 @@ void main() {
     await tester.tap(icon);
     expect(w.minimized, isFalse);
   });
+
+  testWidgets('dock icons pin via context menu', (tester) async {
+    OasisApp mk(String id) => OasisApp(
+      id: id,
+      name: 'App $id',
+      icon: Icons.circle,
+      iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+      builder: (_) => const SizedBox(),
+    );
+    final c = ShellController(apps: [mk('a'), mk('b'), mk('ext')]);
+    addTearDown(c.dispose);
+    c.pinned.addAll([c.apps[0], c.apps[1]]);
+    c.openApp(c.apps[2]);
+    final w = c.windows.single;
+    c.minimizeWindow(w.id);
+    c.finishTransition(w.id);
+    await pumpOasis(
+      tester,
+      Scaffold(
+        body: Center(child: ShellDock(controller: c)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byType(OasisAppIcon).last,
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pin to Dock'));
+    await tester.pumpAndSettle();
+    expect(c.pinned.map((a) => a.id), contains('ext'));
+  });
+
+  testWidgets('dock unpin via context menu', (tester) async {
+    OasisApp mk(String id) => OasisApp(
+      id: id,
+      name: 'App $id',
+      icon: Icons.circle,
+      iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+      builder: (_) => const SizedBox(),
+    );
+    final c = ShellController(apps: [mk('a'), mk('b')]);
+    addTearDown(c.dispose);
+    c.pinned.addAll(c.apps);
+    await pumpOasis(
+      tester,
+      Scaffold(
+        body: Center(child: ShellDock(controller: c)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byType(OasisAppIcon).at(2),
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unpin'));
+    await tester.pumpAndSettle();
+    expect(c.pinned.map((a) => a.id), isNot(contains('b')));
+  });
+  testWidgets('pinned icons reorder by drag', (tester) async {
+    OasisApp mk(String id) => OasisApp(
+      id: id,
+      name: 'App $id',
+      icon: Icons.circle,
+      iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+      builder: (_) => const SizedBox(),
+    );
+    final c = ShellController(apps: [mk('a'), mk('b')]);
+    addTearDown(c.dispose);
+    c.pinned.addAll(c.apps);
+    await pumpOasis(
+      tester,
+      Scaffold(
+        body: Center(child: ShellDock(controller: c)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final icons = find.byType(OasisAppIcon);
+    final from = tester.getCenter(icons.at(1));
+    final to = tester.getCenter(icons.at(2));
+    final gesture = await tester.startGesture(from);
+    await tester.pump(const Duration(milliseconds: 600));
+    await gesture.moveTo(to);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(c.pinned.map((a) => a.id), isNot(contains('x')));
+  });
 }

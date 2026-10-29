@@ -315,4 +315,10 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get ccNothingPlaying => 'Níl aon rud á sheinm';
+
+  @override
+  String get dockPin => 'Greamaigh sa Duga';
+
+  @override
+  String get dockUnpin => 'Díghreamaigh';
 }

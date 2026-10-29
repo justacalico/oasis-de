@@ -118,5 +118,7 @@
   "ccNightLight": "Solais Oíche",
   "ccBattery": "Cadhnra",
   "ccMedia": "Meáin",
-  "ccNothingPlaying": "Níl aon rud á sheinm"
+  "ccNothingPlaying": "Níl aon rud á sheinm",
+  "dockPin": "Greamaigh sa Duga",
+  "dockUnpin": "Díghreamaigh"
 }
