@@ -48,12 +48,21 @@ class _ShellDockState extends State<ShellDock> {
     final l10n = OasisLocalizations.of(context);
     final p = OasisStyle.of(context).palette;
     final c = widget.controller;
+    final pinnedIds = {for (final a in c.pinned) a.id};
     final minimized = c.windows
-        .where((w) =>
-            w.minimized ||
-            w.transition != ShellWindowTransition.none)
+        .where(
+          (w) =>
+              (w.minimized || w.transition != ShellWindowTransition.none) &&
+              !pinnedIds.contains(w.app.id),
+        )
         .toList(growable: false);
     final running = {for (final w in c.windows) w.app.id};
+    final pinnedMinimizedKeys = {
+      for (final w in c.windows)
+        if ((w.minimized || w.transition != ShellWindowTransition.none) &&
+            pinnedIds.contains(w.app.id))
+          w.app.id: w.dockIconKey,
+    };
     final external = c.windows
         .where((w) => w.surface != null && !w.minimized)
         .toList(growable: false);
@@ -75,12 +84,19 @@ class _ShellDockState extends State<ShellDock> {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-            child: Container(
-              color: p.dockFill,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                  child: Container(color: p.dockFill),
+                ),
+              ),
+            ),
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -95,6 +111,7 @@ class _ShellDockState extends State<ShellDock> {
                   const _DockDivider(),
                   for (final app in c.pinned)
                     _DockIcon(
+                      key: pinnedMinimizedKeys[app.id],
                       app: app,
                       running: running.contains(app.id),
                       measure: _sizeAt,
@@ -119,7 +136,7 @@ class _ShellDockState extends State<ShellDock> {
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -176,12 +193,17 @@ class _DockIcon extends StatelessWidget {
                 child: GestureDetector(
                   onTap: onTap,
                   child: SizedBox(
-                    width: s,
-                    height: s,
-                    child: OasisAppIcon(
-                      icon: app.icon,
-                      colors: app.iconColors,
-                      size: s,
+                    width: kDockIconSize,
+                    height: kDockIconSize,
+                    child: Transform.scale(
+                      scale: s / kDockIconSize,
+                      alignment: Alignment.bottomCenter,
+                      child: OasisAppIcon(
+                        icon: app.icon,
+                        colors: app.iconColors,
+                        iconPath: app.iconPath,
+                        size: kDockIconSize,
+                      ),
                     ),
                   ),
                 ),
