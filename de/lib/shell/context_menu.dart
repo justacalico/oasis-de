@@ -89,7 +89,11 @@ void confirmShellAction(
   required String confirmLabel,
   required VoidCallback onConfirm,
 }) {
-  final overlay = Overlay.of(context);
+  final overlay = Overlay.maybeOf(context);
+  if (overlay == null) {
+    onConfirm();
+    return;
+  }
   late final OverlayEntry entry;
   var closed = false;
   void close() {

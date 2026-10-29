@@ -1,5 +1,6 @@
 import 'package:oasis_ui/oasis_ui.dart';
 
+import 'context_menu.dart';
 import 'shell_controller.dart';
 
 List<ShellMenu> buildShellMenus(
@@ -33,11 +34,13 @@ List<ShellMenu> buildShellMenus(
         ),
         ShellMenuItem(
           label: l10n.menuQuit,
-          enabled: focused != null,
-          action: (_) {
-            final w = controller.focusedWindow;
-            if (w != null) controller.closeWindow(w.id);
-          },
+          action: (ctx) => confirmShellAction(
+            ctx,
+            message: l10n.sessionConfirmLogOut,
+            cancelLabel: l10n.dialogCancel,
+            confirmLabel: l10n.sessionLogOut,
+            onConfirm: () => controller.session(OasisSessionAction.logout),
+          ),
         ),
       ],
     ),
@@ -49,7 +52,7 @@ List<ShellMenu> buildShellMenus(
           enabled: focused != null,
           action: (_) {
             final w = controller.focusedWindow;
-            if (w != null) controller.openApp(w.app);
+            if (w != null) controller.openApp(w.app, newWindow: true);
           },
         ),
         ShellMenuItem(
@@ -98,7 +101,7 @@ List<ShellMenu> buildShellMenus(
         ),
         for (final w in controller.windows)
           ShellMenuItem(
-            label: w.app.name,
+            label: w.displayTitle,
             checked: controller.focusedId == w.id,
             action: (_) {
               if (w.minimized) {
