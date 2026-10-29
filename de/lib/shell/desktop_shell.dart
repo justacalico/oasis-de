@@ -34,6 +34,7 @@ class DesktopShell extends StatefulWidget {
 class _DesktopShellState extends State<DesktopShell> {
   final List<GlobalKey> _menuLabelKeys = [];
   StreamSubscription<WaylandRequest>? _requestSub;
+  final _pointerPos = ValueNotifier<Offset>(Offset.zero);
 
   ShellController get controller => widget.controller;
 
@@ -46,6 +47,7 @@ class _DesktopShellState extends State<DesktopShell> {
   @override
   void dispose() {
     _requestSub?.cancel();
+    _pointerPos.dispose();
     super.dispose();
   }
 
@@ -62,7 +64,8 @@ class _DesktopShellState extends State<DesktopShell> {
         : w.fullscreen
         ? Offset.zero
         : w.position;
-    final pos = base +
+    final pos =
+        base +
         const Offset(0, kOasisWindowTitleBarHeight) +
         Offset(request.x * sx, request.y * sy);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -90,6 +93,7 @@ class _DesktopShellState extends State<DesktopShell> {
           child: Listener(
             onPointerDown: _onShellPointerDown,
             onPointerHover: (e) {
+              _pointerPos.value = e.position;
               if (e.buttons == 0) controller.endSurfaceGesture();
             },
             onPointerMove: (e) =>
@@ -202,6 +206,26 @@ class _DesktopShellState extends State<DesktopShell> {
                   Positioned.fill(
                     child: ShellLaunchPad(controller: controller),
                   ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ValueListenableBuilder<Offset>(
+                      valueListenable: _pointerPos,
+                      builder: (context, pos, _) {
+                        final cursor = controller.wayland?.cursor;
+                        if (cursor == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return Transform.translate(
+                          offset: pos - cursor.hotspot,
+                          child: SizedBox.fromSize(
+                            size: cursor.size,
+                            child: Texture(textureId: cursor.textureId),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
                 Positioned(
                   left: 0,
                   right: 0,
@@ -228,9 +252,11 @@ class _DesktopShellState extends State<DesktopShell> {
       if (origin == null) continue;
       if (!(origin & popup.size).contains(e.position)) continue;
       var depth = 0;
-      for (var p = service.surfaces[popup.parentId];
-          p != null && p.isPopup;
-          p = service.surfaces[p.parentId]) {
+      for (
+        var p = service.surfaces[popup.parentId];
+        p != null && p.isPopup;
+        p = service.surfaces[p.parentId]
+      ) {
         depth++;
       }
       if (depth >= hitDepth) {
@@ -249,6 +275,7 @@ class _DesktopShellState extends State<DesktopShell> {
   }
 
   void _onShellPointerMove(PointerMoveEvent e, Size screen) {
+    _pointerPos.value = e.position;
     final resize = controller.surfaceResize;
     if (resize != null) {
       controller.resizeWindow(

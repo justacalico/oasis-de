@@ -1131,6 +1131,39 @@ void main() {
     service.dispose();
   });
 
+  test('cursor event tracks client cursor texture', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    host.emit({
+      'event': 'cursor',
+      'id': 9,
+      'texture': 42,
+      'w': 24,
+      'h': 24,
+      'hx': 4,
+      'hy': 4,
+    });
+    await pumpEventQueue();
+    expect(service.cursor!.textureId, 42);
+    expect(service.cursor!.size, const Size(24, 24));
+    expect(service.cursor!.hotspot, const Offset(4, 4));
+    host.emit({'event': 'cursor', 'id': 0});
+    await pumpEventQueue();
+    expect(service.cursor, isNull);
+    host.emit({
+      'event': 'cursor',
+      'id': 9,
+      'texture': -1,
+      'w': 24,
+      'h': 24,
+      'hx': 0,
+      'hy': 0,
+    });
+    await pumpEventQueue();
+    expect(service.cursor, isNull);
+    service.dispose();
+  });
+
   test('inputRegion event stores rect list', () async {
     final host = FakeWaylandHost();
     final service = await _service(host);
@@ -1244,6 +1277,51 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(find.byType(RotatedBox), findsWidgets);
+  });
+
+  testWidgets('client cursor texture follows the pointer', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        backend: const NoopSystemBackend(),
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: service,
+        externalAppsLoader: () async => [_external('x')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    _emitToplevel(host, id: 1, appId: 'x');
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    host.emit({
+      'event': 'cursor',
+      'id': 9,
+      'texture': 7,
+      'w': 24,
+      'h': 24,
+      'hx': 4,
+      'hy': 4,
+    });
+    await tester.pumpAndSettle();
+    expect(find.byType(Texture), findsWidgets);
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(pointer.hover(const Offset(500, 300)));
+    await tester.pump();
+    final move = tester.widget<Transform>(
+      find.ancestor(
+        of: find.byWidgetPredicate(
+          (w) => w is Texture && w.textureId == 7,
+        ),
+        matching: find.byType(Transform),
+      ).first,
+    );
+    expect(move.transform.getTranslation().x, closeTo(496, 0.001));
   });
 
   testWidgets('clicking a nested popup keeps its ancestors open', (
