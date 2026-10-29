@@ -20,6 +20,7 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
   static const _cellHeight = 118.0;
 
   final _field = TextEditingController();
+  final _fieldFocus = FocusNode();
   final _pages = PageController();
   var _page = 0;
   var _selected = -1;
@@ -36,6 +37,7 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onKey);
     _field.dispose();
+    _fieldFocus.dispose();
     _pages.dispose();
     super.dispose();
   }
@@ -88,12 +90,12 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
       return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      if (_selected < 0) return false;
+      if (_selected < 0 || _fieldFocus.hasFocus) return false;
       _move(1);
       return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      if (_selected < 0) return false;
+      if (_selected < 0 || _fieldFocus.hasFocus) return false;
       _move(-1);
       return true;
     }
@@ -127,6 +129,7 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
                 child: OasisSearchField(
                   hint: l10n.launcherHint,
                   controller: _field,
+                  focusNode: _fieldFocus,
                   autofocus: true,
                   fontSize: 15,
                   onChanged: (_) =>
