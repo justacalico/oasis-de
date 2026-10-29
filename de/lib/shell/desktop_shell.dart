@@ -221,12 +221,30 @@ class _DesktopShellState extends State<DesktopShell> {
   void _onShellPointerDown(PointerDownEvent e) {
     final service = controller.wayland;
     if (service == null || service.popups.isEmpty) return;
+    WaylandSurface? hit;
+    var hitDepth = -1;
     for (final popup in service.popups) {
       final origin = _popupOffset(popup);
       if (origin == null) continue;
-      if (!(origin & popup.size).contains(e.position)) {
-        service.close(popup.id);
+      if (!(origin & popup.size).contains(e.position)) continue;
+      var depth = 0;
+      for (var p = service.surfaces[popup.parentId];
+          p != null && p.isPopup;
+          p = service.surfaces[p.parentId]) {
+        depth++;
       }
+      if (depth >= hitDepth) {
+        hit = popup;
+        hitDepth = depth;
+      }
+    }
+    final keep = <int>{};
+    for (var p = hit; p != null; p = service.surfaces[p.parentId]) {
+      keep.add(p.id);
+      if (!p.isPopup) break;
+    }
+    for (final popup in service.popups) {
+      if (!keep.contains(popup.id)) service.close(popup.id);
     }
   }
 

@@ -1030,6 +1030,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Minimise'), findsOneWidget);
   });
+
+  testWidgets('clicking a nested popup keeps its ancestors open', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        backend: const NoopSystemBackend(),
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: service,
+        externalAppsLoader: () async => [_external('x')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    _emitToplevel(host, id: 1, appId: 'x');
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    await tester.pumpAndSettle();
+    final dynamic st = tester.state(find.byType(OasisDesktopApp));
+    final c = st.controller as ShellController;
+    final win = c.windowForSurface(1)!;
+    host.emit({
+      'event': 'popup',
+      'id': 10,
+      'parent': 1,
+      'textureId': 110,
+      'x': 20,
+      'y': 20,
+    });
+    host.emit({'event': 'size', 'id': 10, 'w': 100, 'h': 60});
+    host.emit({
+      'event': 'popup',
+      'id': 11,
+      'parent': 10,
+      'textureId': 111,
+      'x': 40,
+      'y': 10,
+    });
+    host.emit({'event': 'size', 'id': 11, 'w': 60, 'h': 40});
+    await tester.pumpAndSettle();
+    final inside = win.position +
+        const Offset(0, kOasisWindowTitleBarHeight) +
+        const Offset(90, 50);
+    await tester.tapAt(inside);
+    await tester.pump();
+    expect(host.calls.where((c) => c.startsWith('close:')), isEmpty);
+    await tester.tapAt(const Offset(640, 640));
+    await tester.pump();
+    expect(
+      host.calls.where((c) => c.startsWith('close:')).toSet(),
+      {'close:10', 'close:11'},
+    );
+  });
 }
 
 class _StubContext extends Fake implements BuildContext {}
