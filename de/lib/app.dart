@@ -26,6 +26,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.updateChecker,
     this.openUrl,
     this.appearance,
+    this.wallpaper,
     this.wayland,
     this.externalAppsLoader = loadExternalApps,
   });
@@ -34,6 +35,7 @@ class OasisDesktopApp extends StatefulWidget {
   final UpdateChecker? updateChecker;
   final ValueChanged<String>? openUrl;
   final OasisAppearance? appearance;
+  final OasisWallpaperService? wallpaper;
   final WaylandService? wayland;
   final Future<List<OasisApp>> Function() externalAppsLoader;
 
@@ -43,6 +45,7 @@ class OasisDesktopApp extends StatefulWidget {
 
 class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final OasisAppearance _appearance;
+  late final OasisWallpaperService _wallpaper;
   late final UpdateService _updates;
   late final ShellController _controller;
   late final WaylandService _wayland;
@@ -56,6 +59,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   void initState() {
     super.initState();
     _appearance = widget.appearance ?? OasisAppearance();
+    _wallpaper = widget.wallpaper ?? OasisWallpaperService();
     _updates = UpdateService(
       checker: widget.updateChecker,
       currentVersion: () async => widget.version,
@@ -109,6 +113,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 l10n,
                 version: widget.version,
                 appearance: _appearance,
+                wallpaper: _wallpaper,
                 updates: _updates,
                 setLocale: _setLocale,
                 locale: _locale,
@@ -126,6 +131,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 child: Scaffold(
                   body: DesktopShell(
                     controller: _controller,
+                    wallpaper: _wallpaper,
                     menusBuilder: () => buildShellMenus(
                       l10n,
                       _controller,

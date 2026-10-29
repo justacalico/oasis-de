@@ -1,24 +1,52 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../theme/oasis_theme.dart';
+import '../wallpaper/wallpaper_service.dart';
 
 class OasisWallpaper extends StatelessWidget {
-  const OasisWallpaper({super.key});
+  const OasisWallpaper({super.key, this.service});
+
+  final OasisWallpaperService? service;
 
   @override
   Widget build(BuildContext context) {
+    final s = service;
+    if (s == null) return _build(context, null);
+    return AnimatedBuilder(
+      animation: s,
+      builder: (context, _) => _build(context, s),
+    );
+  }
+
+  Widget _build(BuildContext context, OasisWallpaperService? s) {
     final p = OasisStyle.of(context).palette;
-    return CustomPaint(
-      painter: OasisDunesPainter(
-        skyTop: p.desktopGradientStart,
-        skyBottom: p.desktopGradientMid,
-        duneFar: p.desktopGradientEnd,
-        duneNear: p.isDark
-            ? p.desktopGradientEnd.withValues(alpha: 0.55)
-            : p.desktopGradientEnd.withValues(alpha: 0.85),
-        night: p.isDark,
-      ),
-      child: const SizedBox.expand(),
+    final path = s?.imagePath;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(
+          painter: OasisDunesPainter(
+            skyTop: p.desktopGradientStart,
+            skyBottom: p.desktopGradientMid,
+            duneFar: p.desktopGradientEnd,
+            duneNear: p.isDark
+                ? p.desktopGradientEnd.withValues(alpha: 0.55)
+                : p.desktopGradientEnd.withValues(alpha: 0.85),
+            night: p.isDark,
+          ),
+          child: const SizedBox.expand(),
+        ),
+        if (!kIsWeb && path != null)
+          Image.file(
+            File(path),
+            fit: s?.fit ?? BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                const SizedBox.shrink(),
+          ),
+      ],
     );
   }
 }

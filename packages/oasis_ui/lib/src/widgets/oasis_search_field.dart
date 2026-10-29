@@ -12,6 +12,7 @@ class OasisSearchField extends StatelessWidget {
     this.focusNode,
     this.autofocus = false,
     this.fontSize = 13,
+    this.icon = Icons.search,
   });
 
   final String hint;
@@ -21,6 +22,7 @@ class OasisSearchField extends StatelessWidget {
   final FocusNode? focusNode;
   final bool autofocus;
   final double fontSize;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +46,7 @@ class OasisSearchField extends StatelessWidget {
             .textTheme
             .bodyMedium
             ?.copyWith(fontSize: fontSize, color: p.textTertiary),
-        prefixIcon: Icon(Icons.search,
+        prefixIcon: Icon(icon,
             size: fontSize + 4, color: p.textTertiary),
         prefixIconConstraints:
             const BoxConstraints(minWidth: 34, minHeight: 0),

@@ -178,6 +178,33 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get themeOled => 'OLED';
 
   @override
+  String get settingsWallpaper => 'Páipéar balla';
+
+  @override
+  String get wallpaperDunes => 'Dumhcha Oasis';
+
+  @override
+  String get wallpaperCustom => 'Íomhá shaincheaptha';
+
+  @override
+  String get wallpaperPathHint => 'Conair na híomhá';
+
+  @override
+  String get wallpaperApply => 'Cuir i bhfeidhm';
+
+  @override
+  String get wallpaperFit => 'Oiriúnú';
+
+  @override
+  String get wallpaperFitCover => 'Líon an scáileán';
+
+  @override
+  String get wallpaperFitContain => 'Oiriúnaigh don scáileán';
+
+  @override
+  String get wallpaperFitFill => 'Sín';
+
+  @override
   String get languageSystem => 'Córas';
 
   @override

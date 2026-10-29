@@ -1,5 +1,7 @@
+export 'src/services/oasis_store.dart';
 export 'src/theme/oasis_colors.dart';
 export 'src/theme/oasis_theme.dart';
+export 'src/wallpaper/wallpaper_service.dart';
 export 'src/widgets/oasis_app.dart';
 export 'src/widgets/oasis_app_icon.dart';
 export 'src/widgets/oasis_button.dart';
