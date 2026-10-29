@@ -3,6 +3,9 @@ ignore_merge_commits = false
 disable_changelog = false
 disable_bump_commit = false
 tag_prefix = "v"
+pre_bump_hooks = [
+  "sed -i 's/^version: .*/version: {{version}}/' de/pubspec.yaml",
+]
 
 [commit_types]
 misc = { changelog_title = "Other changes" }
