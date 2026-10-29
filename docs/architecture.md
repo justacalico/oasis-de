@@ -2,8 +2,10 @@
 
 Oasis is a nested compositor. The whole shell is one Flutter app that runs as a normal GTK/Wayland client of the host session, and inside it a small embedded wayland-server hosts real Wayland applications in shell windows.
 
+Installed sessions boot through `oasis-session`, which runs the shell under cage (a single-window Wayland kiosk compositor) so the shell is fullscreen and its nested compositor is the only place app windows can go. When running nested for development, any host compositor works the same way.
+
 ```
-host compositor (GNOME/Sway/...)
+host compositor (cage in session, GNOME/Sway/... when nested)
   └─ oasis (Flutter + GTK)
        ├─ shell UI: menu bar, dock, launcher, control center
        ├─ bundled apps (settings, notes, ...) as Flutter widgets

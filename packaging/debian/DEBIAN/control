@@ -4,7 +4,7 @@ Section: x11
 Priority: optional
 Architecture: amd64
 Maintainer: Oasis <ci@oasis.local>
-Depends: dbus
+Depends: dbus, cage
 Description: A calm, glassy desktop environment for Linux
  Oasis is a desktop environment for people, not nerds. A floating dock,
  a translucent menu bar, a quiet launcher, a control center that stays
