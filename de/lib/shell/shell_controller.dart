@@ -34,6 +34,7 @@ class ShellWindowData {
   OasisApp app;
   Offset position;
   Size? size;
+  Size? adoptedSize;
   final dockIconKey = GlobalKey();
   var minimized = false;
   var zoomed = false;
@@ -202,6 +203,7 @@ class ShellController extends ChangeNotifier {
     final window = _byId(id);
     if (window == null) return;
     window.zoomed = !window.zoomed;
+    window.adoptedSize = window.surface?.size;
     notifyListeners();
   }
 
@@ -241,10 +243,31 @@ class ShellController extends ChangeNotifier {
         window.transition != ShellWindowTransition.none) {
       return;
     }
+    var minW = kMinWindowWidth;
+    var minH = kMinWindowHeight;
+    var maxW = double.infinity;
+    var maxH = double.infinity;
+    final s = window.surface;
+    if (s != null) {
+      if (s.minSize.width > 0 && s.minSize.height > 0) {
+        minW = math.max(minW, s.minSize.width);
+        minH = math.max(
+            minH, s.minSize.height + kOasisWindowTitleBarHeight);
+      } else if (!s.size.isEmpty) {
+        minW = math.min(minW, s.size.width);
+        minH = math.min(
+            minH, s.size.height + kOasisWindowTitleBarHeight);
+      }
+      if (s.maxSize.width > 0 && s.maxSize.height > 0) {
+        maxW = s.maxSize.width;
+        maxH = s.maxSize.height + kOasisWindowTitleBarHeight;
+      }
+    }
     final base = window.size ?? fallback;
     final size = Size(
-      math.max(kMinWindowWidth, base.width + delta.dx * edge.dx),
-      math.max(kMinWindowHeight, base.height + delta.dy * edge.dy),
+      math.max(minW, math.min(maxW, base.width + delta.dx * edge.dx)),
+      math.max(
+          minH, math.min(maxH, base.height + delta.dy * edge.dy)),
     );
     window.position = Offset(
       edge.dx < 0
@@ -255,6 +278,7 @@ class ShellController extends ChangeNotifier {
           : window.position.dy,
     );
     window.size = size;
+    window.adoptedSize = s?.size;
     notifyListeners();
   }
 
@@ -347,6 +371,17 @@ class ShellController extends ChangeNotifier {
         if (match.isExternal) w.app = match;
       }
     }
+    for (final w in windows) {
+      final s = w.surface;
+      if (s == null || w.zoomed || s.size.isEmpty) continue;
+      if (s.size == w.adoptedSize) continue;
+      w.adoptedSize = s.size;
+      final fit = Size(s.size.width,
+          s.size.height + kOasisWindowTitleBarHeight);
+      if (w.size == fit) continue;
+      w.size = fit;
+      changed = true;
+    }
     if (changed) {
       _pushWaylandFocus();
       notifyListeners();
@@ -363,6 +398,7 @@ class ShellController extends ChangeNotifier {
       case WaylandRequestType.fullscreen:
         if (w.zoomed != request.on) {
           w.zoomed = request.on;
+          w.adoptedSize = w.surface?.size;
           notifyListeners();
         }
       case WaylandRequestType.minimize:

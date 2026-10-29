@@ -98,11 +98,16 @@ void main() {
     host.emit({'event': 'title', 'id': 1, 'title': 'New'});
     host.emit({'event': 'appId', 'id': 1, 'appId': 'org.x'});
     host.emit({'event': 'size', 'id': 1, 'w': 640, 'h': 480});
+    host.emit({'event': 'minSize', 'id': 1, 'w': 320, 'h': 240});
+    host.emit({'event': 'maxSize', 'id': 1, 'w': 1280, 'h': 960});
+    host.emit({'event': 'minSize', 'id': 99, 'w': 1, 'h': 1});
     await pumpEventQueue();
     final s = service.surfaces[1]!;
     expect(s.title, 'New');
     expect(s.appId, 'org.x');
     expect(s.size, const Size(640, 480));
+    expect(s.minSize, const Size(320, 240));
+    expect(s.maxSize, const Size(1280, 960));
 
     host.emit({
       'event': 'popup',

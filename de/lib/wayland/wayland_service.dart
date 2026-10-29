@@ -26,6 +26,8 @@ class WaylandSurface {
   String appId;
   Offset offset;
   Size size;
+  Size minSize = Size.zero;
+  Size maxSize = Size.zero;
 
   bool get isPopup => parentId != null && !isSub;
 }
@@ -103,6 +105,18 @@ class WaylandService extends ChangeNotifier {
         final s = surfaces[id];
         if (s != null) {
           s.size = Size((e['w'] as num).toDouble(),
+              (e['h'] as num).toDouble());
+        }
+      case 'minSize':
+        final s = surfaces[id];
+        if (s != null) {
+          s.minSize = Size((e['w'] as num).toDouble(),
+              (e['h'] as num).toDouble());
+        }
+      case 'maxSize':
+        final s = surfaces[id];
+        if (s != null) {
+          s.maxSize = Size((e['w'] as num).toDouble(),
               (e['h'] as num).toDouble());
         }
       case 'popup':

@@ -526,9 +526,49 @@ void main() {
         tester.getCenter(find.byType(WaylandSurfaceView)));
     await gesture.moveBy(const Offset(30, 20));
     expect(c.windows.single.size,
-        const Size(1280 * 0.62 + 30, 800 * 0.62 + 20));
+        const Size(100 + 30, 138 + 20));
     await gesture.up();
     expect(c.surfaceResize, isNull);
+    c.dispose();
+    service.dispose();
+  });
+
+  test('window adopts the surface size and honors client limits',
+      () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(
+        apps: [_external('x')], wayland: service);
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 320, 'h': 240});
+    await pumpEventQueue();
+    final w = c.windows.single;
+    expect(w.size, const Size(320, 240 + kOasisWindowTitleBarHeight));
+
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 200});
+    await pumpEventQueue();
+    expect(w.size, const Size(400, 200 + kOasisWindowTitleBarHeight));
+
+    c.toggleZoom(w.id);
+    host.emit({'event': 'size', 'id': 1, 'w': 800, 'h': 600});
+    await pumpEventQueue();
+    expect(w.size, const Size(400, 200 + kOasisWindowTitleBarHeight));
+    c.toggleZoom(w.id);
+
+    host.emit({'event': 'minSize', 'id': 1, 'w': 500, 'h': 400});
+    host.emit({'event': 'maxSize', 'id': 1, 'w': 700, 'h': 500});
+    await pumpEventQueue();
+
+    c.resizeWindow(w.id, const Offset(2000, 2000),
+        OasisResizeEdge.bottomRight, const Size(500, 400));
+    expect(w.size,
+        const Size(700, 500 + kOasisWindowTitleBarHeight));
+
+    c.resizeWindow(w.id, const Offset(-2000, -2000),
+        OasisResizeEdge.bottomRight, const Size(500, 400));
+    expect(w.size,
+        const Size(500, 400 + kOasisWindowTitleBarHeight));
     c.dispose();
     service.dispose();
   });
