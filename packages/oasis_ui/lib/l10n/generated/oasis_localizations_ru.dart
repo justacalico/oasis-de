@@ -100,6 +100,9 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get updateCheck => 'Проверить обновления';
 
   @override
+  String get updateCheckNow => 'Проверить сейчас';
+
+  @override
   String get updateChecking => 'Проверка обновлений…';
 
   @override

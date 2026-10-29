@@ -15,7 +15,7 @@ const _pngBase64 =
 Widget _host({required Widget child}) {
   return OasisHost(
     appearance: OasisAppearance(),
-    updates: UpdateService(),
+    updates: UpdateService(currentVersion: () async => '1.0.0'),
     setLocale: (_) {},
     child: child,
   );

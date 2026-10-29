@@ -49,6 +49,7 @@
     }
   },
   "updateCheck": "Seiceáil Nuashonruithe",
+  "updateCheckNow": "Seiceáil anois",
   "updateChecking": "Nuashonruithe á seiceáil…",
   "updateUpToDate": "Tá Oasis cothrom le dáta",
   "updateAvailable": "Tá leagan {version} ar fáil",

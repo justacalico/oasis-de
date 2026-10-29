@@ -99,6 +99,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get updateCheck => '检查更新';
 
   @override
+  String get updateCheckNow => '立即检查';
+
+  @override
   String get updateChecking => '正在检查更新…';
 
   @override

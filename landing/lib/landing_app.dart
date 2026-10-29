@@ -42,7 +42,7 @@ class _LandingAppState extends State<LandingApp> {
       _appearance.addListener(
           () => widget.onThemeChanged!(_appearance.themeMode));
     }
-    _updates = UpdateService();
+    _updates = UpdateService(currentVersion: () async => '0.0.0');
     _client = widget.client ?? ReleaseClient();
   }
 

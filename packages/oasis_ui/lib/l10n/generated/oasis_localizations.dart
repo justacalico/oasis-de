@@ -270,6 +270,12 @@ abstract class OasisLocalizations {
   /// **'Check for Updates'**
   String get updateCheck;
 
+  /// No description provided for @updateCheckNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Check now'**
+  String get updateCheckNow;
+
   /// No description provided for @updateChecking.
   ///
   /// In en, this message translates to:

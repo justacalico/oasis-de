@@ -99,6 +99,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get updateCheck => 'Check for Updates';
 
   @override
+  String get updateCheckNow => 'Check now';
+
+  @override
   String get updateChecking => 'Checking for updates…';
 
   @override

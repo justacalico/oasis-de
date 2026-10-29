@@ -100,6 +100,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get updateCheck => 'Seiceáil Nuashonruithe';
 
   @override
+  String get updateCheckNow => 'Seiceáil anois';
+
+  @override
   String get updateChecking => 'Nuashonruithe á seiceáil…';
 
   @override

@@ -49,6 +49,7 @@
     }
   },
   "updateCheck": "Check for Updates",
+  "updateCheckNow": "Check now",
   "updateChecking": "Checking for updates…",
   "updateUpToDate": "Oasis is up to date",
   "updateAvailable": "Version {version} is available",

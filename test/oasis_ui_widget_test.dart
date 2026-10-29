@@ -406,7 +406,7 @@ void main() {
 
   testWidgets('OasisHost propagates', (tester) async {
     final appearance = OasisAppearance();
-    final updates = UpdateService();
+    final updates = UpdateService(currentVersion: () async => '1.0.0');
     late OasisHost found;
     await pumpOasis(
       tester,
@@ -517,7 +517,7 @@ void main() {
       tester,
       OasisHost(
         appearance: OasisAppearance(),
-        updates: UpdateService(),
+        updates: UpdateService(currentVersion: () async => '1.0.0'),
         setLocale: seen.add,
         child: Builder(
           builder: (context) {

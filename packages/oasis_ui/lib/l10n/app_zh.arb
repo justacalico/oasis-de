@@ -49,6 +49,7 @@
     }
   },
   "updateCheck": "检查更新",
+  "updateCheckNow": "立即检查",
   "updateChecking": "正在检查更新…",
   "updateUpToDate": "Oasis 已是最新版本",
   "updateAvailable": "版本 {version} 现已推出",
