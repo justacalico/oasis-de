@@ -109,6 +109,22 @@ void main() {
     c.dispose();
   });
 
+  test('closing or minimizing the focused window promotes the next', () {
+    final c = _controller();
+    c.openApp(c.apps[0]);
+    c.openApp(c.apps[1]);
+    final first = c.windows[0].id;
+    final second = c.windows[1].id;
+    c.minimizeWindow(second);
+    expect(c.focusedId, first);
+    c.focusWindow(second);
+    c.closeWindow(second);
+    expect(c.focusedId, first);
+    c.minimizeWindow(first);
+    expect(c.focusedId, isNull);
+    c.dispose();
+  });
+
   test('showDesktop toggles minimize and restore', () {
     final c = _controller();
     c.openApp(c.apps[0]);
