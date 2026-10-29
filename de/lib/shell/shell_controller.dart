@@ -199,6 +199,8 @@ class ShellController extends ChangeNotifier {
   int? get surfaceDragWindowId => _surfaceDragId;
   ({int id, OasisResizeEdge edge})? get surfaceResize => _surfaceResize;
 
+  var _pinsLoaded = false;
+
   void syncApps(
     List<OasisApp> fresh, {
     List<String>? pinnedIds,
@@ -208,9 +210,9 @@ class ShellController extends ChangeNotifier {
       ..clear()
       ..addAll(fresh);
     final byId = {for (final a in fresh) a.id: a};
-    pinned
-      ..clear()
-      ..addAll(
+    if (!_pinsLoaded) {
+      _pinsLoaded = true;
+      pinned.addAll(
         pinnedIds == null
             ? fallback ?? fresh
             : [
@@ -218,6 +220,7 @@ class ShellController extends ChangeNotifier {
                   if (byId[id] != null) byId[id]!,
               ],
       );
+    }
     for (final w in windows) {
       final updated = byId[w.app.id];
       if (updated != null) w.app = updated;
