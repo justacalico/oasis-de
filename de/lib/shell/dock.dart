@@ -41,6 +41,9 @@ class _ShellDockState extends State<ShellDock> {
             w.transition != ShellWindowTransition.none)
         .toList(growable: false);
     final running = {for (final w in c.windows) w.app.id};
+    final external = c.windows
+        .where((w) => w.surface != null && !w.minimized)
+        .toList(growable: false);
 
     return MouseRegion(
       onHover: (e) => setState(() => _pointerX = e.position.dx),
@@ -70,12 +73,19 @@ class _ShellDockState extends State<ShellDock> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  for (final app in c.apps)
+                  for (final app in c.pinned)
                     _DockIcon(
                       app: app,
                       running: running.contains(app.id),
                       measure: _sizeAt,
                       onTap: () => c.openApp(app),
+                    ),
+                  for (final w in external)
+                    _DockIcon(
+                      app: w.app,
+                      running: true,
+                      measure: _sizeAt,
+                      onTap: () => c.focusWindow(w.id),
                     ),
                   if (minimized.isNotEmpty)
                     Container(

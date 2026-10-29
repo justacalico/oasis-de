@@ -21,7 +21,7 @@ jobs:
           channel: stable
           cache: true
       - name: Install Linux desktop deps
-        run: sudo apt-get update -y && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+        run: sudo apt-get update -y && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libwayland-dev libxkbcommon-dev wayland-protocols libwayland-bin
       - run: flutter pub get
       - run: for p in packages/oasis_ui de apps/settings landing; do (cd $p && flutter pub get); done
       - run: flutter analyze
@@ -70,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Linux desktop deps
-        run: sudo apt-get update -y && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev git
+        run: sudo apt-get update -y && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev git libwayland-dev libxkbcommon-dev wayland-protocols libwayland-bin
       - name: Install Flutter
         run: git clone https://github.com/flutter/flutter.git -b stable --depth 1 "$HOME/flutter"
       - run: echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
