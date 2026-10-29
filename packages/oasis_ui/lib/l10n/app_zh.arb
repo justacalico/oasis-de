@@ -1,6 +1,7 @@
 {
   "@@locale": "zh",
   "appName": "Oasis",
+  "appUnknown": "应用程序",
   "menuFile": "文件",
   "menuView": "显示",
   "menuWindow": "窗口",

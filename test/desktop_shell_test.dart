@@ -10,9 +10,11 @@ import 'package:oasis_de/apps/shell_apps.dart';
 import 'package:oasis_de/shell/dock.dart';
 import 'package:oasis_de/shell/genie_window.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
+import 'package:oasis_de/wayland/wayland_service.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import 'helpers/test_app.dart';
+import 'wayland_test.dart' show FakeWaylandHost;
 
 class _FakeChecker extends UpdateChecker {
   _FakeChecker(this.result);
@@ -32,12 +34,14 @@ Future<void> pumpDesktop(
   List<String>? opened,
   OasisSystemBackend? backend,
   NotificationDaemon? notificationDaemon,
+  WaylandService? wayland,
 }) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     OasisDesktopApp(
+      wayland: wayland,
       backend: backend ?? const NoopSystemBackend(),
       notificationDaemon: notificationDaemon,
       version: '1.0.0',
@@ -56,6 +60,24 @@ void main() {
     expect(find.text('View'), findsOneWidget);
     expect(find.byType(OasisAppIcon), findsWidgets);
     expect(find.byType(Tooltip), findsWidgets);
+  });
+
+  testWidgets('untitled wayland surface uses localized fallback name',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final wayland = WaylandService(host: host);
+    await wayland.start();
+    await pumpDesktop(tester, wayland: wayland);
+    host.emit({
+      'event': 'toplevel',
+      'id': 1,
+      'textureId': 101,
+      'title': '',
+      'appId': '',
+      'parent': -1,
+    });
+    await tester.pumpAndSettle();
+    expect(find.text('Application'), findsWidgets);
   });
 
   testWidgets('opening the app menu shows items and opens about', (

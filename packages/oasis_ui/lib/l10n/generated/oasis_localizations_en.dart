@@ -12,6 +12,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get appName => 'Oasis';
 
   @override
+  String get appUnknown => 'Application';
+
+  @override
   String get menuFile => 'File';
 
   @override

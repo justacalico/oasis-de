@@ -115,6 +115,9 @@ class ShellController extends ChangeNotifier {
   final List<ShellWindowData> windows = [];
   final WaylandService? wayland;
 
+  String Function() unknownAppName =
+      () => lookupOasisLocalizations(const Locale('en')).appUnknown;
+
   double? batteryLevel;
   bool batteryCharging = false;
 
@@ -539,7 +542,7 @@ class ShellController extends ChangeNotifier {
     }
     final label = surface.title.isNotEmpty
         ? surface.title
-        : (surface.appId.isNotEmpty ? surface.appId : 'Application');
+        : (surface.appId.isNotEmpty ? surface.appId : unknownAppName());
     return OasisApp(
       id: 'external:${surface.id}',
       name: label,

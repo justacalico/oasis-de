@@ -1,6 +1,7 @@
 {
   "@@locale": "ga",
   "appName": "Oasis",
+  "appUnknown": "Feidhmchlár",
   "menuFile": "Comhad",
   "menuView": "Amharc",
   "menuWindow": "Fuinneog",

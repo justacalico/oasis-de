@@ -12,6 +12,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get appName => 'Oasis';
 
   @override
+  String get appUnknown => '应用程序';
+
+  @override
   String get menuFile => '文件';
 
   @override
