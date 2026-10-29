@@ -908,6 +908,8 @@ class ShellController extends ChangeNotifier {
   set brightnessValue(double v) =>
       _set(() => brightness = v, () => backend.brightness(v));
   set volumeValue(double v) => _set(() => volume = v, () => backend.volume(v));
+  set brightnessPreview(double v) => _set(() => brightness = v);
+  set volumePreview(double v) => _set(() => volume = v);
 
   final OasisSystemBackend backend;
 

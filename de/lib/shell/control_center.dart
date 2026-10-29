@@ -122,7 +122,8 @@ class ShellControlCenter extends StatelessWidget {
                           ),
                           OasisSlider(
                             value: c.brightness,
-                            onChanged: (v) => c.brightnessValue = v,
+                            onChanged: (v) => c.brightnessPreview = v,
+                            onChangeEnd: (v) => c.brightnessValue = v,
                           ),
                         ],
                       ),
@@ -139,7 +140,8 @@ class ShellControlCenter extends StatelessWidget {
                           ),
                           OasisSlider(
                             value: c.volume,
-                            onChanged: (v) => c.volumeValue = v,
+                            onChanged: (v) => c.volumePreview = v,
+                            onChangeEnd: (v) => c.volumeValue = v,
                           ),
                         ],
                       ),

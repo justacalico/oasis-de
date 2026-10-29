@@ -7,12 +7,14 @@ class OasisSlider extends StatelessWidget {
     super.key,
     required this.value,
     this.onChanged,
+    this.onChangeEnd,
     this.min = 0,
     this.max = 1,
   });
 
   final double value;
   final ValueChanged<double>? onChanged;
+  final ValueChanged<double>? onChangeEnd;
   final double min;
   final double max;
 
@@ -33,8 +35,10 @@ class OasisSlider extends StatelessWidget {
         final width = constraints.maxWidth;
         return GestureDetector(
           onTapDown: (d) => _update(d.localPosition, width),
+          onTapUp: (_) => onChangeEnd?.call(value),
           onPanStart: (d) => _update(d.localPosition, width),
           onPanUpdate: (d) => _update(d.localPosition, width),
+          onPanEnd: (_) => onChangeEnd?.call(value),
           child: SizedBox(
             height: 24,
             width: width,
