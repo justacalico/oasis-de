@@ -184,7 +184,6 @@ class ShellController extends ChangeNotifier {
   var nightLightOn = false;
   var brightness = 0.8;
   var volume = 0.6;
-  var batteryPercent = 100;
 
   int? get focusedId => _focusedId;
   String? get openMenu => _openMenu;
