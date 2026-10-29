@@ -64,6 +64,18 @@ class WaylandRequest {
   final double y;
 }
 
+class WaylandCursor {
+  const WaylandCursor({
+    required this.textureId,
+    required this.size,
+    required this.hotspot,
+  });
+
+  final int textureId;
+  final Size size;
+  final Offset hotspot;
+}
+
 class WaylandService extends ChangeNotifier {
   WaylandService({WaylandHost? host})
     : _host = host ?? const ChannelWaylandHost();
@@ -72,6 +84,7 @@ class WaylandService extends ChangeNotifier {
   final Map<int, WaylandSurface> surfaces = {};
   final _requests = StreamController<WaylandRequest>.broadcast();
   StreamSubscription<Map<String, Object?>>? _sub;
+  WaylandCursor? cursor;
 
   var socket = '';
   var started = false;
@@ -136,6 +149,21 @@ class WaylandService extends ChangeNotifier {
           if (scale != null && scale > 0) s.scale = scale;
           s.transform = (e['transform'] as num?)?.toInt() ?? 0;
         }
+      case 'cursor':
+        final tex = (e['texture'] as num?)?.toInt() ?? -1;
+        cursor = id != 0 && tex >= 0
+            ? WaylandCursor(
+                textureId: tex,
+                size: Size(
+                  (e['w'] as num).toDouble(),
+                  (e['h'] as num).toDouble(),
+                ),
+                hotspot: Offset(
+                  (e['hx'] as num).toDouble(),
+                  (e['hy'] as num).toDouble(),
+                ),
+              )
+            : null;
       case 'inputRegion':
         final s = surfaces[id];
         final rects = e['rects'] as List<Object?>?;

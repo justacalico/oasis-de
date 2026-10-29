@@ -39,6 +39,7 @@
 
 
 static bool is_dmabuf_buffer(wl_resource* b);
+static void emit_cursor(struct _OasisCompositor* c);
 
 enum SurfaceRole {
   SURFACE_NONE,
@@ -219,6 +220,9 @@ struct _OasisCompositor {
   int out_w = 1920;
   int out_h = 1080;
   int out_scale = 1;
+  Surface* cursor_surface = nullptr;
+  int cursor_hx = 0;
+  int cursor_hy = 0;
 
   char* keymap = nullptr;
   size_t keymap_len = 0;
@@ -491,6 +495,9 @@ static void surface_commit(Surface* s) {
   finish_frames(s);
   if (s->announced != SURFACE_NONE) {
     emit_size(s);
+  }
+  if (s->announced != SURFACE_NONE ||
+      s == s->comp->cursor_surface) {
     FlTexture* tex = s->tex_kind == 1   ? FL_TEXTURE(s->texture)
                      : s->tex_kind == 2 ? FL_TEXTURE(s->gl_texture)
                                        : nullptr;
@@ -498,6 +505,7 @@ static void surface_commit(Surface* s) {
       fl_texture_registrar_mark_texture_frame_available(
           s->comp->texture_registrar, tex);
     }
+    if (s == s->comp->cursor_surface) emit_cursor(s->comp);
   }
 }
 
@@ -660,6 +668,10 @@ static void free_surface(Surface* s) {
   if (c->kb_focus == s) c->kb_focus = nullptr;
   if (c->activated == s) c->activated = nullptr;
   if (c->ptr_focus == s) c->ptr_focus = nullptr;
+  if (c->cursor_surface == s) {
+    c->cursor_surface = nullptr;
+    emit_cursor(c);
+  }
   if (c->ptr_entered == s) {
     c->ptr_entered = nullptr;
     c->ptr_entered_res = nullptr;
@@ -1007,17 +1019,44 @@ static void pointer_exit(OasisCompositor* c) {
   c->ptr_entered_res = nullptr;
 }
 
+static void emit_cursor(OasisCompositor* c) {
+  FlValue* m = new_event("cursor");
+  Surface* s = c->cursor_surface;
+  if (s == nullptr) {
+    fl_value_set_string_take(m, "id", fl_value_new_int(0));
+  } else {
+    const int scale = s->buf_scale > 0 ? s->buf_scale : 1;
+    fl_value_set_string_take(m, "id", fl_value_new_int(s->public_id));
+    fl_value_set_string_take(m, "texture",
+                           fl_value_new_int(s->texture_id));
+    fl_value_set_string_take(m, "w", fl_value_new_int(s->iw / scale));
+    fl_value_set_string_take(m, "h", fl_value_new_int(s->ih / scale));
+    fl_value_set_string_take(m, "hx", fl_value_new_int(c->cursor_hx));
+    fl_value_set_string_take(m, "hy", fl_value_new_int(c->cursor_hy));
+  }
+  send_event(c, m);
+}
+
 static void pointer_set_cursor(wl_client* client,
                                wl_resource* res,
                                uint32_t serial,
                                wl_resource* surface_res,
                                int32_t hx,
                                int32_t hy) {
-  if (surface_res != nullptr) {
-    Surface* s =
-        static_cast<Surface*>(wl_resource_get_user_data(surface_res));
-    if (s->role == SURFACE_NONE) s->role = SURFACE_CURSOR;
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  c->cursor_hx = hx;
+  c->cursor_hy = hy;
+  if (surface_res == nullptr) {
+    c->cursor_surface = nullptr;
+    emit_cursor(c);
+    return;
   }
+  Surface* s =
+      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  if (s->role == SURFACE_NONE) s->role = SURFACE_CURSOR;
+  c->cursor_surface = s;
+  emit_cursor(c);
 }
 
 static void pointer_release(wl_client* client, wl_resource* res) {
