@@ -13,12 +13,11 @@ import 'package:oasis_ui/oasis_ui.dart';
 
 import 'helpers/test_app.dart';
 
-ReleaseClient _client({int status = 200, String body = '[]'}) =>
-    ReleaseClient(
-      client: MockClient((_) async => http.Response(body, status)),
-      host: 'gitlab.test',
-      projectPath: 'x/y',
-    );
+ReleaseClient _client({int status = 200, String body = '[]'}) => ReleaseClient(
+  client: MockClient((_) async => http.Response(body, status)),
+  host: 'gitlab.test',
+  projectPath: 'x/y',
+);
 
 final _releases = jsonEncode([
   {
@@ -57,10 +56,11 @@ void main() {
     await pumpOasis(
       tester,
       LandingPage(
-          key: const ValueKey('empty'),
-          client: _client(body: '[]'),
-          appUrl: 'app/',
-          repoUrl: 'https://repo'),
+        key: const ValueKey('empty'),
+        client: _client(body: '[]'),
+        appUrl: 'app/',
+        repoUrl: 'https://repo',
+      ),
       size: const Size(1100, 2400),
     );
     await tester.pumpAndSettle();
@@ -69,20 +69,21 @@ void main() {
     await pumpOasis(
       tester,
       LandingPage(
-          key: const ValueKey('error'),
-          client: _client(status: 500),
-          appUrl: 'app/',
-          repoUrl: 'https://repo'),
+        key: const ValueKey('error'),
+        client: _client(status: 500),
+        appUrl: 'app/',
+        repoUrl: 'https://repo',
+      ),
       size: const Size(1100, 2400),
     );
     await tester.pumpAndSettle();
     expect(find.text("Couldn't load releases"), findsOneWidget);
   });
 
-  testWidgets('landing page narrow layout and showcase images',
-      (tester) async {
+  testWidgets('landing page narrow layout and showcase images', (tester) async {
     final png = base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    );
     await pumpOasis(
       tester,
       LandingPage(
@@ -138,11 +139,13 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final modes = <OasisThemeMode>[];
-    await tester.pumpWidget(LandingApp(
-      client: _client(body: _releases),
-      onOpenUrl: (_) {},
-      onThemeChanged: modes.add,
-    ));
+    await tester.pumpWidget(
+      LandingApp(
+        client: _client(body: _releases),
+        onOpenUrl: (_) {},
+        onThemeChanged: modes.add,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Your desktop, distilled.'), findsOneWidget);
   });
@@ -150,11 +153,89 @@ void main() {
   testWidgets('downloads section and preview paint', (tester) async {
     await pumpOasis(
       tester,
-      const Padding(
-          padding: EdgeInsets.all(20), child: DesktopPreview()),
+      const Padding(padding: EdgeInsets.all(20), child: DesktopPreview()),
       theme: OasisThemeMode.dark,
       size: const Size(900, 700),
     );
     expect(find.byType(DesktopPreview), findsOneWidget);
+  });
+
+  testWidgets('landing wide showcase row, get started and source', (
+    tester,
+  ) async {
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    );
+    final opened = <String>[];
+    await pumpOasis(
+      tester,
+      LandingPage(
+        client: _client(),
+        appUrl: 'app/',
+        repoUrl: 'https://repo',
+        onOpenUrl: opened.add,
+        showcaseImages: [
+          MemoryImage(Uint8List.fromList(png)),
+          MemoryImage(Uint8List.fromList(png)),
+        ],
+      ),
+      size: const Size(1200, 2600),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsNWidgets(2));
+    await tester.ensureVisible(find.text('Download'));
+    await tester.tap(find.text('Download'));
+    expect(opened.last, 'https://gitlab.test/x/y/-/releases');
+  });
+
+  testWidgets('landing app theme listener fires', (tester) async {
+    tester.view.physicalSize = const Size(1100, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final modes = <OasisThemeMode>[];
+    await tester.pumpWidget(
+      LandingApp(
+        client: _client(),
+        onOpenUrl: (_) {},
+        onThemeChanged: modes.add,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(PopupMenuButton<OasisThemeMode>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Light').last);
+    await tester.pumpAndSettle();
+    expect(modes, contains(OasisThemeMode.light));
+  });
+
+  testWidgets('landing narrow showcase column', (tester) async {
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    );
+    await pumpOasis(
+      tester,
+      LandingPage(
+        client: _client(),
+        appUrl: 'app/',
+        repoUrl: 'https://repo',
+        showcaseImages: [MemoryImage(Uint8List.fromList(png))],
+      ),
+      size: const Size(480, 3200),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsOneWidget);
+  });
+
+  testWidgets('landing app setLocale via host', (tester) async {
+    tester.view.physicalSize = const Size(1100, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(LandingApp(client: _client(), onOpenUrl: (_) {}));
+    await tester.pumpAndSettle();
+    tester
+        .widget<OasisHost>(find.byType(OasisHost))
+        .setLocale(const Locale('ru'));
+    await tester.pump();
+    expect(find.byType(OasisHost), findsOneWidget);
   });
 }

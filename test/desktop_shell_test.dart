@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
+import 'package:oasis_de/shell/dock.dart';
 import 'package:oasis_de/shell/genie_window.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
+import 'helpers/test_app.dart';
 
 class _FakeChecker extends UpdateChecker {
   _FakeChecker(this.result);
@@ -18,20 +20,25 @@ class _FakeChecker extends UpdateChecker {
   Future<AppUpdate> check(String currentVersion) async => result;
 }
 
-Future<void> pumpDesktop(WidgetTester tester,
-    {OasisThemeMode mode = OasisThemeMode.light,
-    OasisAppearance? appearance,
-    Locale? platformLocale,
-    List<String>? opened}) async {
+Future<void> pumpDesktop(
+  WidgetTester tester, {
+  OasisThemeMode mode = OasisThemeMode.light,
+  OasisAppearance? appearance,
+  Locale? platformLocale,
+  UpdateChecker? updateChecker,
+  List<String>? opened,
+}) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(OasisDesktopApp(
-    version: '1.0.0',
-    appearance: appearance ?? OasisAppearance(themeMode: mode),
-    updateChecker: _FakeChecker(const AppUpdate()),
-    openUrl: (u) => opened?.add(u),
-  ));
+  await tester.pumpWidget(
+    OasisDesktopApp(
+      version: '1.0.0',
+      appearance: appearance ?? OasisAppearance(themeMode: mode),
+      updateChecker: updateChecker ?? _FakeChecker(const AppUpdate()),
+      openUrl: (u) => opened?.add(u),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -44,8 +51,9 @@ void main() {
     expect(find.byType(Tooltip), findsWidgets);
   });
 
-  testWidgets('opening the app menu shows items and opens about',
-      (tester) async {
+  testWidgets('opening the app menu shows items and opens about', (
+    tester,
+  ) async {
     await pumpDesktop(tester);
     await tester.tap(find.text('Oasis'));
     await tester.pumpAndSettle();
@@ -53,8 +61,10 @@ void main() {
     expect(find.text('Quit Oasis'), findsOneWidget);
     await tester.tap(find.text('About Oasis').last);
     await tester.pumpAndSettle();
-    expect(find.text('A calm, glassy desktop environment for Linux.'),
-        findsOneWidget);
+    expect(
+      find.text('A calm, glassy desktop environment for Linux.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('menu hover switches the open menu', (tester) async {
@@ -63,8 +73,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Close Window'), findsOneWidget);
 
-    final gesture =
-        await tester.createGesture(kind: PointerDeviceKind.mouse);
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer(location: Offset.zero);
     addTearDown(gesture.removePointer);
     await gesture.moveTo(tester.getCenter(find.text('Edit')));
@@ -78,8 +87,9 @@ void main() {
     expect(find.text('Minimise'), findsNothing);
   });
 
-  testWidgets('dock opens a window and traffic lights control it',
-      (tester) async {
+  testWidgets('dock opens a window and traffic lights control it', (
+    tester,
+  ) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
@@ -101,8 +111,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.edit_note).first);
     await tester.pumpAndSettle();
 
-    await tester.drag(
-        find.text('Notes').first, const Offset(30, 20));
+    await tester.drag(find.text('Notes').first, const Offset(30, 20));
     await tester.pumpAndSettle();
     await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
       await tester.tapAt(light(2));
@@ -119,8 +128,7 @@ void main() {
 
     final before = tester.getSize(find.byType(OasisWindow));
     final br = tester.getRect(find.byType(OasisWindow)).bottomRight;
-    final gesture =
-        await tester.startGesture(br - const Offset(4, 4));
+    final gesture = await tester.startGesture(br - const Offset(4, 4));
     await gesture.moveBy(const Offset(40, 25));
     await gesture.up();
     await tester.pumpAndSettle();
@@ -142,8 +150,7 @@ void main() {
     expect(find.text('Appearance'), findsWidgets);
   });
 
-  testWidgets('launcher keyboard navigation and no results',
-      (tester) async {
+  testWidgets('launcher keyboard navigation and no results', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.search).first);
     await tester.pumpAndSettle();
@@ -169,8 +176,7 @@ void main() {
     expect(find.text('Search apps'), findsNothing);
   });
 
-  testWidgets('control center toggles and sliders work',
-      (tester) async {
+  testWidgets('control center toggles and sliders work', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
@@ -184,16 +190,16 @@ void main() {
     await tester.pumpAndSettle();
 
     final slider = find.byType(OasisSlider).first;
-    await tester.tapAt(
-        tester.getCenter(slider) - const Offset(60, 0));
+    await tester.tapAt(tester.getCenter(slider) - const Offset(60, 0));
     await tester.pumpAndSettle();
     await tester.tapAt(const Offset(640, 500));
     await tester.pumpAndSettle();
     expect(find.text('Wi-Fi'), findsNothing);
   });
 
-  testWidgets('settings window navigates panes and picks theme',
-      (tester) async {
+  testWidgets('settings window navigates panes and picks theme', (
+    tester,
+  ) async {
     final appearance = OasisAppearance();
     await pumpDesktop(tester, appearance: appearance);
     await tester.tap(find.byIcon(Icons.settings));
@@ -226,13 +232,14 @@ void main() {
   testWidgets('dark and oled modes render', (tester) async {
     await pumpDesktop(tester, mode: OasisThemeMode.dark);
     expect(find.text('File'), findsOneWidget);
-    await pumpDesktop(tester,
-        appearance: OasisAppearance(themeMode: OasisThemeMode.oled));
+    await pumpDesktop(
+      tester,
+      appearance: OasisAppearance(themeMode: OasisThemeMode.oled),
+    );
     expect(find.text('File'), findsOneWidget);
   });
 
-  testWidgets('status icons open launcher and control center',
-      (tester) async {
+  testWidgets('status icons open launcher and control center', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.battery_full));
     await tester.tap(find.byIcon(Icons.wifi).first);
@@ -240,8 +247,7 @@ void main() {
     expect(find.text('Brightness'), findsOneWidget);
   });
 
-  testWidgets('window genies into the dock and back out',
-      (tester) async {
+  testWidgets('window genies into the dock and back out', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.edit_note).first);
     await tester.pumpAndSettle();
@@ -263,8 +269,9 @@ void main() {
     expect(find.text('Notes'), findsWidgets);
   });
 
-  testWidgets('tapping the dock icon mid-genie pulls the window back',
-      (tester) async {
+  testWidgets('tapping the dock icon mid-genie pulls the window back', (
+    tester,
+  ) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.edit_note).first);
     await tester.pumpAndSettle();
@@ -278,8 +285,9 @@ void main() {
     expect(find.text('Notes'), findsWidgets);
   });
 
-  testWidgets('genie falls back when the dock icon is unmounted',
-      (tester) async {
+  testWidgets('genie falls back when the dock icon is unmounted', (
+    tester,
+  ) async {
     final window = ShellWindowData(
       id: 1,
       app: OasisApp(
@@ -291,15 +299,172 @@ void main() {
       ),
       position: Offset.zero,
     )..transition = ShellWindowTransition.minimizing;
-    await tester.pumpWidget(MaterialApp(
-      home: GenieWindow(
-        window: window,
-        rect: const Rect.fromLTWH(40, 40, 400, 300),
-        onEnd: () {},
-        child: const SizedBox(width: 400, height: 300),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GenieWindow(
+          window: window,
+          rect: const Rect.fromLTWH(40, 40, 400, 300),
+          onEnd: () {},
+          child: const SizedBox(width: 400, height: 300),
+        ),
       ),
-    ));
+    );
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 400));
+  });
+
+  testWidgets('menu actions: settings, close, minimise, zoom, about', (
+    tester,
+  ) async {
+    await pumpDesktop(tester);
+
+    await tester.tap(find.text('Oasis'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Settings…'));
+    await tester.pumpAndSettle();
+    expect(find.text('Appearance'), findsWidgets);
+
+    await tester.tap(find.text('File'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Close Window'));
+    await tester.pumpAndSettle();
+    expect(find.text('Appearance'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.edit_note).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Window'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Minimise'));
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsNothing);
+
+    final icons = find.byIcon(Icons.edit_note);
+    await tester.tap(icons.last);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsWidgets);
+
+    await tester.tap(find.text('Window'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Zoom'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Help'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('About Oasis').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('A calm, glassy desktop environment for Linux.'),
+      findsWidgets,
+    );
+
+    await tester.tap(find.text('View'));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter Full Screen'), findsOneWidget);
+    await tester.tapAt(const Offset(640, 500));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('control center bluetooth and volume slider', (tester) async {
+    await pumpDesktop(
+      tester,
+      updateChecker: _FakeChecker(
+        const AppUpdate(
+          latestVersion: '2.0.0',
+          updateAvailable: true,
+          releaseUrl: 'https://rel/2',
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bluetooth'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Night Light'));
+    await tester.pumpAndSettle();
+    final sliders = find.byType(OasisSlider);
+    await tester.tapAt(tester.getCenter(sliders.at(1)) + const Offset(40, 0));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('About').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check for Updates').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Version 2.0.0 is available'), findsOneWidget);
+  });
+
+  testWidgets('dock magnification on hover and entry hover', (tester) async {
+    await pumpDesktop(tester);
+    final m = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await m.addPointer(location: Offset.zero);
+    addTearDown(m.removePointer);
+    await m.moveTo(const Offset(640, 780));
+    await tester.pumpAndSettle();
+    await m.moveTo(const Offset(700, 780));
+    await tester.pumpAndSettle();
+    await m.moveTo(Offset.zero);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('File'));
+    await tester.pumpAndSettle();
+    await m.moveTo(tester.getCenter(find.text('Close Window')));
+    await tester.pump();
+    await m.moveTo(tester.getCenter(find.text('New Window')));
+    await tester.pump();
+    await m.moveTo(const Offset(640, 500));
+    await tester.pump();
+    await tester.tapAt(const Offset(640, 500));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('launcher panel tap, submit and clock tick', (tester) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.search).first);
+    await tester.pumpAndSettle();
+    final panelGd = find.ancestor(
+      of: find.byType(EditableText),
+      matching: find.byType(GestureDetector),
+    );
+    final r = tester.getRect(panelGd.first);
+    await tester.tapAt(r.topCenter + const Offset(0, 6));
+    await tester.pump();
+    await tester.enterText(find.byType(EditableText).first, 'notes');
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsWidgets);
+    await tester.pump(const Duration(seconds: 61));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('unpinned minimized window gets a dock entry', (tester) async {
+    final app = OasisApp(
+      id: 'extra',
+      name: 'Extra',
+      icon: Icons.circle,
+      iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+      builder: (_) => const SizedBox(),
+    );
+    final c = ShellController(apps: [app]);
+    addTearDown(c.dispose);
+    c.openApp(app);
+    final w = c.windows.single;
+    c.minimizeWindow(w.id);
+    c.finishTransition(w.id);
+
+    await pumpOasis(
+      tester,
+      Scaffold(
+        body: Center(child: ShellDock(controller: c)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final icon = find.byKey(w.dockIconKey);
+    expect(icon, findsOneWidget);
+    await tester.tap(icon);
+    expect(w.minimized, isFalse);
   });
 }

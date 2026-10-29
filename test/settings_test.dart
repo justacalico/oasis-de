@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_settings/oasis_settings.dart';
@@ -5,6 +7,11 @@ import 'package:oasis_ui/oasis_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/test_app.dart';
+
+class _NeverChecker extends UpdateChecker {
+  @override
+  Future<AppUpdate> check(String v) => Completer<AppUpdate>().future;
+}
 
 class _FakeChecker extends UpdateChecker {
   _FakeChecker(this.result, {this.error});
@@ -97,8 +104,7 @@ void main() {
     expect(find.text('Check for Updates'), findsWidgets);
   });
 
-  testWidgets('appearance pane switches theme and accent',
-      (tester) async {
+  testWidgets('appearance pane switches theme and accent', (tester) async {
     final appearance = OasisAppearance();
     await pumpOasis(
       tester,
@@ -147,10 +153,13 @@ void main() {
       _host(
         child: const SettingsHome(),
         opened: opened,
-        checker: _FakeChecker(const AppUpdate(
+        checker: _FakeChecker(
+          const AppUpdate(
             latestVersion: '2.0.0',
             updateAvailable: true,
-            releaseUrl: 'https://r/1')),
+            releaseUrl: 'https://r/1',
+          ),
+        ),
       ),
       size: const Size(900, 620),
     );
@@ -168,8 +177,7 @@ void main() {
       tester,
       _host(
         child: const SettingsHome(),
-        checker: _FakeChecker(
-            const AppUpdate(latestVersion: '1.0.0')),
+        checker: _FakeChecker(const AppUpdate(latestVersion: '1.0.0')),
       ),
       size: const Size(900, 620),
     );
@@ -183,8 +191,7 @@ void main() {
       tester,
       _host(
         child: const SettingsHome(),
-        checker:
-            _FakeChecker(const AppUpdate(), error: 'no network'),
+        checker: _FakeChecker(const AppUpdate(), error: 'no network'),
       ),
       size: const Size(900, 620),
     );
@@ -199,11 +206,77 @@ void main() {
     tester.view.physicalSize = const Size(1000, 700);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(OasisSettingsApp(
-      updateChecker: _FakeChecker(const AppUpdate()),
-      openUrl: (_) {},
-    ));
+    await tester.pumpWidget(
+      OasisSettingsApp(
+        updateChecker: _FakeChecker(const AppUpdate()),
+        openUrl: (_) {},
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Appearance'), findsWidgets);
+  });
+
+  testWidgets('update tile spinner while checking', (tester) async {
+    final service = UpdateService(checker: _NeverChecker());
+    await pumpOasis(
+      tester,
+      OasisHost(
+        appearance: OasisAppearance(),
+        updates: service,
+        setLocale: (_) {},
+        child: Builder(
+          builder: (context) {
+            return UpdateCheckTile(service: service);
+          },
+        ),
+      ),
+    );
+    service.check();
+    await tester.pump();
+    expect(find.text('Checking for updates…'), findsOneWidget);
+    service.dispose();
+  });
+
+  testWidgets('standalone settings check and openUrl', (tester) async {
+    tester.view.physicalSize = const Size(1000, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final opened = <String>[];
+    await tester.pumpWidget(
+      OasisSettingsApp(
+        updateChecker: _FakeChecker(
+          const AppUpdate(
+            latestVersion: '9.0.0',
+            updateAvailable: true,
+            releaseUrl: 'https://rel/9',
+          ),
+        ),
+        openUrl: opened.add,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('About').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check for Updates').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('View release'));
+    expect(opened, contains('https://rel/9'));
+  });
+
+  testWidgets('standalone settings setLocale and wifi toggle', (tester) async {
+    tester.view.physicalSize = const Size(1000, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const OasisSettingsApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('General'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Русский'));
+    await tester.pumpAndSettle();
+    expect(find.text('Wi-Fi'), findsOneWidget);
+    await tester.tap(find.text('Wi-Fi'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(OasisToggle));
+    await tester.pumpAndSettle();
   });
 }

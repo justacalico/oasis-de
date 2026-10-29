@@ -35,6 +35,12 @@ void exerciseStrings(OasisLocalizations l) {
   l.ccVolume;
   l.ccAppearance;
   l.ccDarkMode;
+  l.ccOn;
+  l.ccOff;
+  l.ccNightLight;
+  l.ccBattery;
+  l.ccMedia;
+  l.ccNothingPlaying;
   l.aboutTagline;
   l.versionLabel('9.9.9');
   l.updateCheck;
@@ -114,27 +120,32 @@ void main() {
   });
 
   test('unsupported locale throws in direct lookup', () {
-    expect(() => lookupOasisLocalizations(const Locale('fr')),
-        throwsA(isA<FlutterError>()));
+    expect(
+      () => lookupOasisLocalizations(const Locale('fr')),
+      throwsA(isA<FlutterError>()),
+    );
   });
 
   test('delegate supports the declared locales', () {
     for (final l in OasisLocalizations.supportedLocales) {
       expect(OasisLocalizations.delegate.isSupported(l), isTrue);
     }
-    expect(OasisLocalizations.delegate.isSupported(const Locale('de')),
-        isFalse);
+    expect(
+      OasisLocalizations.delegate.isSupported(const Locale('de')),
+      isFalse,
+    );
   });
 
-  testWidgets('of() resolves inside a widget and falls back',
-      (tester) async {
+  testWidgets('of() resolves inside a widget and falls back', (tester) async {
     late OasisLocalizations l10n;
     await pumpOasis(
       tester,
-      Builder(builder: (context) {
-        l10n = OasisLocalizations.of(context);
-        return Text(l10n.appName);
-      }),
+      Builder(
+        builder: (context) {
+          l10n = OasisLocalizations.of(context);
+          return Text(l10n.appName);
+        },
+      ),
       locale: const Locale('zh'),
     );
     expect(l10n.menuFile, '文件');
@@ -142,10 +153,12 @@ void main() {
 
     await pumpOasis(
       tester,
-      Builder(builder: (context) {
-        l10n = OasisLocalizations.of(context);
-        return const SizedBox();
-      }),
+      Builder(
+        builder: (context) {
+          l10n = OasisLocalizations.of(context);
+          return const SizedBox();
+        },
+      ),
       locale: const Locale('pt'),
     );
     expect(l10n.menuFile, isNotEmpty);
