@@ -34,8 +34,14 @@ class FakeWaylandHost extends WaylandHost {
   }
 
   @override
-  Future<void> configure(int id, int width, int height, bool maximized) async {
-    calls.add('configure:$id:${width}x$height:$maximized');
+  Future<void> configure(
+    int id,
+    int width,
+    int height, {
+    bool maximized = false,
+    bool fullscreen = false,
+  }) async {
+    calls.add('configure:$id:${width}x$height:$maximized:$fullscreen');
   }
 
   @override
@@ -201,7 +207,7 @@ void main() {
     final service = WaylandService(host: host);
     await service.start();
     await service.launch(['foo', '--bar']);
-    await service.configure(1, 800, 600, true);
+    await service.configure(1, 800, 600, maximized: true);
     await service.close(1);
     await service.focus(1);
     await service.focus(null);
@@ -212,7 +218,7 @@ void main() {
     await service.key(30, true);
     expect(host.calls, [
       'launch:foo --bar',
-      'configure:1:800x600:true',
+      'configure:1:800x600:true:false',
       'close:1',
       'focus:1',
       'focus:null',
@@ -260,7 +266,7 @@ void main() {
     const host = ChannelWaylandHost();
     expect(await host.start(), 'wayland-3');
     await host.launch(['a']);
-    await host.configure(1, 2, 3, true);
+    await host.configure(1, 2, 3, maximized: true);
     await host.close(1);
     await host.focus(2);
     await host.focus(null);
@@ -315,7 +321,7 @@ void main() {
     final service = WaylandService(host: host);
     await service.start();
     await service.launch(['x']);
-    await service.configure(1, 1, 1, true);
+    await service.configure(1, 1, 1, maximized: true);
     await service.close(1);
     await service.focus(1);
     await service.pointerMotion(1, 0, 0);

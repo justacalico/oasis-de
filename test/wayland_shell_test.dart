@@ -144,8 +144,14 @@ void main() {
     host.emit({'event': 'maximize', 'id': 1, 'on': true});
     await pumpEventQueue();
     expect(w.zoomed, isTrue);
-    host.emit({'event': 'maximize', 'id': 1, 'on': true});
+    host.emit({'event': 'fullscreen', 'id': 1, 'on': true});
+    await pumpEventQueue();
+    expect(w.fullscreen, isTrue);
+    expect(w.zoomed, isTrue);
     host.emit({'event': 'fullscreen', 'id': 1, 'on': false});
+    await pumpEventQueue();
+    expect(w.fullscreen, isFalse);
+    host.emit({'event': 'maximize', 'id': 1, 'on': false});
     await pumpEventQueue();
     expect(w.zoomed, isFalse);
 
@@ -866,7 +872,32 @@ void main() {
     await tester.pump();
     expect(store.read('shell.wifi'), '1');
   });
+  testWidgets('fullscreen window covers shell chrome', (tester) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: service,
+        externalAppsLoader: () async => [_external('game')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('File'), findsOneWidget);
+    _emitToplevel(host, id: 3, appId: 'game');
+    host.emit({'event': 'fullscreen', 'id': 3, 'on': true});
+    await tester.pumpAndSettle();
+    expect(find.text('File'), findsNothing);
+    host.emit({'event': 'fullscreen', 'id': 3, 'on': false});
+    await tester.pumpAndSettle();
+    expect(find.text('File'), findsOneWidget);
+  });
 }
+
 class _StubContext extends Fake implements BuildContext {}
 
 const _onePxPng = <int>[

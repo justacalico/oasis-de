@@ -38,6 +38,7 @@ class ShellWindowData {
   final dockIconKey = GlobalKey();
   var minimized = false;
   var zoomed = false;
+  var fullscreen = false;
   var transition = ShellWindowTransition.none;
   WaylandSurface? surface;
   var launching = false;
@@ -438,9 +439,14 @@ class ShellController extends ChangeNotifier {
       case WaylandRequestType.move:
         _surfaceDragId = w.id;
       case WaylandRequestType.maximize:
-      case WaylandRequestType.fullscreen:
         if (w.zoomed != request.on) {
           w.zoomed = request.on;
+          w.adoptedSize = w.surface?.size;
+          notifyListeners();
+        }
+      case WaylandRequestType.fullscreen:
+        if (w.fullscreen != request.on) {
+          w.fullscreen = request.on;
           w.adoptedSize = w.surface?.size;
           notifyListeners();
         }

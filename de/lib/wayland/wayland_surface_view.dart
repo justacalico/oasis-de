@@ -28,12 +28,14 @@ class WaylandSurfaceView extends StatefulWidget {
     required this.service,
     required this.focused,
     required this.maximized,
+    this.fullscreen = false,
   });
 
   final WaylandSurface surface;
   final WaylandService service;
   final bool focused;
   final bool maximized;
+  final bool fullscreen;
 
   @override
   State<WaylandSurfaceView> createState() => _WaylandSurfaceViewState();
@@ -51,8 +53,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   void initState() {
     super.initState();
     if (widget.focused) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _grabFocus());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _grabFocus());
     }
   }
 
@@ -75,8 +76,10 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
     final b = surface.bufferSize;
     final s = b.width > 0 && b.height > 0 ? b : surface.size;
     if (s.width <= 0 || s.height <= 0) return local;
-    return Offset(local.dx * s.width / box.width,
-        local.dy * s.height / box.height);
+    return Offset(
+      local.dx * s.width / box.width,
+      local.dy * s.height / box.height,
+    );
   }
 
   void _motion(PointerEvent e, Size box) {
@@ -113,8 +116,13 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
             final last = _reported;
             if (last == null || last != box) {
               _reported = box;
-              service.configure(surface.id, box.width.round(),
-                  box.height.round(), widget.maximized);
+              service.configure(
+                surface.id,
+                box.width.round(),
+                box.height.round(),
+                maximized: widget.maximized,
+                fullscreen: widget.fullscreen,
+              );
             }
           });
           return AnimatedBuilder(
@@ -144,8 +152,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                   },
                   onPointerSignal: (e) {
                     if (e is PointerScrollEvent) {
-                      service.pointerAxis(
-                          e.scrollDelta.dx, e.scrollDelta.dy);
+                      service.pointerAxis(e.scrollDelta.dx, e.scrollDelta.dy);
                     }
                   },
                   child: ColoredBox(
@@ -156,7 +163,9 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                         width: size.width <= 0 ? 1 : size.width,
                         height: size.height <= 0 ? 1 : size.height,
                         child: WaylandLayerTree(
-                            service: service, surface: surface),
+                          service: service,
+                          surface: surface,
+                        ),
                       ),
                     ),
                   ),
@@ -210,8 +219,7 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
           width: size.width,
           height: size.height,
           child: MouseRegion(
-            onExit: (_) =>
-                widget.service.pointerExit(widget.surface.id),
+            onExit: (_) => widget.service.pointerExit(widget.surface.id),
             child: Listener(
               onPointerHover: (e) {
                 _motion(e);
@@ -233,12 +241,15 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
               onPointerSignal: (e) {
                 if (e is PointerScrollEvent) {
                   widget.service.pointerAxis(
-                      e.scrollDelta.dx, e.scrollDelta.dy);
+                    e.scrollDelta.dx,
+                    e.scrollDelta.dy,
+                  );
                 }
               },
               child: WaylandLayerTree(
-                  service: widget.service,
-                  surface: widget.surface),
+                service: widget.service,
+                surface: widget.surface,
+              ),
             ),
           ),
         );
@@ -259,10 +270,8 @@ class WaylandLayerTree extends StatelessWidget {
 
   List<Widget> _layers(WaylandSurface root, Offset base) {
     final buf = surface.bufferSize;
-    final sx =
-        buf.width > 0 ? surface.size.width / buf.width : 1.0;
-    final sy =
-        buf.height > 0 ? surface.size.height / buf.height : 1.0;
+    final sx = buf.width > 0 ? surface.size.width / buf.width : 1.0;
+    final sy = buf.height > 0 ? surface.size.height / buf.height : 1.0;
     final out = <Widget>[];
     for (final id in root.children) {
       final sub = service.surfaces[id];
@@ -270,15 +279,17 @@ class WaylandLayerTree extends StatelessWidget {
       final pos = base + sub.offset;
       final sw = sub.size.width * sx;
       final sh = sub.size.height * sy;
-      out.add(Positioned(
-        left: pos.dx * sx,
-        top: pos.dy * sy,
-        width: sw <= 0 ? 1 : sw,
-        height: sh <= 0 ? 1 : sh,
-        child: sub.textureId >= 0
-            ? Texture(textureId: sub.textureId)
-            : const SizedBox.shrink(),
-      ));
+      out.add(
+        Positioned(
+          left: pos.dx * sx,
+          top: pos.dy * sy,
+          width: sw <= 0 ? 1 : sw,
+          height: sh <= 0 ? 1 : sh,
+          child: sub.textureId >= 0
+              ? Texture(textureId: sub.textureId)
+              : const SizedBox.shrink(),
+        ),
+      );
       out.addAll(_layers(sub, pos));
     }
     return out;
@@ -289,8 +300,7 @@ class WaylandLayerTree extends StatelessWidget {
     return Stack(
       children: [
         if (surface.textureId >= 0)
-          Positioned.fill(
-              child: Texture(textureId: surface.textureId)),
+          Positioned.fill(child: Texture(textureId: surface.textureId)),
         ..._layers(surface, Offset.zero),
       ],
     );
