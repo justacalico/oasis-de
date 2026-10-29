@@ -116,7 +116,6 @@ class _OasisWindowState extends State<OasisWindow> {
         decoration: BoxDecoration(
           color: p.windowBackground,
           borderRadius: BorderRadius.circular(style.windowRadius),
-          border: Border.all(color: p.glassBorder, width: 0.5),
           boxShadow: [
             BoxShadow(
               color: p.shadow.withValues(alpha: widget.focused ? 0.4 : 0.2),
@@ -124,6 +123,10 @@ class _OasisWindowState extends State<OasisWindow> {
               offset: const Offset(0, 16),
             ),
           ],
+        ),
+        foregroundDecoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(style.windowRadius),
+          border: Border.all(color: p.glassBorder, width: 0.5),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(style.windowRadius),

@@ -284,6 +284,10 @@ struct Surface {
   std::string app_id;
   std::vector<wl_resource*> frames;
 
+  int geo_x = 0;
+  int geo_y = 0;
+  int geo_w = 0;
+  int geo_h = 0;
   int cfg_w = 0;
   int cfg_h = 0;
   bool cfg_max = false;
@@ -355,6 +359,10 @@ struct _OasisCompositor {
   int64_t next_id = 1;
   Surface* kb_focus = nullptr;
   Surface* ptr_focus = nullptr;
+  Surface* ptr_entered = nullptr;
+  wl_resource* ptr_entered_res = nullptr;
+  double ptr_x = 0;
+  double ptr_y = 0;
   std::vector<SeatRes> seats;
   std::set<uint32_t> pressed;
   std::vector<DataDevice*> devices;
@@ -444,13 +452,15 @@ static void finish_frames(Surface* s) {
 }
 
 static void emit_size(Surface* s) {
-  if (s->rep_w == s->iw && s->rep_h == s->ih) return;
-  s->rep_w = s->iw;
-  s->rep_h = s->ih;
+  int w = s->geo_w > 0 ? s->geo_w : s->iw;
+  int h = s->geo_h > 0 ? s->geo_h : s->ih;
+  if (s->rep_w == w && s->rep_h == h) return;
+  s->rep_w = w;
+  s->rep_h = h;
   FlValue* m = new_event("size");
   ev_id(m, s->public_id);
-  fl_value_set_string_take(m, "w", fl_value_new_int(s->iw));
-  fl_value_set_string_take(m, "h", fl_value_new_int(s->ih));
+  fl_value_set_string_take(m, "w", fl_value_new_int(w));
+  fl_value_set_string_take(m, "h", fl_value_new_int(h));
   send_event(s->comp, m);
 }
 
@@ -882,6 +892,8 @@ static void set_kb_focus(OasisCompositor* c, Surface* s) {
 
 static void pointer_enter(OasisCompositor* c, Surface* s, double x, double y) {
   SeatRes* st = seat_for(c, s->client, true);
+  c->ptr_x = x;
+  c->ptr_y = y;
   if (c->ptr_focus != s) {
     if (c->ptr_focus != nullptr) {
       SeatRes* old = seat_for(c, c->ptr_focus->client, false);
@@ -897,14 +909,16 @@ static void pointer_enter(OasisCompositor* c, Surface* s, double x, double y) {
       }
     }
     c->ptr_focus = s;
-    if (st->pointer != nullptr) {
+  }
+  if (st->pointer != nullptr) {
+    if (c->ptr_entered != s || c->ptr_entered_res != st->pointer) {
       wl_pointer_send_enter(st->pointer,
                             wl_display_next_serial(c->display),
                             s->wl_surface, wl_fixed_from_double(x),
                             wl_fixed_from_double(y));
+      c->ptr_entered = s;
+      c->ptr_entered_res = st->pointer;
     }
-  }
-  if (st->pointer != nullptr) {
     wl_pointer_send_motion(st->pointer, now_ms(), wl_fixed_from_double(x),
                            wl_fixed_from_double(y));
     if (wl_resource_get_version(st->pointer) >=
@@ -928,6 +942,8 @@ static void pointer_exit(OasisCompositor* c) {
     }
   }
   c->ptr_focus = nullptr;
+  c->ptr_entered = nullptr;
+  c->ptr_entered_res = nullptr;
 }
 
 static void pointer_set_cursor(wl_client* client,
@@ -947,11 +963,28 @@ static void pointer_release(wl_client* client, wl_resource* res) {
   wl_resource_destroy(res);
 }
 
+static void pointer_res_destroyed(wl_resource* res) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  for (auto& s : c->seats) {
+    if (s.pointer == res) s.pointer = nullptr;
+  }
+  if (c->ptr_entered_res == res) c->ptr_entered_res = nullptr;
+}
+
 static const struct wl_pointer_interface pointer_impl = {
     pointer_set_cursor, pointer_release};
 
 static void keyboard_release(wl_client* client, wl_resource* res) {
   wl_resource_destroy(res);
+}
+
+static void keyboard_res_destroyed(wl_resource* res) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  for (auto& s : c->seats) {
+    if (s.keyboard == res) s.keyboard = nullptr;
+  }
 }
 
 static const struct wl_keyboard_interface keyboard_impl = {keyboard_release};
@@ -988,9 +1021,20 @@ static void seat_get_pointer(wl_client* client,
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
   wl_resource* p = wl_resource_create(client, &wl_pointer_interface,
                                       wl_resource_get_version(res), id);
-  wl_resource_set_implementation(p, &pointer_impl, c, nullptr);
+  wl_resource_set_implementation(p, &pointer_impl, c,
+                               pointer_res_destroyed);
   SeatRes* st = seat_for(c, client, true);
   st->pointer = p;
+  if (c->ptr_focus != nullptr && c->ptr_focus->client == client &&
+      c->ptr_focus->wl_surface != nullptr &&
+      c->ptr_entered != c->ptr_focus) {
+    wl_pointer_send_enter(p, wl_display_next_serial(c->display),
+                          c->ptr_focus->wl_surface,
+                          wl_fixed_from_double(c->ptr_x),
+                          wl_fixed_from_double(c->ptr_y));
+    c->ptr_entered = c->ptr_focus;
+    c->ptr_entered_res = p;
+  }
 }
 
 static void seat_get_keyboard(wl_client* client,
@@ -1000,7 +1044,8 @@ static void seat_get_keyboard(wl_client* client,
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
   wl_resource* k = wl_resource_create(client, &wl_keyboard_interface,
                                       wl_resource_get_version(res), id);
-  wl_resource_set_implementation(k, &keyboard_impl, c, nullptr);
+  wl_resource_set_implementation(k, &keyboard_impl, c,
+                               keyboard_res_destroyed);
   SeatRes* st = seat_for(c, client, true);
   st->keyboard = k;
   int fd = keymap_fd(c);
@@ -1573,7 +1618,14 @@ static void xdg_surface_set_window_geometry(wl_client* client,
                                             int32_t x,
                                             int32_t y,
                                             int32_t w,
-                                            int32_t h) {}
+                                            int32_t h) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->geo_x = x;
+  s->geo_y = y;
+  s->geo_w = w;
+  s->geo_h = h;
+  if (s->announced != SURFACE_NONE) emit_size(s);
+}
 
 static void xdg_surface_ack_configure(wl_client* client,
                                       wl_resource* res,
