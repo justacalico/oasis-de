@@ -12,6 +12,7 @@ import 'dock.dart';
 import 'genie_window.dart';
 import 'launch_pad.dart';
 import 'launcher.dart';
+import 'lock_screen.dart';
 import 'menu_bar.dart';
 import 'notification_center.dart';
 import 'shell_controller.dart';
@@ -278,6 +279,10 @@ class _DesktopShellState extends State<DesktopShell> {
                   ),
                 if (controller.launcherOpen)
                   Positioned.fill(child: ShellLauncher(controller: controller)),
+                if (controller.locked)
+                  Positioned.fill(
+                    child: ShellLockScreen(controller: controller),
+                  ),
               ],
             ),
           ),

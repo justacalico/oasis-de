@@ -151,5 +151,8 @@
   "sessionConfirmRestart": "Atosaigh an córas?",
   "sessionConfirmPoweroff": "Múch an córas?",
   "dialogCancel": "Cealaigh",
-  "tipControlCenter": "Lárionad Rialaithe"
+  "tipControlCenter": "Lárionad Rialaithe",
+  "lockHint": "Cuir isteach do phasfhocal",
+  "lockWrong": "Pasfhocal mícheart",
+  "lockUnlock": "Díghlasáil"
 }

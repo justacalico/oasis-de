@@ -151,5 +151,8 @@
   "sessionConfirmRestart": "Перезагрузить систему?",
   "sessionConfirmPoweroff": "Выключить систему?",
   "dialogCancel": "Отмена",
-  "tipControlCenter": "Центр управления"
+  "tipControlCenter": "Центр управления",
+  "lockHint": "Введите пароль",
+  "lockWrong": "Неверный пароль",
+  "lockUnlock": "Разблокировать"
 }

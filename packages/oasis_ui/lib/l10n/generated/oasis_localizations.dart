@@ -803,6 +803,24 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Control Center'**
   String get tipControlCenter;
+
+  /// No description provided for @lockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get lockHint;
+
+  /// No description provided for @lockWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password'**
+  String get lockWrong;
+
+  /// No description provided for @lockUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get lockUnlock;
 }
 
 class _OasisLocalizationsDelegate

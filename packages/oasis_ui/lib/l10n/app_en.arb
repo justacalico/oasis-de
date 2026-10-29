@@ -151,5 +151,8 @@
   "sessionConfirmRestart": "Restart the system?",
   "sessionConfirmPoweroff": "Shut down the system?",
   "dialogCancel": "Cancel",
-  "tipControlCenter": "Control Center"
+  "tipControlCenter": "Control Center",
+  "lockHint": "Enter your password",
+  "lockWrong": "Wrong password",
+  "lockUnlock": "Unlock"
 }

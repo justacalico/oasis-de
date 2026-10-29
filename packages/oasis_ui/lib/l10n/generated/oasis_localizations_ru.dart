@@ -376,4 +376,13 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get tipControlCenter => 'Центр управления';
+
+  @override
+  String get lockHint => 'Введите пароль';
+
+  @override
+  String get lockWrong => 'Неверный пароль';
+
+  @override
+  String get lockUnlock => 'Разблокировать';
 }

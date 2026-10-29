@@ -368,4 +368,13 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get tipControlCenter => '控制中心';
+
+  @override
+  String get lockHint => '输入密码';
+
+  @override
+  String get lockWrong => '密码错误';
+
+  @override
+  String get lockUnlock => '解锁';
 }

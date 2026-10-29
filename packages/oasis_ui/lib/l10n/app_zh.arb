@@ -151,5 +151,8 @@
   "sessionConfirmRestart": "重启系统？",
   "sessionConfirmPoweroff": "关闭系统？",
   "dialogCancel": "取消",
-  "tipControlCenter": "控制中心"
+  "tipControlCenter": "控制中心",
+  "lockHint": "输入密码",
+  "lockWrong": "密码错误",
+  "lockUnlock": "解锁"
 }

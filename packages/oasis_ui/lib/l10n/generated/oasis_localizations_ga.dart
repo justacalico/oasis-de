@@ -376,4 +376,13 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get tipControlCenter => 'Lárionad Rialaithe';
+
+  @override
+  String get lockHint => 'Cuir isteach do phasfhocal';
+
+  @override
+  String get lockWrong => 'Pasfhocal mícheart';
+
+  @override
+  String get lockUnlock => 'Díghlasáil';
 }
