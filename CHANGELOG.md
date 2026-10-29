@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.2 - 2026-10-29
+#### Bug Fixes
+- 发布前清理残留本地标签 - (d4ff84b) - HttpAnimations
+- 发布流程识别轻量标签 - (cfa0a79) - HttpAnimations
+- 自动发布直接推送标签并同步发布资产 - (dd40f19) - HttpAnimations
+
+- - -
+
 ## v0.4.1 - 2026-10-29
 #### Bug Fixes
 - 修复 GitLab 发布链接参数被拒绝 - (906c9e4) - HttpAnimations
