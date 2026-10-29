@@ -908,7 +908,28 @@ class ShellController extends ChangeNotifier {
 
   final OasisSystemBackend backend;
 
-  void session(OasisSessionAction action) => backend.session(action);
+  var locked = false;
+
+  void session(OasisSessionAction action) {
+    if (action == OasisSessionAction.lock ||
+        action == OasisSessionAction.suspend) {
+      locked = true;
+      if (action == OasisSessionAction.suspend) {
+        backend.session(OasisSessionAction.lock);
+      }
+    }
+    backend.session(action);
+    notifyListeners();
+  }
+
+  Future<bool> tryUnlock(String password) async {
+    if (await backend.verifyPassword(password)) {
+      locked = false;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
 
   void _set(void Function() apply, [void Function()? after]) {
     apply();

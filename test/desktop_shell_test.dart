@@ -299,6 +299,11 @@ void main() {
         await tester.tap(find.text(label));
         await tester.pumpAndSettle();
       }
+      if (label == 'Lock' || label == 'Sleep') {
+        await tester.enterText(find.byType(TextField), 'pw');
+        await tester.tap(find.text('Unlock'));
+        await tester.pumpAndSettle();
+      }
       if (label != 'Shut Down') {
         await tester.tap(find.byIcon(Icons.power_settings_new));
         await tester.pumpAndSettle();
@@ -307,10 +312,31 @@ void main() {
     expect(calls, [
       OasisSessionAction.lock,
       OasisSessionAction.logout,
+      OasisSessionAction.lock,
       OasisSessionAction.suspend,
       OasisSessionAction.reboot,
       OasisSessionAction.poweroff,
     ]);
+  });
+
+  testWidgets('lock screen blocks the desktop and unlocks', (tester) async {
+    await pumpDesktop(tester, backend: _LockBackend());
+    await tester.tap(find.byIcon(Icons.power_settings_new));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lock'));
+    await tester.pumpAndSettle();
+    expect(find.text('Unlock'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'wrong');
+    await tester.tap(find.text('Unlock'));
+    await tester.pumpAndSettle();
+    expect(find.text('Wrong password'), findsOneWidget);
+    expect(find.text('Unlock'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'hunter2');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Unlock'), findsNothing);
+    expect(find.text('File'), findsOneWidget);
   });
 
   testWidgets('notification center shows, dismisses and clears', (
@@ -843,6 +869,12 @@ class _BatteryBackend extends NoopSystemBackend {
   @override
   Future<OasisBattery> battery() async =>
       OasisBattery(level: level, charging: charging);
+}
+
+class _LockBackend extends NoopSystemBackend {
+  @override
+  Future<bool> verifyPassword(String password) async =>
+      password == 'hunter2';
 }
 
 class _SessionBackend extends NoopSystemBackend {

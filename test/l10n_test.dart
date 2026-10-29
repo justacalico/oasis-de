@@ -34,6 +34,9 @@ void exerciseStrings(OasisLocalizations l) {
   l.sessionConfirmRestart;
   l.sessionConfirmPoweroff;
   l.dialogCancel;
+  l.lockHint;
+  l.lockWrong;
+  l.lockUnlock;
   l.notifCenter;
   l.notifClearAll;
   l.notifEmpty;

@@ -170,4 +170,7 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   void session(OasisSessionAction action) => calls.add('session');
+
+  @override
+  Future<bool> verifyPassword(String password) async => true;
 }

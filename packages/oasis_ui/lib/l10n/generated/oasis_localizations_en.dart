@@ -375,4 +375,13 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get tipControlCenter => 'Control Center';
+
+  @override
+  String get lockHint => 'Enter your password';
+
+  @override
+  String get lockWrong => 'Wrong password';
+
+  @override
+  String get lockUnlock => 'Unlock';
 }

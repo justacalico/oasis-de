@@ -36,6 +36,7 @@ abstract class OasisSystemBackend {
   Future<OasisSystemState> read();
   Future<OasisBattery> battery();
   void session(OasisSessionAction action);
+  Future<bool> verifyPassword(String password);
 }
 
 class NoopSystemBackend implements OasisSystemBackend {
@@ -65,6 +66,9 @@ class NoopSystemBackend implements OasisSystemBackend {
 
   @override
   void session(OasisSessionAction action) {}
+
+  @override
+  Future<bool> verifyPassword(String password) async => true;
 }
 
 class CliSystemBackend implements OasisSystemBackend {
@@ -190,6 +194,21 @@ class CliSystemBackend implements OasisSystemBackend {
         _exec('systemctl', ['reboot']);
       case OasisSessionAction.poweroff:
         _exec('systemctl', ['poweroff']);
+    }
+  }
+
+  @override
+  Future<bool> verifyPassword(String password) async {
+    if (kIsWeb) return true;
+    final user = Platform.environment['USER'];
+    if (user == null || user.isEmpty) return true;
+    try {
+      final p = await Process.start('unix_chkpwd', [user]);
+      p.stdin.writeln(password);
+      await p.stdin.close();
+      return await p.exitCode == 0;
+    } catch (_) {
+      return true;
     }
   }
 }

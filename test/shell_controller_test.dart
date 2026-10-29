@@ -504,6 +504,45 @@ void main() {
     expect(minimised.minimized, isFalse);
     c.dispose();
   });
+
+  test('session lock and suspend engage lock, unlock verifies', () async {
+    final calls = <String>[];
+    final backend = _RecordingBackend(calls);
+    final c = ShellController(
+      apps: const [],
+      backend: backend,
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    expect(c.locked, isFalse);
+    c.session(OasisSessionAction.lock);
+    expect(c.locked, isTrue);
+    expect(backend.calls, ['session']);
+    c.session(OasisSessionAction.suspend);
+    expect(c.locked, isTrue);
+    expect(backend.calls, ['session', 'session', 'session']);
+    expect(await c.tryUnlock('pw'), isTrue);
+    expect(c.locked, isFalse);
+  });
+
+  test('tryUnlock rejects when backend denies', () async {
+    final c = ShellController(
+      apps: const [],
+      backend: const _DenyBackend(),
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    c.session(OasisSessionAction.lock);
+    expect(await c.tryUnlock('bad'), isFalse);
+    expect(c.locked, isTrue);
+  });
+}
+
+class _DenyBackend extends NoopSystemBackend {
+  const _DenyBackend();
+
+  @override
+  Future<bool> verifyPassword(String password) async => false;
 }
 
 class _Ctx extends Fake implements BuildContext {
@@ -541,6 +580,9 @@ class _BatteryBackend implements OasisSystemBackend {
 
   @override
   void session(OasisSessionAction action) {}
+
+  @override
+  Future<bool> verifyPassword(String password) async => true;
 }
 
 class _RecordingBackend implements OasisSystemBackend {
@@ -572,4 +614,7 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   void session(OasisSessionAction action) => calls.add('session');
+
+  @override
+  Future<bool> verifyPassword(String password) async => true;
 }
