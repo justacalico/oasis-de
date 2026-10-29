@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -7,6 +8,20 @@ import 'package:oasis_ui/oasis_ui.dart';
 import '../wayland/wayland_service.dart';
 
 enum ShellWindowTransition { none, minimizing, restoring }
+
+const kMinWindowWidth = 360.0;
+const kMinWindowHeight = 300.0;
+
+const _waylandResizeEdges = {
+  1: OasisResizeEdge.top,
+  2: OasisResizeEdge.bottom,
+  4: OasisResizeEdge.left,
+  5: OasisResizeEdge.topLeft,
+  6: OasisResizeEdge.bottomLeft,
+  8: OasisResizeEdge.right,
+  9: OasisResizeEdge.topRight,
+  10: OasisResizeEdge.bottomRight,
+};
 
 class ShellWindowData {
   ShellWindowData({
@@ -18,6 +33,7 @@ class ShellWindowData {
   final int id;
   OasisApp app;
   Offset position;
+  Size? size;
   final dockIconKey = GlobalKey();
   var minimized = false;
   var zoomed = false;
@@ -71,6 +87,7 @@ class ShellController extends ChangeNotifier {
   int? _focusedId;
   String? _openMenu;
   int? _surfaceDragId;
+  ({int id, OasisResizeEdge edge})? _surfaceResize;
   var launcherOpen = false;
   var launchPadOpen = false;
   var controlCenterOpen = false;
@@ -83,6 +100,7 @@ class ShellController extends ChangeNotifier {
   int? get focusedId => _focusedId;
   String? get openMenu => _openMenu;
   int? get surfaceDragWindowId => _surfaceDragId;
+  ({int id, OasisResizeEdge edge})? get surfaceResize => _surfaceResize;
 
   void syncApps(List<OasisApp> fresh, {List<OasisApp>? pinned}) {
     apps
@@ -215,8 +233,34 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void endSurfaceDrag() {
+  void resizeWindow(int id, Offset delta, OasisResizeEdge edge,
+      Size fallback) {
+    final window = _byId(id);
+    if (window == null ||
+        window.zoomed ||
+        window.transition != ShellWindowTransition.none) {
+      return;
+    }
+    final base = window.size ?? fallback;
+    final size = Size(
+      math.max(kMinWindowWidth, base.width + delta.dx * edge.dx),
+      math.max(kMinWindowHeight, base.height + delta.dy * edge.dy),
+    );
+    window.position = Offset(
+      edge.dx < 0
+          ? window.position.dx + base.width - size.width
+          : window.position.dx,
+      edge.dy < 0
+          ? window.position.dy + base.height - size.height
+          : window.position.dy,
+    );
+    window.size = size;
+    notifyListeners();
+  }
+
+  void endSurfaceGesture() {
     _surfaceDragId = null;
+    _surfaceResize = null;
   }
 
   ShellWindowData? windowForSurface(int surfaceId) {
@@ -324,7 +368,10 @@ class ShellController extends ChangeNotifier {
       case WaylandRequestType.minimize:
         minimizeWindow(w.id);
       case WaylandRequestType.resize:
-        break;
+        final edge = _waylandResizeEdges[request.edges];
+        if (edge != null) {
+          _surfaceResize = (id: w.id, edge: edge);
+        }
     }
   }
 

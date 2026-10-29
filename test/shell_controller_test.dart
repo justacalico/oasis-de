@@ -107,6 +107,49 @@ void main() {
     c.dispose();
   });
 
+  test('resizeWindow sizes, moves and clamps windows', () {
+    final c = _controller();
+    c.openApp(c.apps[0]);
+    final w = c.windows.first;
+    const fallback = Size(800, 600);
+
+    c.resizeWindow(w.id, const Offset(40, 30),
+        OasisResizeEdge.bottomRight, fallback);
+    expect(w.size, const Size(840, 630));
+    expect(w.position, const Offset(56, 52));
+
+    c.resizeWindow(w.id, const Offset(10, 12),
+        OasisResizeEdge.topLeft, fallback);
+    expect(w.size, const Size(830, 618));
+    expect(w.position, const Offset(66, 64));
+
+    c.resizeWindow(w.id, const Offset(-2000, -2000),
+        OasisResizeEdge.bottomRight, fallback);
+    expect(w.size, const Size(kMinWindowWidth, kMinWindowHeight));
+    expect(w.position, const Offset(66, 64));
+
+    c.resizeWindow(w.id, const Offset(470, 330),
+        OasisResizeEdge.bottomRight, fallback);
+    expect(w.size, const Size(830, 630));
+
+    c.resizeWindow(w.id, const Offset(600, 0), OasisResizeEdge.left,
+        fallback);
+    expect(w.size, const Size(kMinWindowWidth, 630));
+    expect(w.position, Offset(66 + 830 - kMinWindowWidth, 64));
+
+    c.toggleZoom(w.id);
+    c.resizeWindow(w.id, const Offset(5, 5),
+        OasisResizeEdge.bottomRight, fallback);
+    expect(w.size, const Size(kMinWindowWidth, 630));
+    c.toggleZoom(w.id);
+
+    w.transition = ShellWindowTransition.restoring;
+    c.resizeWindow(w.id, const Offset(5, 5),
+        OasisResizeEdge.bottomRight, fallback);
+    expect(w.size, const Size(kMinWindowWidth, 630));
+    c.dispose();
+  });
+
   test('mutating a missing window is a no-op', () {
     final c = _controller();
     c.minimizeWindow(999);
@@ -114,6 +157,8 @@ void main() {
     c.finishTransition(999);
     c.toggleZoom(999);
     c.dragWindow(999, const Offset(1, 1));
+    c.resizeWindow(999, const Offset(1, 1),
+        OasisResizeEdge.bottomRight, const Size(800, 600));
     expect(c.windows, isEmpty);
     c.dispose();
   });

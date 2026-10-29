@@ -112,6 +112,24 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('dragging a window corner resizes it', (tester) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.edit_note).first);
+    await tester.pumpAndSettle();
+
+    final before = tester.getSize(find.byType(OasisWindow));
+    final br = tester.getRect(find.byType(OasisWindow)).bottomRight;
+    final gesture =
+        await tester.startGesture(br - const Offset(4, 4));
+    await gesture.moveBy(const Offset(40, 25));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    final after = tester.getSize(find.byType(OasisWindow));
+    expect(after.width, before.width + 40);
+    expect(after.height, before.height + 25);
+  });
+
   testWidgets('launcher filters and opens apps', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.search).first);
