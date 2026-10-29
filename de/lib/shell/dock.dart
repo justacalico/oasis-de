@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
+import 'context_menu.dart';
 import 'shell_controller.dart';
 
 const kDockIconSize = 52.0;
@@ -52,29 +53,16 @@ class _ShellDockState extends State<ShellDock> {
     final l10n = OasisLocalizations.of(context);
     final c = widget.controller;
     return GestureDetector(
-      onSecondaryTapUp: (e) async {
-        final overlay = Overlay.of(context);
-        final box = overlay.context.findRenderObject()! as RenderBox;
-        final action = await showMenu<String>(
-          context: context,
-          position: RelativeRect.fromRect(
-            e.globalPosition & const Size(1, 1),
-            Offset.zero & box.size,
+      onSecondaryTapUp: (e) => showShellContextMenu(
+        context,
+        e.globalPosition,
+        [
+          ShellMenuItem(
+            label: pinned ? l10n.dockUnpin : l10n.dockPin,
+            action: (_) => pinned ? c.unpinApp(app.id) : c.pinApp(app.id),
           ),
-          items: [
-            PopupMenuItem(
-              value: 'pin',
-              child: Text(pinned ? l10n.dockUnpin : l10n.dockPin),
-            ),
-          ],
-        );
-        if (action != 'pin') return;
-        if (pinned) {
-          c.unpinApp(app.id);
-        } else {
-          c.pinApp(app.id);
-        }
-      },
+        ],
+      ),
       child: child,
     );
   }
