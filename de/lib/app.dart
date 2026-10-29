@@ -114,20 +114,30 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     if (v != null) c.volume = v;
   }
 
+  final Map<String, String> _persisted = {};
+
   void _persistState() {
     final s = widget.store;
     if (s == null) return;
     final c = _controller;
-    s.write('shell.themeMode', _appearance.themeMode.name);
-    s.write('shell.accent', '${_appearance.accent?.toARGB32() ?? ''}');
-    s.write('shell.locale', _locale?.toLanguageTag() ?? '');
-    s.write('shell.wifi', c.wifiOn ? '1' : '0');
-    s.write('shell.bluetooth', c.bluetoothOn ? '1' : '0');
-    s.write('shell.focus', c.focusOn ? '1' : '0');
-    s.write('shell.nightLight', c.nightLightOn ? '1' : '0');
-    s.write('shell.brightness', '${c.brightness}');
-    s.write('shell.volume', '${c.volume}');
-    s.write('shell.pinned', [for (final a in c.pinned) a.id].join(','));
+    final next = <String, String>{
+      'shell.themeMode': _appearance.themeMode.name,
+      'shell.accent': '${_appearance.accent?.toARGB32() ?? ''}',
+      'shell.locale': _locale?.toLanguageTag() ?? '',
+      'shell.wifi': c.wifiOn ? '1' : '0',
+      'shell.bluetooth': c.bluetoothOn ? '1' : '0',
+      'shell.focus': c.focusOn ? '1' : '0',
+      'shell.nightLight': c.nightLightOn ? '1' : '0',
+      'shell.brightness': '${c.brightness}',
+      'shell.volume': '${c.volume}',
+      'shell.pinned': [for (final a in c.pinned) a.id].join(','),
+    };
+    for (final e in next.entries) {
+      if (_persisted[e.key] != e.value) {
+        _persisted[e.key] = e.value;
+        s.write(e.key, e.value);
+      }
+    }
   }
 
   Future<void> _init() async {

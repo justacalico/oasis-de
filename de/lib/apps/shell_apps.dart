@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:oasis_settings/oasis_settings.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -69,18 +71,25 @@ class NotesWindow extends StatefulWidget {
 class _NotesWindowState extends State<NotesWindow> {
   static const _key = 'notes.content';
   final _controller = TextEditingController();
+  Timer? _saveTimer;
 
   @override
   void initState() {
     super.initState();
     _controller.text = widget.store?.read(_key) ?? '';
     _controller.addListener(() {
-      widget.store?.write(_key, _controller.text);
+      _saveTimer?.cancel();
+      _saveTimer = Timer(
+        const Duration(milliseconds: 500),
+        () => widget.store?.write(_key, _controller.text),
+      );
     });
   }
 
   @override
   void dispose() {
+    _saveTimer?.cancel();
+    widget.store?.write(_key, _controller.text);
     _controller.dispose();
     super.dispose();
   }
