@@ -2,6 +2,25 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## 0.4.0 - 2026-10-29
+#### Features
+- 新增自定义壁纸服务与设置面板 - (53d28b9) - HttpAnimations
+- 新增 RPM 打包与登录会话文件 - (3c6b127) - HttpAnimations
+- 支持窗口边缘拖拽缩放 - (98329d0) - HttpAnimations
+- 新增启动台应用网格 - (7b72ed6) - HttpAnimations
+- 支持 dmabuf 硬件加速缓冲区 - (e7bda6b) - calico
+#### Bug Fixes
+- 兼容旧版 wayland-protocols 的 dmabuf 参数接口 - (e9f374b) - HttpAnimations
+- 修复应用窗口无法交互并持续缩小的问题 - (5ab0295) - calico
+- 遵循客户端尺寸限制并贴合缓冲区 - (2b0d194) - HttpAnimations
+- 缩放 Wayland 缓冲区以填满窗口 - (72da8f1) - HttpAnimations
+#### Continuous Integration
+- RPM 构建跳过构建依赖检查 - (1a99b93) - HttpAnimations
+- 补齐 Linux 构建缺失的系统依赖 - (380a750) - HttpAnimations
+- 构建流程产出 x86_64 与 aarch64 RPM - (3953601) - HttpAnimations
+
+- - -
+
 ## 0.3.0 - 2026-10-29
 #### Features
 - 支持 Wayland 应用窗口嵌入 - (8977f75) - calico
