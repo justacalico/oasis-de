@@ -1,0 +1,9 @@
+#!/bin/sh
+export XDG_CURRENT_DESKTOP=Oasis
+export XDG_SESSION_DESKTOP=oasis
+export DESKTOP_SESSION=oasis
+export XDG_SESSION_TYPE=wayland
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-run-session >/dev/null 2>&1; then
+  exec dbus-run-session -- /opt/oasis/oasis "$@"
+fi
+exec /opt/oasis/oasis "$@"
