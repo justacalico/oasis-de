@@ -236,7 +236,7 @@ void main() {
 
     await tester.tap(find.text('General'));
     await tester.pumpAndSettle();
-    expect(find.text('Traditional English'), findsOneWidget);
+    expect(find.text('English (UK)'), findsOneWidget);
     expect(find.text('Русский'), findsOneWidget);
     await tester.tap(find.text('简体中文'));
     await tester.pumpAndSettle();
