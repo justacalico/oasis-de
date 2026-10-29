@@ -34,8 +34,7 @@ class FakeWaylandHost extends WaylandHost {
   }
 
   @override
-  Future<void> configure(
-      int id, int width, int height, bool maximized) async {
+  Future<void> configure(int id, int width, int height, bool maximized) async {
     calls.add('configure:$id:${width}x$height:$maximized');
   }
 
@@ -140,22 +139,9 @@ void main() {
 
     host.emit({'event': 'toplevel', 'id': 1});
     host.emit({'event': 'texture', 'id': 1, 'textureId': 7});
-    host.emit({
-      'event': 'subsurface',
-      'id': 5,
-      'parent': 1,
-      'x': 10,
-      'y': 20,
-    });
-    host.emit({
-      'event': 'subsurface',
-      'id': 6,
-      'parent': 999,
-      'x': 0,
-      'y': 0,
-    });
-    host.emit(
-        {'event': 'subsurfaceMoved', 'id': 5, 'x': 1, 'y': 2});
+    host.emit({'event': 'subsurface', 'id': 5, 'parent': 1, 'x': 10, 'y': 20});
+    host.emit({'event': 'subsurface', 'id': 6, 'parent': 999, 'x': 0, 'y': 0});
+    host.emit({'event': 'subsurfaceMoved', 'id': 5, 'x': 1, 'y': 2});
     host.emit({'event': 'texture', 'id': 5, 'textureId': 8});
     await pumpEventQueue();
 
@@ -241,8 +227,7 @@ void main() {
 
   test('service handles missing plugin and errors', () async {
     final missing = FakeWaylandHost()
-      ..startError =
-          MissingPluginException('no plugin');
+      ..startError = MissingPluginException('no plugin');
     final s1 = WaylandService(host: missing);
     await s1.start();
     expect(s1.available, isFalse);
@@ -270,8 +255,7 @@ void main() {
       if (call.method == 'start') return {'socket': 'wayland-3'};
       return null;
     });
-    addTearDown(
-        () => messenger.setMockMethodCallHandler(channel, null));
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
     const host = ChannelWaylandHost();
     expect(await host.start(), 'wayland-3');
@@ -309,14 +293,16 @@ void main() {
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(methods, (call) async => null);
-    addTearDown(
-        () => messenger.setMockMethodCallHandler(methods, null));
+    addTearDown(() => messenger.setMockMethodCallHandler(methods, null));
     const host = ChannelWaylandHost();
     final first = host.events.first;
     await messenger.handlePlatformMessage(
       'oasis/wayland/events',
-      const StandardMethodCodec().encodeSuccessEnvelope(
-          {'event': 'title', 'id': 4, 'title': 'Hi'}),
+      const StandardMethodCodec().encodeSuccessEnvelope({
+        'event': 'title',
+        'id': 4,
+        'title': 'Hi',
+      }),
       (_) {},
     );
     final event = await first;
@@ -353,18 +339,21 @@ void main() {
     expect(evdevCodeFor(PhysicalKeyboardKey.arrowLeft), 105);
     expect(evdevCodeFor(PhysicalKeyboardKey.f12), 88);
     expect(evdevCodeFor(PhysicalKeyboardKey.controlLeft), 29);
-    expect(evdevCodeFor(PhysicalKeyboardKey.mediaPlayPause),
-        isNull);
+    expect(evdevCodeFor(PhysicalKeyboardKey.mediaPlayPause), isNull);
     for (var u = 0; u <= 0xFF; u++) {
       evdevCodeFor(PhysicalKeyboardKey(u | 0x70000));
     }
   });
 
   test('parseExecLine handles quotes and field codes', () {
-    expect(parseExecLine('foo --bar %f %u %i %c %k', 'App', 'ic'),
-        ['foo', '--bar', '--icon', 'ic', 'App']);
-    expect(parseExecLine('run "a b" %U', 'App', null),
-        ['run', 'a b']);
+    expect(parseExecLine('foo --bar %f %u %i %c %k', 'App', 'ic'), [
+      'foo',
+      '--bar',
+      '--icon',
+      'ic',
+      'App',
+    ]);
+    expect(parseExecLine('run "a b" %U', 'App', null), ['run', 'a b']);
     expect(parseExecLine('', 'App', null), isEmpty);
   });
 
@@ -376,27 +365,40 @@ Name=Editor
 Exec=edit %f
 Icon=editor
 ''';
-    final e = parseDesktopEntry('edit', valid,
-        resolveIcon: (icon) => '/icons/$icon.png');
+    final e = parseDesktopEntry(
+      'edit',
+      valid,
+      resolveIcon: (icon) => '/icons/$icon.png',
+    );
     expect(e!.id, 'edit');
     expect(e.name, 'Editor');
     expect(e.argv, ['edit']);
     expect(e.iconPath, '/icons/editor.png');
 
     expect(
-        parseDesktopEntry('x', valid.replaceAll(
-            'Type=Application', 'Type=Link')),
-        isNull);
-    expect(parseDesktopEntry('x', '$valid\nNoDisplay=true'),
-        isNull);
+      parseDesktopEntry('x', valid.replaceAll('Type=Application', 'Type=Link')),
+      isNull,
+    );
+    expect(parseDesktopEntry('x', '$valid\nNoDisplay=true'), isNull);
     expect(parseDesktopEntry('x', '$valid\nHidden=true'), isNull);
+    final term = parseDesktopEntry(
+      'x',
+      '$valid\nTerminal=true',
+      resolveIcon: (_) => null,
+    );
+    expect(term!.terminal, isTrue);
+    expect(parseDesktopEntry('x', valid.replaceAll('Name=Editor', '')), isNull);
     expect(
-        parseDesktopEntry('x', '$valid\nTerminal=true'), isNull);
-    expect(parseDesktopEntry('x', valid.replaceAll(
-        'Name=Editor', '')), isNull);
-    expect(parseDesktopEntry('x', valid.replaceAll(
-        'Exec=edit %f', 'Exec=')), isNull);
-    expect(parseDesktopEntry('x', '[Desktop Entry]\nType=Application\nName=N\nExec=%f\n'), isNull);
+      parseDesktopEntry('x', valid.replaceAll('Exec=edit %f', 'Exec=')),
+      isNull,
+    );
+    expect(
+      parseDesktopEntry(
+        'x',
+        '[Desktop Entry]\nType=Application\nName=N\nExec=%f\n',
+      ),
+      isNull,
+    );
 
     const misc = '''
 # comment
@@ -411,19 +413,187 @@ Exec=prog
 Icon=
 broken line
 ''';
-    final m = parseDesktopEntry('misc', misc,
-        resolveIcon: (_) => null);
+    final m = parseDesktopEntry('misc', misc, resolveIcon: (_) => null);
     expect(m!.name, 'First');
     expect(m.argv, ['prog']);
     expect(m.iconPath, isNull);
   });
 
+  test('desktop entry spec details', () {
+    const full = """
+[Desktop Entry]
+Type=Application
+Name=Browser
+Name[de]=BrowserDE
+GenericName=Web
+Keywords=web;net;
+Categories=Network;WebBrowser;
+Exec=firefox %u
+Icon=ff
+TryExec=/bin/sh
+StartupWMClass=firefox
+StartupNotify=true
+Actions=new-private;missing;broken;
+[Desktop Action new-private]
+Name=New Private Window
+Exec=firefox --private-window
+Icon=ffp
+[Desktop Action broken]
+Exec=firefox --x
+""";
+    final e = parseDesktopEntry(
+      'ff',
+      full,
+      resolveIcon: (i) => '/i/$i.png',
+      executableExists: (_) => true,
+    );
+    expect(e!.name, 'Browser');
+    expect(e.genericName, 'Web');
+    expect(e.keywords, ['web', 'net']);
+    expect(e.categories, ['Network', 'WebBrowser']);
+    expect(e.startupWmClass, 'firefox');
+    expect(e.startupNotify, isTrue);
+    expect(e.actions.single.id, 'new-private');
+    expect(e.actions.single.name, 'New Private Window');
+    expect(e.actions.single.argv, ['firefox', '--private-window']);
+    expect(e.actions.single.iconPath, '/i/ffp.png');
+
+    final de = parseDesktopEntry(
+      'ff',
+      full,
+      locale: 'de_DE',
+      resolveIcon: (_) => null,
+      executableExists: (_) => true,
+    );
+    expect(de!.name, 'BrowserDE');
+
+    expect(
+      parseDesktopEntry('ff', '$full\n', executableExists: (_) => false),
+      isNull,
+    );
+    expect(
+      parseDesktopEntry(
+        'x',
+        full.replaceAll('StartupWMClass=firefox', 'OnlyShowIn=GNOME'),
+        desktop: 'Oasis',
+        resolveIcon: (_) => null,
+        executableExists: (_) => true,
+      ),
+      isNull,
+    );
+  });
+
+  test('desktop entry OnlyShowIn NotShowIn and Terminal exec', () {
+    const base = """
+[Desktop Entry]
+Type=Application
+Name=T
+Exec=t
+""";
+    expect(
+      parseDesktopEntry(
+        't',
+        '$base\nOnlyShowIn=GNOME;KDE;',
+        desktop: 'KDE',
+        resolveIcon: (_) => null,
+      ),
+      isNotNull,
+    );
+    expect(
+      parseDesktopEntry(
+        't',
+        '$base\nOnlyShowIn=GNOME;',
+        desktop: 'Oasis',
+        resolveIcon: (_) => null,
+      ),
+      isNull,
+    );
+    expect(
+      parseDesktopEntry(
+        't',
+        '$base\nNotShowIn=Oasis;',
+        desktop: 'Oasis',
+        resolveIcon: (_) => null,
+      ),
+      isNull,
+    );
+    expect(
+      parseDesktopEntry(
+        't',
+        '$base\nNotShowIn=GNOME;',
+        desktop: 'Oasis',
+        resolveIcon: (_) => null,
+      ),
+      isNotNull,
+    );
+
+    final term = parseDesktopEntry(
+      't',
+      '$base\nTerminal=true',
+      resolveIcon: (_) => null,
+    );
+    final app = desktopAppToOasis(term!);
+    expect(app.exec, contains('-e'));
+    expect(app.exec!.last, 't');
+  });
+
+  test('parseExecLine unescapes sequences', () {
+    expect(parseExecLine('run "a\\"b" x\\sy', 'N', null), [
+      'run',
+      'a"b',
+      'x y',
+    ]);
+    expect(parseExecLine('run a\\tb c\\nd e\\rf', 'N', null), [
+      'run',
+      'a\tb',
+      'c\nd',
+      'e\rf',
+    ]);
+    expect(parseExecLine('app 100%%', 'N', null), ['app', '100%']);
+    expect(parseExecLine('app %% %F', 'N', null), ['app', '%']);
+  });
+
+  test('default executableExists honours TryExec', () {
+    const contents = """
+[Desktop Entry]
+Type=Application
+Name=S
+Exec=s
+TryExec=/bin/sh
+""";
+    expect(
+      parseDesktopEntry('s', contents, resolveIcon: (_) => null),
+      isNotNull,
+    );
+    expect(
+      parseDesktopEntry(
+        's',
+        contents.replaceAll('/bin/sh', '/nonexistent-tool-xyz'),
+        resolveIcon: (_) => null,
+      ),
+      isNull,
+    );
+    expect(
+      parseDesktopEntry(
+        's',
+        contents.replaceAll('/bin/sh', 'sh'),
+        resolveIcon: (_) => null,
+      ),
+      isNotNull,
+    );
+    expect(
+      parseDesktopEntry(
+        's',
+        contents.replaceAll('/bin/sh', 'definitely-missing-binary-xyz'),
+        resolveIcon: (_) => null,
+      ),
+      isNull,
+    );
+  });
+
   test('findIconPath resolves files', () {
     expect(findIconPath(''), isNull);
-    expect(
-        findIconPath(
-            'no-such-oasis-icon-xyz-123'),
-        isNull);
+    expect(findIconPath('no-such-oasis-icon-xyz-123'), isNull);
     expect(findIconPath('/no/such/icon.png'), isNull);
     final dir = _tmpDir('icons');
     final png = File('${dir.path}/i.png');
@@ -439,17 +609,13 @@ broken line
       '24x24',
       '16x16',
     ]) {
-      final themed = File(
-          '${dir.path}/hicolor/$size/apps/themed.png')
+      final themed = File('${dir.path}/hicolor/$size/apps/themed.png')
         ..createSync(recursive: true);
       themed.writeAsBytesSync(const [0x89]);
-      expect(
-          findIconPath('themed', roots: [dir.path]),
-          themed.path);
+      expect(findIconPath('themed', roots: [dir.path]), themed.path);
       themed.deleteSync();
     }
-    final pix = File('${dir.path}/pix.png')
-      ..writeAsBytesSync(const [0x89]);
+    final pix = File('${dir.path}/pix.png')..writeAsBytesSync(const [0x89]);
     expect(findIconPath('pix', roots: [dir.path]), pix.path);
   });
 
@@ -470,13 +636,13 @@ Exec=bad
 NoDisplay=true
 ''');
     File('${dir.path}/notes.txt').writeAsStringSync('nope');
-    final entries =
-        await loadDesktopEntries(dirs: [dir.path, '${dir.path}/missing']);
+    final entries = await loadDesktopEntries(
+      dirs: [dir.path, '${dir.path}/missing'],
+    );
     expect(entries.single.name, 'Good');
     final all = await loadDesktopEntries();
     expect(all, isA<List<DesktopAppEntry>>());
-    expect(desktopSearchDirs().first.endsWith('applications'),
-        isTrue);
+    expect(desktopSearchDirs().first.endsWith('applications'), isTrue);
     final app = desktopAppToOasis(entries.single);
     expect(app.isExternal, isTrue);
     expect(app.exec, ['good']);
@@ -487,8 +653,7 @@ NoDisplay=true
 class _StubContext extends Fake implements BuildContext {}
 
 Directory _tmpDir(String name) {
-  final dir = Directory(
-      '${Directory.systemTemp.path}/oasis_test_$name');
+  final dir = Directory('${Directory.systemTemp.path}/oasis_test_$name');
   if (dir.existsSync()) dir.deleteSync(recursive: true);
   dir.createSync(recursive: true);
   return dir;

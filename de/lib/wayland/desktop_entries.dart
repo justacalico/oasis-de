@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
-class DesktopAppEntry {
-  const DesktopAppEntry({
+class DesktopEntryAction {
+  const DesktopEntryAction({
     required this.id,
     required this.name,
     required this.argv,
@@ -17,13 +17,41 @@ class DesktopAppEntry {
   final String? iconPath;
 }
 
+class DesktopAppEntry {
+  const DesktopAppEntry({
+    required this.id,
+    required this.name,
+    required this.argv,
+    this.genericName,
+    this.keywords = const [],
+    this.categories = const [],
+    this.iconPath,
+    this.terminal = false,
+    this.startupNotify = false,
+    this.startupWmClass,
+    this.actions = const [],
+  });
+
+  final String id;
+  final String name;
+  final List<String> argv;
+  final String? genericName;
+  final List<String> keywords;
+  final List<String> categories;
+  final String? iconPath;
+  final bool terminal;
+  final bool startupNotify;
+  final String? startupWmClass;
+  final List<DesktopEntryAction> actions;
+}
+
 List<String> desktopSearchDirs() {
   final home = Platform.environment['HOME'] ?? '';
   final dataHome =
       Platform.environment['XDG_DATA_HOME'] ?? '$home/.local/share';
   final dirs = <String>['$dataHome/applications'];
-  final dataDirs = Platform.environment['XDG_DATA_DIRS'] ??
-      '/usr/local/share:/usr/share';
+  final dataDirs =
+      Platform.environment['XDG_DATA_DIRS'] ?? '/usr/local/share:/usr/share';
   for (final d in dataDirs.split(':')) {
     dirs.add('$d/applications');
   }
@@ -35,8 +63,8 @@ List<String> _iconSearchRoots() {
   final dataHome =
       Platform.environment['XDG_DATA_HOME'] ?? '$home/.local/share';
   final roots = <String>['$dataHome/icons'];
-  final dataDirs = Platform.environment['XDG_DATA_DIRS'] ??
-      '/usr/local/share:/usr/share';
+  final dataDirs =
+      Platform.environment['XDG_DATA_DIRS'] ?? '/usr/local/share:/usr/share';
   for (final d in dataDirs.split(':')) {
     roots.add('$d/icons');
     roots.add('$d/pixmaps');
@@ -71,12 +99,40 @@ String? findIconPath(String icon, {List<String>? roots}) {
   return null;
 }
 
+bool _executableExists(String executable) {
+  if (executable.contains('/')) {
+    return File(executable).existsSync();
+  }
+  final path = Platform.environment['PATH'] ?? '';
+  for (final dir in path.split(':')) {
+    if (dir.isEmpty) continue;
+    if (File('$dir/$executable').existsSync()) return true;
+  }
+  return false;
+}
+
 List<String> parseExecLine(String exec, String name, String? icon) {
   final tokens = <String>[];
   final buf = StringBuffer();
   var quoted = false;
   for (var i = 0; i < exec.length; i++) {
     final ch = exec[i];
+    if (ch == '%' && i + 1 < exec.length && exec[i + 1] == '%') {
+      buf.write('\u0001');
+      i++;
+      continue;
+    }
+    if (ch == '\\' && i + 1 < exec.length) {
+      final n = exec[++i];
+      buf.write(switch (n) {
+        'n' => '\n',
+        't' => '\t',
+        'r' => '\r',
+        's' => ' ',
+        _ => n,
+      });
+      continue;
+    }
     if (ch == '"') {
       quoted = !quoted;
     } else if (ch == ' ' && !quoted) {
@@ -99,61 +155,128 @@ List<String> parseExecLine(String exec, String name, String? icon) {
         out.add(icon);
       }
     } else if (!token.startsWith('%')) {
-      out.add(token);
+      out.add(token.replaceAll('\u0001', '%'));
     }
   }
   return out;
 }
 
-DesktopAppEntry? parseDesktopEntry(String id, String contents,
-    {String? Function(String icon) resolveIcon = findIconPath}) {
-  var inEntry = false;
-  String? name;
-  String? exec;
-  String? icon;
-  var hidden = false;
-  var noDisplay = false;
-  var terminal = false;
-  var isApp = false;
+List<String> _splitList(String? value) => [
+  for (final part in (value ?? '').split(';'))
+    if (part.trim().isNotEmpty) part.trim(),
+];
+
+String? _localized(Map<String, String> keys, String base, String? locale) {
+  final tag = (locale ?? Platform.localeName)
+      .split('.')
+      .first
+      .split('@')
+      .first
+      .replaceAll('-', '_');
+  for (final candidate in [tag, tag.split('_').first]) {
+    final v = keys['$base[$candidate]'];
+    if (v != null) return v;
+  }
+  return keys[base];
+}
+
+DesktopAppEntry? parseDesktopEntry(
+  String id,
+  String contents, {
+  String? Function(String icon) resolveIcon = findIconPath,
+  String? locale,
+  String? desktop,
+  bool Function(String executable) executableExists = _executableExists,
+}) {
+  final sections = <String, Map<String, String>>{};
+  var current = '';
   for (final raw in contents.split('\n')) {
     final line = raw.trim();
     if (line.startsWith('[')) {
-      inEntry = line == '[Desktop Entry]';
+      current = line;
+      sections.putIfAbsent(current, () => {});
       continue;
     }
-    if (!inEntry || !line.contains('=')) continue;
+    if (!line.contains('=')) continue;
     final eq = line.indexOf('=');
-    final key = line.substring(0, eq).trim();
-    final value = line.substring(eq + 1).trim();
-    switch (key) {
-      case 'Type':
-        isApp = value == 'Application';
-      case 'Name':
-        name ??= value;
-      case 'Exec':
-        exec ??= value;
-      case 'Icon':
-        icon ??= value;
-      case 'NoDisplay':
-        noDisplay = value == 'true';
-      case 'Hidden':
-        hidden = value == 'true';
-      case 'Terminal':
-        terminal = value == 'true';
-    }
+    sections.putIfAbsent(current, () => {});
+    sections[current]!.putIfAbsent(
+      line.substring(0, eq).trim(),
+      () => line.substring(eq + 1).trim(),
+    );
   }
-  if (!isApp || hidden || noDisplay || terminal) return null;
+
+  final entry = sections['[Desktop Entry]'];
+  if (entry == null || entry['Type'] != 'Application') return null;
+  if (entry['Hidden'] == 'true' || entry['NoDisplay'] == 'true') {
+    return null;
+  }
+
+  final desktopName =
+      desktop ?? Platform.environment['XDG_CURRENT_DESKTOP'] ?? 'Oasis';
+  final onlyShowIn = _splitList(entry['OnlyShowIn']);
+  if (onlyShowIn.isNotEmpty && !onlyShowIn.contains(desktopName)) {
+    return null;
+  }
+  final notShowIn = _splitList(entry['NotShowIn']);
+  if (notShowIn.contains(desktopName)) return null;
+
+  final tryExec = entry['TryExec'];
+  if (tryExec != null && tryExec.isNotEmpty && !executableExists(tryExec)) {
+    return null;
+  }
+
+  final name = _localized(entry, 'Name', locale);
+  final exec = entry['Exec'];
   if (name == null || name.isEmpty || exec == null || exec.isEmpty) {
     return null;
   }
+  final icon = entry['Icon'];
   final argv = parseExecLine(exec, name, icon);
   if (argv.isEmpty) return null;
+
+  final actions = <DesktopEntryAction>[];
+  for (final actionId in _splitList(entry['Actions'])) {
+    final section = sections['[Desktop Action $actionId]'];
+    if (section == null) continue;
+    final actionName = _localized(section, 'Name', locale);
+    final actionExec = section['Exec'];
+    if (actionName == null ||
+        actionName.isEmpty ||
+        actionExec == null ||
+        actionExec.isEmpty) {
+      continue;
+    }
+    final actionArgv = parseExecLine(actionExec, actionName, section['Icon']);
+    if (actionArgv.isEmpty) continue;
+    actions.add(
+      DesktopEntryAction(
+        id: actionId,
+        name: actionName,
+        argv: actionArgv,
+        iconPath: section['Icon'] == null
+            ? null
+            : resolveIcon(section['Icon']!),
+      ),
+    );
+  }
+
   return DesktopAppEntry(
-      id: id, name: name, argv: argv, iconPath: resolveIcon(icon ?? ''));
+    id: id,
+    name: name,
+    argv: argv,
+    genericName: _localized(entry, 'GenericName', locale),
+    keywords: _splitList(entry['Keywords']),
+    categories: _splitList(entry['Categories']),
+    iconPath: resolveIcon(icon ?? ''),
+    terminal: entry['Terminal'] == 'true',
+    startupNotify: entry['StartupNotify'] == 'true',
+    startupWmClass: entry['StartupWMClass'],
+    actions: actions,
+  );
 }
 
-Future<List<DesktopAppEntry>> loadDesktopEntries(
-    {List<String>? dirs}) async {
+Future<List<DesktopAppEntry>> loadDesktopEntries({List<String>? dirs}) async {
   final found = <String, DesktopAppEntry>{};
   for (final dirPath in dirs ?? desktopSearchDirs()) {
     final dir = Directory(dirPath);
@@ -162,10 +285,7 @@ Future<List<DesktopAppEntry>> loadDesktopEntries(
       if (entity is! File || !entity.path.endsWith('.desktop')) {
         continue;
       }
-      final id = entity.path
-          .split('/')
-          .last
-          .replaceAll('.desktop', '');
+      final id = entity.path.split('/').last.replaceAll('.desktop', '');
       final contents = await entity.readAsString();
       final entry = parseDesktopEntry(id, contents);
       if (entry != null) found[id] = entry;
@@ -175,11 +295,17 @@ Future<List<DesktopAppEntry>> loadDesktopEntries(
 }
 
 OasisApp desktopAppToOasis(DesktopAppEntry entry) => OasisApp(
-      id: 'desktop:${entry.id}',
-      name: entry.name,
-      icon: Icons.apps,
-      iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
-      iconPath: entry.iconPath,
-      exec: entry.argv,
-      builder: (_) => const SizedBox.shrink(),
-    );
+  id: 'desktop:${entry.id}',
+  name: entry.name,
+  icon: Icons.apps,
+  iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
+  iconPath: entry.iconPath,
+  exec: entry.terminal
+      ? [
+          Platform.environment['TERMINAL'] ?? 'x-terminal-emulator',
+          '-e',
+          ...entry.argv,
+        ]
+      : entry.argv,
+  builder: (_) => const SizedBox.shrink(),
+);
