@@ -272,8 +272,12 @@ class ShellController extends ChangeNotifier {
   void openApp(OasisApp app) {
     for (final w in windows) {
       if (w.app.id == app.id) {
-        if (w.minimized) w.transition = ShellWindowTransition.restoring;
-        w.minimized = false;
+        for (final m in [w, ...transientFamily(w)]) {
+          if (m.minimized) {
+            m.minimized = false;
+            m.transition = ShellWindowTransition.restoring;
+          }
+        }
         _focus(w.id);
         closeOverlays();
         return;
@@ -327,10 +331,24 @@ class ShellController extends ChangeNotifier {
       wayland?.close(surface.id);
     } else {
       windows.removeWhere((w) => w.id == id);
-      if (_focusedId == id) _focusedId = null;
+      if (_focusedId == id) {
+        _focusedId = null;
+        _promoteFocus();
+      }
     }
     _pushWaylandFocus();
     notifyListeners();
+  }
+
+  void _promoteFocus() {
+    if (_focusedId != null) return;
+    for (var i = windows.length - 1; i >= 0; i--) {
+      final w = windows[i];
+      if (!w.minimized && !w.launching && w.workspace == activeWorkspace) {
+        _focusedId = w.id;
+        return;
+      }
+    }
   }
 
   List<ShellWindowData> transientFamily(ShellWindowData root) {
@@ -379,7 +397,10 @@ class ShellController extends ChangeNotifier {
       w.minimized = true;
       w.transition = ShellWindowTransition.minimizing;
     }
-    if (family.any((w) => w.id == _focusedId)) _focusedId = null;
+    if (family.any((w) => w.id == _focusedId)) {
+      _focusedId = null;
+      _promoteFocus();
+    }
     _pushWaylandFocus();
     notifyListeners();
   }
@@ -571,7 +592,10 @@ class ShellController extends ChangeNotifier {
       final s = w.surface;
       if (s != null && !service.surfaces.containsKey(s.id)) {
         windows.removeAt(i);
-        if (_focusedId == w.id) _focusedId = null;
+        if (_focusedId == w.id) {
+          _focusedId = null;
+          _promoteFocus();
+        }
         changed = true;
       }
     }
