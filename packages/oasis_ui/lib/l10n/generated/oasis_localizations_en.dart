@@ -59,6 +59,12 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get launcherNoResults => 'No results';
 
   @override
+  String get sessionLock => 'Lock';
+  String get sessionLogOut => 'Log Out';
+  String get sessionSleep => 'Sleep';
+  String get sessionRestart => 'Restart';
+  String get sessionShutDown => 'Shut Down';
+
   String get ccWifi => 'Wi-Fi';
 
   @override

@@ -59,6 +59,12 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get launcherNoResults => '无结果';
 
   @override
+  String get sessionLock => '锁定';
+  String get sessionLogOut => '注销';
+  String get sessionSleep => '睡眠';
+  String get sessionRestart => '重启';
+  String get sessionShutDown => '关机';
+
   String get ccWifi => '无线局域网';
 
   @override

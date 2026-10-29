@@ -25,6 +25,8 @@ class OasisBattery {
   final bool charging;
 }
 
+enum OasisSessionAction { lock, logout, suspend, reboot, poweroff }
+
 abstract class OasisSystemBackend {
   void wifi(bool enabled);
   void bluetooth(bool enabled);
@@ -33,6 +35,7 @@ abstract class OasisSystemBackend {
   void nightLight(bool enabled);
   Future<OasisSystemState> read();
   Future<OasisBattery> battery();
+  void session(OasisSessionAction action);
 }
 
 class NoopSystemBackend implements OasisSystemBackend {
@@ -59,6 +62,9 @@ class NoopSystemBackend implements OasisSystemBackend {
   @override
   Future<OasisBattery> battery() async =>
       const OasisBattery(level: null, charging: false);
+
+  @override
+  void session(OasisSessionAction action) {}
 }
 
 class CliSystemBackend implements OasisSystemBackend {
@@ -164,5 +170,21 @@ class CliSystemBackend implements OasisSystemBackend {
       return const OasisBattery(level: null, charging: false);
     }
     return const OasisBattery(level: null, charging: false);
+  }
+
+  @override
+  void session(OasisSessionAction action) {
+    switch (action) {
+      case OasisSessionAction.lock:
+        _exec('loginctl', ['lock-session']);
+      case OasisSessionAction.logout:
+        _exec('loginctl', ['terminate-user', 'self']);
+      case OasisSessionAction.suspend:
+        _exec('systemctl', ['suspend']);
+      case OasisSessionAction.reboot:
+        _exec('systemctl', ['reboot']);
+      case OasisSessionAction.poweroff:
+        _exec('systemctl', ['poweroff']);
+    }
   }
 }

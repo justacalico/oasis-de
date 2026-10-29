@@ -125,5 +125,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "sessionLock": "锁定",
+  "sessionLogOut": "注销",
+  "sessionSleep": "睡眠",
+  "sessionRestart": "重启",
+  "sessionShutDown": "关机"
 }

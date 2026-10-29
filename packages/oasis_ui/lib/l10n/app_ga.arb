@@ -125,5 +125,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "sessionLock": "Glasáil",
+  "sessionLogOut": "Logáil Amach",
+  "sessionSleep": "Codladh",
+  "sessionRestart": "Atosaigh",
+  "sessionShutDown": "Múch"
 }

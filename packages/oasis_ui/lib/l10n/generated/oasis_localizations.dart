@@ -202,6 +202,12 @@ abstract class OasisLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Wi-Fi'**
+  String get sessionLock;
+  String get sessionLogOut;
+  String get sessionSleep;
+  String get sessionRestart;
+  String get sessionShutDown;
+
   String get ccWifi;
 
   /// No description provided for @ccBluetooth.

@@ -251,6 +251,34 @@ void main() {
     expect(find.text('Brightness'), findsOneWidget);
   });
 
+  testWidgets('session menu runs backend actions', (tester) async {
+    final calls = <OasisSessionAction>[];
+    await pumpDesktop(tester, backend: _SessionBackend(calls));
+    await tester.tap(find.byIcon(Icons.power_settings_new));
+    await tester.pumpAndSettle();
+    for (final label in [
+      'Lock',
+      'Log Out',
+      'Sleep',
+      'Restart',
+      'Shut Down',
+    ]) {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      if (label != 'Shut Down') {
+        await tester.tap(find.byIcon(Icons.power_settings_new));
+        await tester.pumpAndSettle();
+      }
+    }
+    expect(calls, [
+      OasisSessionAction.lock,
+      OasisSessionAction.logout,
+      OasisSessionAction.suspend,
+      OasisSessionAction.reboot,
+      OasisSessionAction.poweroff,
+    ]);
+  });
+
   testWidgets('battery icon follows level and charging', (tester) async {
     for (final (level, charging, icon) in [
       (0.2, false, Icons.battery_1_bar),
@@ -696,4 +724,13 @@ class _BatteryBackend extends NoopSystemBackend {
   @override
   Future<OasisBattery> battery() async =>
       OasisBattery(level: level, charging: charging);
+}
+
+class _SessionBackend extends NoopSystemBackend {
+  _SessionBackend(this.calls);
+
+  final List<OasisSessionAction> calls;
+
+  @override
+  void session(OasisSessionAction action) => calls.add(action);
 }

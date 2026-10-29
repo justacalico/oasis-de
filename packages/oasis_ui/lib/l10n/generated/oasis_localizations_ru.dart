@@ -59,6 +59,12 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get launcherNoResults => 'Ничего не найдено';
 
   @override
+  String get sessionLock => 'Блокировать';
+  String get sessionLogOut => 'Выйти';
+  String get sessionSleep => 'Сон';
+  String get sessionRestart => 'Перезапуск';
+  String get sessionShutDown => 'Выключение';
+
   String get ccWifi => 'Wi-Fi';
 
   @override
