@@ -1,0 +1,181 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+
+import 'wayland_host.dart';
+
+class WaylandSurface {
+  WaylandSurface({
+    required this.id,
+    required this.textureId,
+    this.parentId,
+    this.title = '',
+    this.appId = '',
+    this.offset = Offset.zero,
+    this.size = Size.zero,
+  });
+
+  final int id;
+  final int textureId;
+  final int? parentId;
+  String title;
+  String appId;
+  Offset offset;
+  Size size;
+
+  bool get isPopup => parentId != null;
+}
+
+enum WaylandRequestType { move, resize, maximize, fullscreen, minimize }
+
+class WaylandRequest {
+  const WaylandRequest(this.type, this.id,
+      {this.on = false, this.edges = 0});
+
+  final WaylandRequestType type;
+  final int id;
+  final bool on;
+  final int edges;
+}
+
+class WaylandService extends ChangeNotifier {
+  WaylandService({WaylandHost? host})
+      : _host = host ?? const ChannelWaylandHost();
+
+  final WaylandHost _host;
+  final Map<int, WaylandSurface> surfaces = {};
+  final _requests = StreamController<WaylandRequest>.broadcast();
+  StreamSubscription<Map<String, Object?>>? _sub;
+
+  var socket = '';
+  var started = false;
+
+  Stream<WaylandRequest> get requests => _requests.stream;
+  bool get available => socket.isNotEmpty;
+
+  Future<void> start() async {
+    if (started) return;
+    started = true;
+    String? name;
+    try {
+      name = await _host.start();
+    } on MissingPluginException {
+      name = null;
+    } on PlatformException {
+      name = null;
+    }
+    socket = name ?? '';
+    if (available) {
+      _sub = _host.events.listen(_onEvent);
+    }
+    notifyListeners();
+  }
+
+  List<WaylandSurface> get toplevels => surfaces.values
+      .where((s) => !s.isPopup)
+      .toList(growable: false);
+
+  List<WaylandSurface> get popups => surfaces.values
+      .where((s) => s.isPopup)
+      .toList(growable: false);
+
+  void _onEvent(Map<String, Object?> e) {
+    final id = (e['id'] as num?)?.toInt() ?? -1;
+    switch (e['event']) {
+      case 'toplevel':
+        surfaces[id] = WaylandSurface(
+          id: id,
+          textureId: (e['textureId'] as num).toInt(),
+          title: e['title'] as String? ?? '',
+          appId: e['appId'] as String? ?? '',
+        );
+      case 'toplevelClosed':
+        surfaces.remove(id);
+      case 'title':
+        surfaces[id]?.title = e['title'] as String? ?? '';
+      case 'appId':
+        surfaces[id]?.appId = e['appId'] as String? ?? '';
+      case 'size':
+        final s = surfaces[id];
+        if (s != null) {
+          s.size = Size((e['w'] as num).toDouble(),
+              (e['h'] as num).toDouble());
+        }
+      case 'popup':
+        surfaces[id] = WaylandSurface(
+          id: id,
+          textureId: (e['textureId'] as num).toInt(),
+          parentId: (e['parent'] as num).toInt(),
+          offset: Offset((e['x'] as num).toDouble(),
+              (e['y'] as num).toDouble()),
+        );
+      case 'popupMoved':
+        final s = surfaces[id];
+        if (s != null) {
+          s.offset = Offset((e['x'] as num).toDouble(),
+              (e['y'] as num).toDouble());
+        }
+      case 'popupClosed':
+        surfaces.remove(id);
+      case 'move':
+        _requests.add(
+            WaylandRequest(WaylandRequestType.move, id));
+      case 'resize':
+        _requests.add(WaylandRequest(WaylandRequestType.resize,
+            id,
+            edges: (e['edges'] as num?)?.toInt() ?? 0));
+      case 'maximize':
+        _requests.add(WaylandRequest(
+            WaylandRequestType.maximize, id,
+            on: e['on'] == true));
+      case 'fullscreen':
+        _requests.add(WaylandRequest(
+            WaylandRequestType.fullscreen, id,
+            on: e['on'] == true));
+      case 'minimize':
+        _requests.add(
+            WaylandRequest(WaylandRequestType.minimize, id));
+    }
+    notifyListeners();
+  }
+
+  Future<void> launch(List<String> argv) =>
+      available ? _host.launch(argv) : Future.value();
+
+  Future<void> configure(
+          int id, int width, int height, bool maximized) =>
+      available
+          ? _host.configure(id, width, height, maximized)
+          : Future.value();
+
+  Future<void> close(int id) =>
+      available ? _host.close(id) : Future.value();
+
+  Future<void> focus(int? id) =>
+      available ? _host.focus(id) : Future.value();
+
+  Future<void> pointerMotion(int id, double x, double y) =>
+      available ? _host.pointerMotion(id, x, y) : Future.value();
+
+  Future<void> pointerExit(int id) =>
+      available ? _host.pointerExit(id) : Future.value();
+
+  Future<void> pointerButton(int button, bool pressed) =>
+      available
+          ? _host.pointerButton(button, pressed)
+          : Future.value();
+
+  Future<void> pointerAxis(double dx, double dy) =>
+      available ? _host.pointerAxis(dx, dy) : Future.value();
+
+  Future<void> key(int code, bool pressed) =>
+      available ? _host.key(code, pressed) : Future.value();
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    _requests.close();
+    super.dispose();
+  }
+}

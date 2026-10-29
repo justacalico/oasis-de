@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class OasisAppIcon extends StatelessWidget {
@@ -6,11 +9,13 @@ class OasisAppIcon extends StatelessWidget {
     required this.icon,
     required this.colors,
     this.size = 48,
+    this.iconPath,
   });
 
   final IconData icon;
   final List<Color> colors;
   final double size;
+  final String? iconPath;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +62,22 @@ class OasisAppIcon extends StatelessWidget {
               ),
             ),
           ),
-          Icon(icon, size: size * 0.55, color: const Color(0xFFFFFFFF)),
+          if (!kIsWeb &&
+              iconPath != null &&
+              File(iconPath!).existsSync())
+            Padding(
+              padding: EdgeInsets.all(size * 0.12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(size * 0.16),
+                child: Image.file(
+                  File(iconPath!),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            )
+          else
+            Icon(icon,
+                size: size * 0.55, color: const Color(0xFFFFFFFF)),
         ],
       ),
     );
