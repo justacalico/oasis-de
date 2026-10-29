@@ -4,6 +4,22 @@ import 'package:flutter/material.dart';
 import '../theme/oasis_theme.dart';
 import 'oasis_traffic_lights.dart';
 
+enum OasisResizeEdge {
+  top(0, -1),
+  bottom(0, 1),
+  left(-1, 0),
+  right(1, 0),
+  topLeft(-1, -1),
+  topRight(1, -1),
+  bottomLeft(-1, 1),
+  bottomRight(1, 1);
+
+  const OasisResizeEdge(this.dx, this.dy);
+
+  final int dx;
+  final int dy;
+}
+
 class OasisWindow extends StatefulWidget {
   const OasisWindow({
     super.key,
@@ -16,6 +32,7 @@ class OasisWindow extends StatefulWidget {
     this.height = 480,
     this.focused = true,
     this.onDrag,
+    this.onResize,
   });
 
   final String title;
@@ -27,6 +44,7 @@ class OasisWindow extends StatefulWidget {
   final double height;
   final bool focused;
   final ValueChanged<Offset>? onDrag;
+  final void Function(Offset delta, OasisResizeEdge edge)? onResize;
 
   @override
   State<OasisWindow> createState() => _OasisWindowState();
@@ -87,7 +105,8 @@ class _OasisWindowState extends State<OasisWindow> {
       ),
     );
 
-    return Opacity(
+    final onResize = widget.onResize;
+    final window = Opacity(
       opacity: widget.focused ? 1 : 0.92,
       child: Container(
         width: widget.width,
@@ -114,6 +133,86 @@ class _OasisWindowState extends State<OasisWindow> {
             ],
           ),
         ),
+      ),
+    );
+    if (onResize == null) return window;
+    const grab = 6.0;
+    const corner = 16.0;
+    return Stack(
+      children: [
+        window,
+        Positioned(
+            top: 0, left: corner, right: corner, height: grab,
+            child: _ResizeGrabber(
+                edge: OasisResizeEdge.top,
+                cursor: SystemMouseCursors.resizeUpDown,
+                onResize: onResize)),
+        Positioned(
+            bottom: 0, left: corner, right: corner, height: grab,
+            child: _ResizeGrabber(
+                edge: OasisResizeEdge.bottom,
+                cursor: SystemMouseCursors.resizeUpDown,
+                onResize: onResize)),
+        Positioned(
+            left: 0, top: corner, bottom: corner, width: grab,
+            child: _ResizeGrabber(
+                edge: OasisResizeEdge.left,
+                cursor: SystemMouseCursors.resizeLeftRight,
+                onResize: onResize)),
+        Positioned(
+            right: 0, top: corner, bottom: corner, width: grab,
+            child: _ResizeGrabber(
+                edge: OasisResizeEdge.right,
+                cursor: SystemMouseCursors.resizeLeftRight,
+                onResize: onResize)),
+        Positioned(
+            top: 0, left: 0, width: corner, height: corner,
+            child: _ResizeGrabber(
+                edge: OasisResizeEdge.topLeft,
+                cursor: SystemMouseCursors.resizeUpLeftDownRight,
+                onResize: onResize)),
+        Positioned(
+            top: 0, right: 0, width: corner, height: corner,
+            child: _ResizeGrabber(
+                edge: OasisResizeEdge.topRight,
+                cursor: SystemMouseCursors.resizeUpRightDownLeft,
+                onResize: onResize)),
+        Positioned(
+            bottom: 0, left: 0, width: corner, height: corner,
+            child: _ResizeGrabber(
+                edge: OasisResizeEdge.bottomLeft,
+                cursor: SystemMouseCursors.resizeUpRightDownLeft,
+                onResize: onResize)),
+        Positioned(
+            bottom: 0, right: 0, width: corner, height: corner,
+            child: _ResizeGrabber(
+                edge: OasisResizeEdge.bottomRight,
+                cursor: SystemMouseCursors.resizeUpLeftDownRight,
+                onResize: onResize)),
+      ],
+    );
+  }
+}
+
+class _ResizeGrabber extends StatelessWidget {
+  const _ResizeGrabber({
+    required this.edge,
+    required this.cursor,
+    required this.onResize,
+  });
+
+  final OasisResizeEdge edge;
+  final MouseCursor cursor;
+  final void Function(Offset delta, OasisResizeEdge edge) onResize;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: cursor,
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerMove: (e) => onResize(e.delta, edge),
+        child: const SizedBox.expand(),
       ),
     );
   }

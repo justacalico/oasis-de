@@ -29,8 +29,9 @@ class DesktopShell extends StatelessWidget {
         final menus = menusBuilder();
         return Listener(
           onPointerDown: _onShellPointerDown,
-          onPointerMove: _onShellPointerMove,
-          onPointerUp: (_) => controller.endSurfaceDrag(),
+          onPointerMove: (e) =>
+              _onShellPointerMove(e, MediaQuery.sizeOf(context)),
+          onPointerUp: (_) => controller.endSurfaceGesture(),
           child: Stack(
             children: [
               const Positioned.fill(child: OasisWallpaper()),
@@ -145,7 +146,13 @@ class DesktopShell extends StatelessWidget {
     }
   }
 
-  void _onShellPointerMove(PointerMoveEvent e) {
+  void _onShellPointerMove(PointerMoveEvent e, Size screen) {
+    final resize = controller.surfaceResize;
+    if (resize != null) {
+      controller.resizeWindow(resize.id, e.delta, resize.edge,
+          _defaultWindowSize(screen));
+      return;
+    }
     final id = controller.surfaceDragWindowId;
     if (id != null) controller.dragWindow(id, e.delta);
   }
@@ -167,12 +174,18 @@ class DesktopShell extends StatelessWidget {
     return base + const Offset(0, 38) + offset;
   }
 
+  Size _defaultWindowSize(Size screen) => Size(
+      (screen.width * 0.62).clamp(kMinWindowWidth, 940.0),
+      (screen.height * 0.62).clamp(kMinWindowHeight, 720.0));
+
+  Size _windowSize(ShellWindowData w, Size screen) =>
+      w.size ?? _defaultWindowSize(screen);
+
   Rect _windowRect(ShellWindowData w, BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
+    final screen = MediaQuery.sizeOf(context);
     final s = w.zoomed
-        ? Size(size.width, size.height - kMenuBarHeight - 8)
-        : Size((size.width * 0.62).clamp(360.0, 940.0),
-            (size.height * 0.62).clamp(300.0, 720.0));
+        ? Size(screen.width, screen.height - kMenuBarHeight - 8)
+        : _windowSize(w, screen);
     return (w.zoomed ? const Offset(0, kMenuBarHeight + 4) : w.position) &
         s;
   }
@@ -209,17 +222,22 @@ class DesktopShell extends StatelessWidget {
     } else {
       body = Builder(builder: w.app.builder);
     }
+    final windowSize = _windowSize(w, size);
     return OasisWindow(
       title: w.displayTitle,
       focused: controller.focusedId == w.id,
-      width: w.zoomed ? size.width : (size.width * 0.62).clamp(360.0, 940.0),
+      width: w.zoomed ? size.width : windowSize.width,
       height: w.zoomed
           ? size.height - kMenuBarHeight - 8
-          : (size.height * 0.62).clamp(300.0, 720.0),
+          : windowSize.height,
       onClose: () => controller.closeWindow(w.id),
       onMinimize: () => controller.minimizeWindow(w.id),
       onMaximize: () => controller.toggleZoom(w.id),
       onDrag: (d) => controller.dragWindow(w.id, d),
+      onResize: w.zoomed
+          ? null
+          : (d, edge) => controller.resizeWindow(
+              w.id, d, edge, _defaultWindowSize(size)),
       child: body,
     );
   }

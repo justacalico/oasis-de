@@ -136,7 +136,7 @@ void main() {
     host.emit({'event': 'move', 'id': 1});
     await pumpEventQueue();
     expect(c.surfaceDragWindowId, w.id);
-    c.endSurfaceDrag();
+    c.endSurfaceGesture();
     expect(c.surfaceDragWindowId, isNull);
 
     host.emit({'event': 'maximize', 'id': 1, 'on': true});
@@ -152,8 +152,16 @@ void main() {
     expect(w.minimized, isTrue);
 
     host.emit({'event': 'resize', 'id': 1, 'edges': 4});
+    await pumpEventQueue();
+    expect(c.surfaceResize?.id, w.id);
+    expect(c.surfaceResize?.edge, OasisResizeEdge.left);
+    host.emit({'event': 'resize', 'id': 1, 'edges': 0});
+    host.emit({'event': 'resize', 'id': 999, 'edges': 4});
     host.emit({'event': 'move', 'id': 999});
     await pumpEventQueue();
+    expect(c.surfaceResize?.edge, OasisResizeEdge.left);
+    c.endSurfaceGesture();
+    expect(c.surfaceResize, isNull);
     c.dispose();
     service.dispose();
   });
@@ -458,6 +466,33 @@ void main() {
     expect(c.windows.single.position, before + const Offset(30, 10));
     await gesture.up();
     expect(c.surfaceDragWindowId, isNull);
+    c.dispose();
+    service.dispose();
+  });
+
+  testWidgets('CSD resize resizes the window', (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(
+        apps: [_external('x')], wayland: service);
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 100, 'h': 100});
+    await tester.pump();
+    await pumpOasis(
+        tester,
+        DesktopShell(controller: c, menusBuilder: () => const []),
+        size: const Size(1280, 800));
+
+    host.emit({'event': 'resize', 'id': 1, 'edges': 10});
+    await tester.pump();
+    final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(WaylandSurfaceView)));
+    await gesture.moveBy(const Offset(30, 20));
+    expect(c.windows.single.size,
+        const Size(1280 * 0.62 + 30, 800 * 0.62 + 20));
+    await gesture.up();
+    expect(c.surfaceResize, isNull);
     c.dispose();
     service.dispose();
   });
