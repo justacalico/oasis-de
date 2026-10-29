@@ -268,7 +268,6 @@ class NetworkPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = OasisLocalizations.of(context);
     final p = OasisStyle.of(context).palette;
     final text = Theme.of(context).textTheme;
 

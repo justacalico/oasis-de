@@ -747,6 +747,28 @@ void main() {
       await tester.pump();
     }
     expect(find.text('NaN'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(OasisButton, '5'));
+    await tester.pump();
+    expect(find.text('NaN5'), findsNothing);
+    expect(find.text('5'), findsNWidgets(2));
+
+    await tester.tap(find.widgetWithText(OasisButton, 'C'));
+    await tester.pump();
+    for (final k in ['1', '+', '2', '+', '5', '=']) {
+      await tester.tap(find.widgetWithText(OasisButton, k));
+      await tester.pump();
+    }
+    expect(find.text('8'), findsNWidgets(2));
+
+    await tester.tap(find.widgetWithText(OasisButton, 'C'));
+    await tester.pump();
+    for (final k in ['0', '5']) {
+      await tester.tap(find.widgetWithText(OasisButton, k));
+      await tester.pump();
+    }
+    expect(find.text('05'), findsNothing);
+    expect(find.text('5'), findsNWidgets(2));
   });
   testWidgets('wallpaper and titlebar context menus act', (tester) async {
     await pumpDesktop(tester);
