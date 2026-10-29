@@ -2118,9 +2118,11 @@ static void dmabuf_params_create_immed(wl_client* client,
   dmabuf_make_buffer(p, buffer_id, w, h, format, flags);
 }
 
+#ifdef ZWP_LINUX_BUFFER_PARAMS_V1_SET_SAMPLING_DEVICE_SINCE_VERSION
 static void dmabuf_params_set_sampling(wl_client* client,
                                        wl_resource* res,
                                        wl_array* device_fd) {}
+#endif
 
 static const struct zwp_linux_buffer_params_v1_interface
     dmabuf_params_impl = {
@@ -2128,7 +2130,9 @@ static const struct zwp_linux_buffer_params_v1_interface
         dmabuf_params_add,
         dmabuf_params_create,
         dmabuf_params_create_immed,
+#ifdef ZWP_LINUX_BUFFER_PARAMS_V1_SET_SAMPLING_DEVICE_SINCE_VERSION
         dmabuf_params_set_sampling,
+#endif
 };
 
 static void dmabuf_destroy(wl_client* client, wl_resource* res) {
