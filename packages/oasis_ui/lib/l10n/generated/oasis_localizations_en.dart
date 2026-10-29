@@ -141,9 +141,6 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get settingsLanguage => 'Language';
 
   @override
-  String get settingsEnabled => 'Enabled';
-
-  @override
   String get settingsWifiBody => 'Toggle Wi-Fi on or off.';
 
   @override

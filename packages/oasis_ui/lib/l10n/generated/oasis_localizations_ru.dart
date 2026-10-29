@@ -142,9 +142,6 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get settingsLanguage => 'Язык';
 
   @override
-  String get settingsEnabled => 'Включено';
-
-  @override
   String get settingsWifiBody => 'Включение и отключение Wi-Fi.';
 
   @override

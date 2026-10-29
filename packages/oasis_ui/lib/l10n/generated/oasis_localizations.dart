@@ -354,12 +354,6 @@ abstract class OasisLocalizations {
   /// **'Language'**
   String get settingsLanguage;
 
-  /// No description provided for @settingsEnabled.
-  ///
-  /// In en, this message translates to:
-  /// **'Enabled'**
-  String get settingsEnabled;
-
   /// No description provided for @settingsWifiBody.
   ///
   /// In en, this message translates to:
