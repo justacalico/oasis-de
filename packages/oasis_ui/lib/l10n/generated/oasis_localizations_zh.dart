@@ -304,4 +304,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get appCalculator => '计算器';
+
+  @override
+  String ctxMoveToDesktop(int n) {
+    return '移到桌面 $n';
+  }
 }

@@ -311,4 +311,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get appCalculator => 'Calculator';
+
+  @override
+  String ctxMoveToDesktop(int n) {
+    return 'Move to desktop $n';
+  }
 }

@@ -4,6 +4,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 import '../wayland/wayland_service.dart';
 import '../wayland/wayland_surface_view.dart';
 import 'control_center.dart';
+import 'context_menu.dart';
 import 'dock.dart';
 import 'genie_window.dart';
 import 'launch_pad.dart';
@@ -57,7 +58,13 @@ class _DesktopShellState extends State<DesktopShell> {
           ),
           child: Stack(
             children: [
-              Positioned.fill(child: OasisWallpaper(service: widget.wallpaper)),
+              Positioned.fill(
+                child: GestureDetector(
+                  onSecondaryTapUp: (e) =>
+                      _wallpaperMenu(context, e.globalPosition),
+                  child: OasisWallpaper(service: widget.wallpaper),
+                ),
+              ),
               for (final w in controller.windows)
                 if (!w.minimized || w.transition != ShellWindowTransition.none)
                   Positioned(
@@ -74,17 +81,25 @@ class _DesktopShellState extends State<DesktopShell> {
                       onEnd: () => controller.finishTransition(w.id),
                       child: Listener(
                         onPointerDown: (_) => controller.focusWindow(w.id),
-                        child: w.zoomed || w.fullscreen
-                            ? SizedBox(
-                                width: MediaQuery.sizeOf(context).width,
-                                height: w.fullscreen
-                                    ? MediaQuery.sizeOf(context).height
-                                    : MediaQuery.sizeOf(context).height -
-                                          kMenuBarHeight -
-                                          8,
-                                child: _windowContent(w, context),
-                              )
-                            : _windowContent(w, context),
+                        child: GestureDetector(
+                          onSecondaryTapUp: (e) {
+                            if (e.localPosition.dy <=
+                                kOasisWindowTitleBarHeight) {
+                              _windowMenu(context, e.globalPosition, w);
+                            }
+                          },
+                          child: w.zoomed || w.fullscreen
+                              ? SizedBox(
+                                  width: MediaQuery.sizeOf(context).width,
+                                  height: w.fullscreen
+                                      ? MediaQuery.sizeOf(context).height
+                                      : MediaQuery.sizeOf(context).height -
+                                            kMenuBarHeight -
+                                            8,
+                                  child: _windowContent(w, context),
+                                )
+                              : _windowContent(w, context),
+                        ),
                       ),
                     ),
                   ),
@@ -182,6 +197,58 @@ class _DesktopShellState extends State<DesktopShell> {
     if (id != null) {
       controller.dragWindow(id, e.delta, screen);
     }
+  }
+
+  void _wallpaperMenu(BuildContext context, Offset pos) {
+    final l10n = OasisLocalizations.of(context);
+    final c = controller;
+    final settings = c.apps.where((a) => a.id == 'settings');
+    final about = c.apps.where((a) => a.id == 'about');
+    showShellContextMenu(context, pos, [
+      ShellMenuItem(
+        label: l10n.settingsWallpaper,
+        enabled: settings.isNotEmpty,
+        action: (_) => c.openApp(settings.first),
+      ),
+      ShellMenuItem(
+        label: l10n.menuAbout,
+        enabled: about.isNotEmpty,
+        action: (_) => c.openApp(about.first),
+      ),
+    ]);
+  }
+
+  void _windowMenu(BuildContext context, Offset pos, ShellWindowData w) {
+    final l10n = OasisLocalizations.of(context);
+    final c = controller;
+    showShellContextMenu(context, pos, [
+      ShellMenuItem(
+        label: l10n.menuMinimise,
+        action: (_) => c.minimizeWindow(w.id),
+      ),
+      ShellMenuItem(
+        label: l10n.menuZoom,
+        checked: w.zoomed,
+        action: (_) => c.toggleZoom(w.id),
+      ),
+      ShellMenuItem(
+        label: l10n.menuEnterFullScreen,
+        checked: w.fullscreen,
+        separatorAfter: true,
+        action: (_) => c.toggleFullscreen(w.id),
+      ),
+      for (var i = 0; i < ShellController.workspaceCount; i++)
+        ShellMenuItem(
+          label: l10n.ctxMoveToDesktop(i + 1),
+          checked: w.workspace == i,
+          separatorAfter: i == ShellController.workspaceCount - 1,
+          action: (_) => c.moveWindowToWorkspace(w.id, i),
+        ),
+      ShellMenuItem(
+        label: l10n.menuCloseWindow,
+        action: (_) => c.closeWindow(w.id),
+      ),
+    ]);
   }
 
   Offset? _popupOffset(WaylandSurface popup) {

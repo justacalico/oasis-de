@@ -117,5 +117,13 @@
   "wallpaperPeaks": "山峰",
   "wallpaperAurora": "极光",
   "wallpaperEmber": "余烬",
-  "appCalculator": "计算器"
+  "appCalculator": "计算器",
+  "ctxMoveToDesktop": "移到桌面 {n}",
+  "@ctxMoveToDesktop": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  }
 }

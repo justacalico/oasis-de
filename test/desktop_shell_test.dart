@@ -602,4 +602,58 @@ void main() {
     }
     expect(find.text('NaN'), findsOneWidget);
   });
+  testWidgets('wallpaper and titlebar context menus act', (tester) async {
+    await pumpDesktop(tester);
+    await tester.tapAt(const Offset(640, 400), buttons: kSecondaryMouseButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Wallpaper'), findsOneWidget);
+    await tester.tap(find.text('Wallpaper'));
+    await tester.pumpAndSettle();
+    expect(find.text('Appearance'), findsWidgets);
+
+    final win = tester.getTopLeft(find.byType(OasisWindow));
+    Future<void> winMenu() async {
+      await tester.tapAt(
+        Offset(win.dx + 60, win.dy + 10),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await winMenu();
+    expect(find.text('Minimise'), findsOneWidget);
+    await tester.tap(find.text('Move to desktop 2'));
+    await tester.pumpAndSettle();
+    await winMenu();
+    await tester.tap(find.text('Minimise'));
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(const Offset(640, 400), buttons: kSecondaryMouseButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('About Oasis'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('A calm, glassy desktop environment for Linux.'),
+      findsWidgets,
+    );
+
+    Future<void> winMenu2() async {
+      final win2 = tester.getTopLeft(find.byType(OasisWindow).last);
+      await tester.tapAt(
+        Offset(win2.dx + 60, win2.dy + 10),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await winMenu2();
+    await tester.tap(find.text('Zoom'));
+    await tester.pumpAndSettle();
+    await winMenu2();
+    await tester.tap(find.text('Enter Full Screen'));
+    await tester.pumpAndSettle();
+    await winMenu2();
+    await tester.tap(find.text('Close Window'));
+    await tester.pumpAndSettle();
+  });
 }

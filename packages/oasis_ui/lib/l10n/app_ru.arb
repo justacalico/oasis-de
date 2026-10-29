@@ -117,5 +117,13 @@
   "wallpaperPeaks": "Вершины",
   "wallpaperAurora": "Сияние",
   "wallpaperEmber": "Угли",
-  "appCalculator": "Калькулятор"
+  "appCalculator": "Калькулятор",
+  "ctxMoveToDesktop": "Переместить на стол {n}",
+  "@ctxMoveToDesktop": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  }
 }

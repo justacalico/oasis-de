@@ -117,5 +117,13 @@
   "wallpaperPeaks": "Peaks",
   "wallpaperAurora": "Aurora",
   "wallpaperEmber": "Ember",
-  "appCalculator": "Calculator"
+  "appCalculator": "Calculator",
+  "ctxMoveToDesktop": "Move to desktop {n}",
+  "@ctxMoveToDesktop": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  }
 }
