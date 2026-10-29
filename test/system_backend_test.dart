@@ -71,6 +71,33 @@ void main() {
     expect(s.volume, isNull);
   });
 
+  test('cli backend reads battery from sysfs', () async {
+    final root = Directory.systemTemp.createTempSync();
+    final bat = Directory('${root.path}/BAT0')..createSync();
+    File('${bat.path}/capacity').writeAsStringSync('75');
+    File('${bat.path}/status').writeAsStringSync('Discharging');
+    var b = await CliSystemBackend(powerSupplyDir: root).battery();
+    expect(b.level, 0.75);
+    expect(b.charging, isFalse);
+    File('${bat.path}/status').writeAsStringSync('Charging');
+    b = await CliSystemBackend(powerSupplyDir: root).battery();
+    expect(b.charging, isTrue);
+    File('${bat.path}/status').writeAsStringSync('Full');
+    b = await CliSystemBackend(powerSupplyDir: root).battery();
+    expect(b.charging, isTrue);
+    b = await CliSystemBackend(
+      powerSupplyDir: Directory.systemTemp.createTempSync(),
+    ).battery();
+    expect(b.level, isNull);
+    final gone = Directory.systemTemp.createTempSync()..deleteSync();
+    b = await CliSystemBackend(powerSupplyDir: gone).battery();
+    expect(b.level, isNull);
+    final emptyBat = Directory.systemTemp.createTempSync();
+    Directory('${emptyBat.path}/BAT1').createSync();
+    b = await CliSystemBackend(powerSupplyDir: emptyBat).battery();
+    expect(b.level, isNull);
+  });
+
   test('noop backend accepts calls', () async {
     NoopSystemBackend()
       ..wifi(true)
@@ -82,6 +109,7 @@ void main() {
       (await NoopSystemBackend().read()).wifi,
       isNull,
     );
+    expect((await NoopSystemBackend().battery()).level, isNull);
   });
 
   test('settings state writes shared keys and calls backend', () {
@@ -122,4 +150,8 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<OasisSystemState> read() async => const OasisSystemState();
+
+  @override
+  Future<OasisBattery> battery() async =>
+      const OasisBattery(level: null, charging: false);
 }

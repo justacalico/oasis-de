@@ -73,11 +73,20 @@ class ShellMenuBar extends StatelessWidget {
               onTap: controller.toggleControlCenter,
               style: textStyle,
             ),
-            _StatusIcon(
-              icon: Icons.battery_full,
-              onTap: () {},
-              style: textStyle,
-            ),
+            if (controller.batteryLevel != null)
+              _StatusIcon(
+                icon: controller.batteryCharging
+                    ? Icons.battery_charging_full
+                    : switch ((controller.batteryLevel! * 10).round()) {
+                        <= 2 => Icons.battery_1_bar,
+                        <= 4 => Icons.battery_3_bar,
+                        <= 6 => Icons.battery_4_bar,
+                        <= 8 => Icons.battery_6_bar,
+                        _ => Icons.battery_full,
+                      },
+                onTap: () {},
+                style: textStyle,
+              ),
             _StatusIcon(
               icon: Icons.tune,
               onTap: controller.toggleControlCenter,

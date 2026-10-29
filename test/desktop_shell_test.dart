@@ -28,13 +28,14 @@ Future<void> pumpDesktop(
   Locale? platformLocale,
   UpdateChecker? updateChecker,
   List<String>? opened,
+  OasisSystemBackend? backend,
 }) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     OasisDesktopApp(
-      backend: const NoopSystemBackend(),
+      backend: backend ?? const NoopSystemBackend(),
       version: '1.0.0',
       appearance: appearance ?? OasisAppearance(themeMode: mode),
       updateChecker: updateChecker ?? _FakeChecker(const AppUpdate()),
@@ -242,11 +243,28 @@ void main() {
   });
 
   testWidgets('status icons open launcher and control center', (tester) async {
-    await pumpDesktop(tester);
+    await pumpDesktop(tester, backend: _BatteryBackend(0.9, false));
     await tester.tap(find.byIcon(Icons.battery_full));
+    await tester.pump();
     await tester.tap(find.byIcon(Icons.wifi).first);
     await tester.pumpAndSettle();
     expect(find.text('Brightness'), findsOneWidget);
+  });
+
+  testWidgets('battery icon follows level and charging', (tester) async {
+    for (final (level, charging, icon) in [
+      (0.2, false, Icons.battery_1_bar),
+      (0.4, false, Icons.battery_3_bar),
+      (0.6, false, Icons.battery_4_bar),
+      (0.8, false, Icons.battery_6_bar),
+      (0.95, false, Icons.battery_full),
+      (0.5, true, Icons.battery_charging_full),
+    ]) {
+      await pumpDesktop(tester, backend: _BatteryBackend(level, charging));
+      expect(find.byIcon(icon), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    }
   });
 
   testWidgets('window genies into the dock and back out', (tester) async {
@@ -667,4 +685,15 @@ void main() {
     await tester.tap(find.text('Close Window'));
     await tester.pumpAndSettle();
   });
+}
+
+class _BatteryBackend extends NoopSystemBackend {
+  _BatteryBackend(this.level, this.charging);
+
+  final double level;
+  final bool charging;
+
+  @override
+  Future<OasisBattery> battery() async =>
+      OasisBattery(level: level, charging: charging);
 }

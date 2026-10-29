@@ -87,7 +87,17 @@ class ShellController extends ChangeNotifier {
     _refreshSystemState();
   }
 
+  Future<void> pollBattery() async {
+    final b = await backend.battery();
+    if (_disposed) return;
+    if (b.level == batteryLevel && b.charging == batteryCharging) return;
+    batteryLevel = b.level;
+    batteryCharging = b.charging;
+    notifyListeners();
+  }
+
   Future<void> _refreshSystemState() async {
+    pollBattery();
     final s = await backend.read();
     if (_disposed) return;
     if (s.wifi != null) wifiOn = s.wifi!;
@@ -102,6 +112,9 @@ class ShellController extends ChangeNotifier {
   final List<OasisApp> pinned = [];
   final List<ShellWindowData> windows = [];
   final WaylandService? wayland;
+
+  double? batteryLevel;
+  bool batteryCharging = false;
 
   StreamSubscription<WaylandRequest>? _requestSub;
   int _nextId = 1;
@@ -135,7 +148,7 @@ class ShellController extends ChangeNotifier {
       ..clear()
       ..addAll(fresh);
     final byId = {for (final a in fresh) a.id: a};
-    this.pinned
+    pinned
       ..clear()
       ..addAll(
         pinnedIds == null
@@ -780,7 +793,6 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  @override
   var _disposed = false;
 
   @override
