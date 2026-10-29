@@ -755,6 +755,7 @@ void main() {
     await pumpOasis(tester, Scaffold(body: NotesWindow(store: store)));
     expect(find.text('hello'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'world');
+    await tester.pump(const Duration(milliseconds: 600));
     expect(store.read('notes.content'), 'world');
 
     await pumpOasis(tester, const Scaffold(body: CalculatorWindow()));
