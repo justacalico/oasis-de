@@ -89,6 +89,7 @@ struct Surface {
   wl_client* client = nullptr;
 
   wl_resource* pending_buffer = nullptr;
+  wl_listener pending_buffer_destroy = {};
   DmabufBuf* pending_dmabuf = nullptr;
   int pending_ox = 0;
   int pending_oy = 0;
@@ -99,6 +100,7 @@ struct Surface {
   int vp_w = -1;
   int vp_h = -1;
   std::vector<wl_resource*> fractional_scales;
+  std::vector<wl_resource*> viewports;
   std::vector<std::array<int32_t, 4>> pending_input;
   std::vector<std::array<int32_t, 4>> pending_opaque;
   std::vector<std::array<int32_t, 4>> pending_damage;
@@ -176,6 +178,12 @@ struct SelectionQuery {
   OasisCompositor* comp;
   wl_resource* offer;
   wl_resource* device;
+};
+
+struct PrimarySource {
+  OasisCompositor* comp;
+  wl_resource* res;
+  std::vector<std::string> mimes;
 };
 
 struct WriteCtx {
@@ -468,6 +476,25 @@ static void surface_set_dmabuf(Surface* s, DmabufBuf* db) {
   oasis_dmabuf_ref(db);
 }
 
+static void pending_buffer_destroyed(wl_listener* listener, void* data) {
+  Surface* s = wl_container_of(listener, s, pending_buffer_destroy);
+  wl_list_remove(&s->pending_buffer_destroy.link);
+  wl_list_init(&s->pending_buffer_destroy.link);
+  s->pending_buffer = nullptr;
+}
+
+static void set_pending_buffer(Surface* s, wl_resource* b) {
+  if (s->pending_buffer == b) return;
+  if (s->pending_buffer != nullptr) {
+    wl_list_remove(&s->pending_buffer_destroy.link);
+    wl_list_init(&s->pending_buffer_destroy.link);
+  }
+  s->pending_buffer = b;
+  if (b != nullptr) {
+    wl_resource_add_destroy_listener(b, &s->pending_buffer_destroy);
+  }
+}
+
 static void surface_commit(Surface* s) {
   if (s->pending_ox != 0 || s->pending_oy != 0) {
     s->sx -= s->pending_ox;
@@ -504,7 +531,7 @@ static void surface_commit(Surface* s) {
   }
   if (s->pending_dmabuf != nullptr) {
     DmabufBuf* db = s->pending_dmabuf;
-    s->pending_buffer = nullptr;
+    set_pending_buffer(s, nullptr);
     oasis_dmabuf_unref(s->pending_dmabuf);
     s->pending_dmabuf = nullptr;
     ensure_texture(s, 2);
@@ -517,7 +544,7 @@ static void surface_commit(Surface* s) {
     }
   } else if (s->pending_buffer != nullptr) {
     wl_resource* b = s->pending_buffer;
-    s->pending_buffer = nullptr;
+    set_pending_buffer(s, nullptr);
     if (wl_shm_buffer_get(b) != nullptr) {
       ensure_texture(s, 1);
       surface_set_dmabuf(s, nullptr);
@@ -557,7 +584,7 @@ static void surface_attach(wl_client* client,
                            int32_t x,
                            int32_t y) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
-  s->pending_buffer = buffer;
+  set_pending_buffer(s, buffer);
   oasis_dmabuf_unref(s->pending_dmabuf);
   s->pending_dmabuf = nullptr;
   if (buffer != nullptr && wl_shm_buffer_get(buffer) == nullptr &&
@@ -734,6 +761,20 @@ static void free_surface(Surface* s) {
   for (wl_resource* fb : s->presentation_feedbacks) {
     wl_resource_set_user_data(fb, nullptr);
   }
+  for (wl_resource* vp : s->viewports) {
+    wl_resource_set_user_data(vp, nullptr);
+  }
+  if (s->xdg_surface != nullptr) {
+    wl_resource_set_user_data(s->xdg_surface, nullptr);
+  }
+  if (s->role_res != nullptr) {
+    wl_resource_set_user_data(s->role_res, nullptr);
+  }
+  for (Surface* x : c->surfaces) {
+    if (x->parent == s) x->parent = nullptr;
+    if (x->tl_parent == s) x->tl_parent = nullptr;
+  }
+  set_pending_buffer(s, nullptr);
   for (wl_resource* res : c->text_inputs) {
     TextInput* ti =
         static_cast<TextInput*>(wl_resource_get_user_data(res));
@@ -825,6 +866,8 @@ static void compositor_create_surface(wl_client* client,
   Surface* s = new Surface();
   s->comp = c;
   s->client = client;
+  s->pending_buffer_destroy.notify = pending_buffer_destroyed;
+  wl_list_init(&s->pending_buffer_destroy.link);
   wl_client_get_credentials(client, &s->pid, nullptr, nullptr);
   wl_resource* surf =
       wl_resource_create(client, &wl_surface_interface,
@@ -850,6 +893,15 @@ static const struct wl_compositor_interface compositor_impl = {
 // wl_subsurface / wl_subcompositor
 
 static void subsurface_destroy(wl_client* client, wl_resource* res) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s != nullptr) {
+    s->role = SURFACE_NONE;
+    if (s->parent != nullptr) {
+      auto& ch = s->parent->children;
+      ch.erase(std::remove(ch.begin(), ch.end(), s), ch.end());
+      s->parent = nullptr;
+    }
+  }
   wl_resource_destroy(res);
 }
 
@@ -858,6 +910,7 @@ static void subsurface_set_position(wl_client* client,
                                     int32_t x,
                                     int32_t y) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->sx = x;
   s->sy = y;
   if (s->announced == SURFACE_SUBSURFACE) {
@@ -873,6 +926,7 @@ static void subsurface_place_above(wl_client* client,
                                    wl_resource* res,
                                    wl_resource* sibling_res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   Surface* sibling =
       static_cast<Surface*>(wl_resource_get_user_data(sibling_res));
   if (s->parent == nullptr || s->parent != sibling->parent) return;
@@ -886,6 +940,7 @@ static void subsurface_place_below(wl_client* client,
                                    wl_resource* res,
                                    wl_resource* sibling_res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   Surface* sibling =
       static_cast<Surface*>(wl_resource_get_user_data(sibling_res));
   if (s->parent == nullptr || s->parent != sibling->parent) return;
@@ -897,11 +952,12 @@ static void subsurface_place_below(wl_client* client,
 
 static void subsurface_set_sync(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
-  s->sync = true;
+  if (s != nullptr) s->sync = true;
 }
 
 static void subsurface_set_desync(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->sync = false;
   if (s->commit_queued) {
     s->commit_queued = false;
@@ -1430,7 +1486,6 @@ static void data_offer_destroyed(wl_resource* res) {
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
   for (auto it = c->sel_queries.begin(); it != c->sel_queries.end();) {
     if ((*it)->offer == res) {
-      delete *it;
       it = c->sel_queries.erase(it);
     } else {
       ++it;
@@ -1634,7 +1689,6 @@ static void data_device_destroyed(wl_resource* res) {
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
   for (auto it = c->sel_queries.begin(); it != c->sel_queries.end();) {
     if ((*it)->device == res) {
-      delete *it;
       it = c->sel_queries.erase(it);
     } else {
       ++it;
@@ -1888,21 +1942,22 @@ static void toplevel_created(OasisCompositor* c,
                              wl_resource* xdg_res,
                              uint32_t id) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(xdg_res));
-  if (s->role != SURFACE_NONE) {
+  if (s != nullptr && s->role != SURFACE_NONE) {
     wl_resource_post_error(xdg_res, XDG_WM_BASE_ERROR_ROLE,
                            "surface already has a role");
     return;
   }
+  wl_resource* tl = wl_resource_create(client, &xdg_toplevel_interface,
+                                       wl_resource_get_version(xdg_res), id);
+  extern const struct xdg_toplevel_interface toplevel_impl;
+  wl_resource_set_implementation(tl, &toplevel_impl, s,
+                                 role_res_destroyed);
+  if (s == nullptr) return;
+  s->role_res = tl;
   s->role = SURFACE_TOPLEVEL;
   s->announced = SURFACE_TOPLEVEL;
   s->public_id = c->next_id++;
   c->by_id[s->public_id] = s;
-  wl_resource* tl = wl_resource_create(client, &xdg_toplevel_interface,
-                                       wl_resource_get_version(xdg_res), id);
-  s->role_res = tl;
-  extern const struct xdg_toplevel_interface toplevel_impl;
-  wl_resource_set_implementation(tl, &toplevel_impl, s,
-                                 role_res_destroyed);
   emit_toplevel(c, s);
   wl_array states;
   wl_array_init(&states);
@@ -1920,7 +1975,7 @@ static void popup_created(OasisCompositor* c,
                           wl_resource* parent_res,
                           wl_resource* pos_res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(xdg_res));
-  if (s->role != SURFACE_NONE) {
+  if (s != nullptr && s->role != SURFACE_NONE) {
     wl_resource_post_error(xdg_res, XDG_WM_BASE_ERROR_ROLE,
                            "surface already has a role");
     return;
@@ -1933,6 +1988,12 @@ static void popup_created(OasisCompositor* c,
       parent_res != nullptr
           ? static_cast<Surface*>(wl_resource_get_user_data(parent_res))
           : nullptr;
+  wl_resource* pop = wl_resource_create(client, &xdg_popup_interface,
+                                        wl_resource_get_version(xdg_res), id);
+  extern const struct xdg_popup_interface popup_impl;
+  wl_resource_set_implementation(pop, &popup_impl, s, role_res_destroyed);
+  if (s == nullptr) return;
+  s->role_res = pop;
   s->role = SURFACE_POPUP;
   s->announced = SURFACE_POPUP;
   s->parent = parent;
@@ -1945,11 +2006,6 @@ static void popup_created(OasisCompositor* c,
   }
   s->public_id = c->next_id++;
   c->by_id[s->public_id] = s;
-  wl_resource* pop = wl_resource_create(client, &xdg_popup_interface,
-                                        wl_resource_get_version(xdg_res), id);
-  s->role_res = pop;
-  extern const struct xdg_popup_interface popup_impl;
-  wl_resource_set_implementation(pop, &popup_impl, s, role_res_destroyed);
   xdg_popup_send_configure(pop, px, py, p != nullptr ? p->w : 0,
                            p != nullptr ? p->h : 0);
   xdg_surface_send_configure(s->xdg_surface,
@@ -1991,6 +2047,7 @@ static void xdg_surface_set_window_geometry(wl_client* client,
                                             int32_t w,
                                             int32_t h) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->geo_x = x;
   s->geo_y = y;
   s->geo_w = w;
@@ -2025,6 +2082,7 @@ static void toplevel_set_parent(wl_client* client,
                                 wl_resource* res,
                                 wl_resource* parent) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->tl_parent =
       parent != nullptr
           ? static_cast<Surface*>(wl_resource_get_user_data(parent))
@@ -2042,6 +2100,7 @@ static void toplevel_set_title(wl_client* client,
                                wl_resource* res,
                                const char* title) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->title = title != nullptr ? title : "";
   FlValue* m = new_event("title");
   ev_id(m, s->public_id);
@@ -2054,6 +2113,7 @@ static void toplevel_set_app_id(wl_client* client,
                                 wl_resource* res,
                                 const char* app_id) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->app_id = app_id != nullptr ? app_id : "";
   FlValue* m = new_event("appId");
   ev_id(m, s->public_id);
@@ -2069,6 +2129,7 @@ static void toplevel_show_window_menu(wl_client* client,
                                       int32_t x,
                                       int32_t y) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   FlValue* m = new_event("windowMenu");
   ev_id(m, s->public_id);
   fl_value_set_string_take(m, "x", fl_value_new_int(x));
@@ -2087,6 +2148,7 @@ static void toplevel_move(wl_client* client,
                           wl_resource* seat,
                           uint32_t serial) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   emit_simple(s, "move");
 }
 
@@ -2096,6 +2158,7 @@ static void toplevel_resize(wl_client* client,
                             uint32_t serial,
                             uint32_t edges) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   FlValue* m = new_event("resize");
   ev_id(m, s->public_id);
   fl_value_set_string_take(m, "edges", fl_value_new_int(edges));
@@ -2107,6 +2170,7 @@ static void toplevel_set_max_size(wl_client* client,
                                   int32_t w,
                                   int32_t h) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->max_w = w;
   s->max_h = h;
   FlValue* m = new_event("maxSize");
@@ -2121,6 +2185,7 @@ static void toplevel_set_min_size(wl_client* client,
                                   int32_t w,
                                   int32_t h) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->min_w = w;
   s->min_h = h;
   FlValue* m = new_event("minSize");
@@ -2132,6 +2197,7 @@ static void toplevel_set_min_size(wl_client* client,
 
 static void toplevel_set_maximized(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   FlValue* m = new_event("maximize");
   ev_id(m, s->public_id);
   fl_value_set_string_take(m, "on", fl_value_new_bool(TRUE));
@@ -2140,6 +2206,7 @@ static void toplevel_set_maximized(wl_client* client, wl_resource* res) {
 
 static void toplevel_unset_maximized(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   FlValue* m = new_event("maximize");
   ev_id(m, s->public_id);
   fl_value_set_string_take(m, "on", fl_value_new_bool(FALSE));
@@ -2150,6 +2217,7 @@ static void toplevel_set_fullscreen(wl_client* client,
                                     wl_resource* res,
                                     wl_resource* output) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   FlValue* m = new_event("fullscreen");
   ev_id(m, s->public_id);
   fl_value_set_string_take(m, "on", fl_value_new_bool(TRUE));
@@ -2158,6 +2226,7 @@ static void toplevel_set_fullscreen(wl_client* client,
 
 static void toplevel_unset_fullscreen(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   FlValue* m = new_event("fullscreen");
   ev_id(m, s->public_id);
   fl_value_set_string_take(m, "on", fl_value_new_bool(FALSE));
@@ -2166,6 +2235,7 @@ static void toplevel_unset_fullscreen(wl_client* client, wl_resource* res) {
 
 static void toplevel_set_minimized(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   emit_simple(s, "minimize");
 }
 
@@ -2190,6 +2260,7 @@ static void popup_grab(wl_client* client,
                        wl_resource* seat,
                        uint32_t serial) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->grab_serial = serial;
   set_kb_focus(s->comp, s);
 }
@@ -2199,6 +2270,7 @@ static void popup_reposition(wl_client* client,
                              wl_resource* pos_res,
                              uint32_t token) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr || s->xdg_surface == nullptr) return;
   Positioner* p =
       static_cast<Positioner*>(wl_resource_get_user_data(pos_res));
   int x = 0;
@@ -2269,14 +2341,20 @@ static void wm_base_res_destroyed(wl_resource* res) {
 
 static gboolean ping_tick(gpointer data) {
   auto* c = static_cast<OasisCompositor*>(data);
+  std::vector<wl_client*> dead;
   for (WmBase* b : c->wm_bases) {
     if (++b->missed >= 3) {
-      wl_client_destroy(b->client);
+      if (std::find(dead.begin(), dead.end(), b->client) == dead.end()) {
+        dead.push_back(b->client);
+      }
       continue;
     }
     xdg_wm_base_send_ping(b->res, wl_display_next_serial(c->display));
   }
   comp_flush(c);
+  for (wl_client* client : dead) {
+    wl_client_destroy(client);
+  }
   return G_SOURCE_CONTINUE;
 }
 
@@ -2302,12 +2380,20 @@ static void viewport_set_destination(wl_client* client,
                                      int32_t w,
                                      int32_t h) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
   s->pending_vp_w = w;
   s->pending_vp_h = h;
 }
 
 static const struct wp_viewport_interface viewport_impl = {
     viewport_destroy, viewport_set_source, viewport_set_destination};
+
+static void viewport_res_destroyed(wl_resource* res) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
+  auto& v = s->viewports;
+  v.erase(std::remove(v.begin(), v.end(), res), v.end());
+}
 
 static void viewporter_destroy(wl_client* client, wl_resource* res) {
   wl_resource_destroy(res);
@@ -2321,7 +2407,9 @@ static void viewporter_get_viewport(wl_client* client,
       static_cast<Surface*>(wl_resource_get_user_data(surface_res));
   wl_resource* vp = wl_resource_create(client, &wp_viewport_interface,
                                        wl_resource_get_version(res), id);
-  wl_resource_set_implementation(vp, &viewport_impl, s, nullptr);
+  s->viewports.push_back(vp);
+  wl_resource_set_implementation(vp, &viewport_impl, s,
+                                 viewport_res_destroyed);
 }
 
 static const struct wp_viewporter_interface viewporter_impl = {
@@ -2778,9 +2866,9 @@ static void sync_text_input_focus(OasisCompositor* c) {
 static void primary_source_offer(wl_client* client,
                                  wl_resource* res,
                                  const char* mime) {
-  auto* mimes = static_cast<std::vector<std::string>*>(
-      wl_resource_get_user_data(res));
-  if (mime != nullptr) mimes->push_back(mime);
+  auto* ps =
+      static_cast<PrimarySource*>(wl_resource_get_user_data(res));
+  if (mime != nullptr) ps->mimes.push_back(mime);
 }
 
 static void primary_source_destroy(wl_client* client, wl_resource* res) {
@@ -2788,9 +2876,13 @@ static void primary_source_destroy(wl_client* client, wl_resource* res) {
 }
 
 static void primary_source_res_destroyed(wl_resource* res) {
-  auto* mimes = static_cast<std::vector<std::string>*>(
-      wl_resource_get_user_data(res));
-  delete mimes;
+  auto* ps =
+      static_cast<PrimarySource*>(wl_resource_get_user_data(res));
+  if (ps->comp->primary_source == res) {
+    ps->comp->primary_source = nullptr;
+    ps->comp->primary_mimes.clear();
+  }
+  delete ps;
 }
 
 static const struct zwp_primary_selection_source_v1_interface
@@ -2857,8 +2949,9 @@ static void primary_device_set_selection(wl_client* client,
   c->primary_source = source;
   c->primary_mimes.clear();
   if (source != nullptr) {
-    c->primary_mimes = *static_cast<std::vector<std::string>*>(
-        wl_resource_get_user_data(source));
+    c->primary_mimes =
+        static_cast<PrimarySource*>(wl_resource_get_user_data(source))
+            ->mimes;
   }
   for (wl_resource* dev : c->primary_devices) {
     send_primary_selection(c, dev);
@@ -2877,12 +2970,14 @@ static void primary_manager_destroy(wl_client* client,
 static void primary_manager_create_source(wl_client* client,
                                           wl_resource* res,
                                           uint32_t id) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
   wl_resource* source = wl_resource_create(
       client, &zwp_primary_selection_source_v1_interface,
       wl_resource_get_version(res), id);
-  wl_resource_set_implementation(
-      source, &primary_source_impl, new std::vector<std::string>(),
-      primary_source_res_destroyed);
+  wl_resource_set_implementation(source, &primary_source_impl,
+                                 new PrimarySource{c, source, {}},
+                                 primary_source_res_destroyed);
 }
 
 static void primary_manager_get_device(wl_client* client,
@@ -3246,10 +3341,9 @@ static void dmabuf_send_feedback(wl_resource* f) {
       if (write(fd, &entry, sizeof(entry)) ==
           static_cast<ssize_t>(sizeof(entry))) {
         uint32_t idx = static_cast<uint32_t>(i);
-        wl_array_add(&indices, sizeof(idx));
-        memcpy(static_cast<uint32_t*>(indices.data) +
-                   indices.size / sizeof(idx) - 1,
-               &idx, sizeof(idx));
+        uint32_t* slot =
+            static_cast<uint32_t*>(wl_array_add(&indices, sizeof(idx)));
+        if (slot != nullptr) *slot = idx;
       }
     }
     zwp_linux_dmabuf_feedback_v1_send_format_table(
