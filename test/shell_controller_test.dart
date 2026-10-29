@@ -474,4 +474,10 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   void volume(double level) => calls.add('volume');
+
+  @override
+  void nightLight(bool enabled) => calls.add('nightLight');
+
+  @override
+  Future<OasisSystemState> read() async => const OasisSystemState();
 }

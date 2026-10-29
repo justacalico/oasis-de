@@ -84,6 +84,18 @@ class ShellController extends ChangeNotifier {
   }) : apps = List.of(apps) {
     wayland?.addListener(_syncSurfaces);
     _requestSub = wayland?.requests.listen(_onWaylandRequest);
+    _refreshSystemState();
+  }
+
+  Future<void> _refreshSystemState() async {
+    final s = await backend.read();
+    if (_disposed) return;
+    if (s.wifi != null) wifiOn = s.wifi!;
+    if (s.bluetooth != null) bluetoothOn = s.bluetooth!;
+    if (s.brightness != null) brightness = s.brightness!;
+    if (s.volume != null) volume = s.volume!;
+    if (s.nightLight != null) nightLightOn = s.nightLight!;
+    notifyListeners();
   }
 
   final List<OasisApp> apps;
@@ -114,14 +126,25 @@ class ShellController extends ChangeNotifier {
   int? get surfaceDragWindowId => _surfaceDragId;
   ({int id, OasisResizeEdge edge})? get surfaceResize => _surfaceResize;
 
-  void syncApps(List<OasisApp> fresh, {List<OasisApp>? pinned}) {
+  void syncApps(
+    List<OasisApp> fresh, {
+    List<String>? pinnedIds,
+    List<OasisApp>? fallback,
+  }) {
     apps
       ..clear()
       ..addAll(fresh);
+    final byId = {for (final a in fresh) a.id: a};
     this.pinned
       ..clear()
-      ..addAll(pinned ?? fresh);
-    final byId = {for (final a in fresh) a.id: a};
+      ..addAll(
+        pinnedIds == null
+            ? fallback ?? fresh
+            : [
+                for (final id in pinnedIds)
+                  if (byId[id] != null) byId[id]!,
+              ],
+      );
     for (final w in windows) {
       final updated = byId[w.app.id];
       if (updated != null) w.app = updated;
@@ -743,7 +766,8 @@ class ShellController extends ChangeNotifier {
   set bluetoothOnValue(bool v) =>
       _set(() => bluetoothOn = v, () => backend.bluetooth(v));
   set focusOnValue(bool v) => _set(() => focusOn = v);
-  set nightLightOnValue(bool v) => _set(() => nightLightOn = v);
+  set nightLightOnValue(bool v) =>
+      _set(() => nightLightOn = v, () => backend.nightLight(v));
   set brightnessValue(double v) =>
       _set(() => brightness = v, () => backend.brightness(v));
   set volumeValue(double v) => _set(() => volume = v, () => backend.volume(v));
@@ -757,7 +781,11 @@ class ShellController extends ChangeNotifier {
   }
 
   @override
+  var _disposed = false;
+
+  @override
   void dispose() {
+    _disposed = true;
     for (final w in windows) {
       w.launchTimer?.cancel();
     }
