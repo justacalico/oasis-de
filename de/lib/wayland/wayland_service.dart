@@ -36,8 +36,7 @@ class WaylandSurface {
 enum WaylandRequestType { move, resize, maximize, fullscreen, minimize }
 
 class WaylandRequest {
-  const WaylandRequest(this.type, this.id,
-      {this.on = false, this.edges = 0});
+  const WaylandRequest(this.type, this.id, {this.on = false, this.edges = 0});
 
   final WaylandRequestType type;
   final int id;
@@ -47,7 +46,7 @@ class WaylandRequest {
 
 class WaylandService extends ChangeNotifier {
   WaylandService({WaylandHost? host})
-      : _host = host ?? const ChannelWaylandHost();
+    : _host = host ?? const ChannelWaylandHost();
 
   final WaylandHost _host;
   final Map<int, WaylandSurface> surfaces = {};
@@ -82,9 +81,8 @@ class WaylandService extends ChangeNotifier {
       .where((s) => !s.isPopup && !s.isSub)
       .toList(growable: false);
 
-  List<WaylandSurface> get popups => surfaces.values
-      .where((s) => s.isPopup)
-      .toList(growable: false);
+  List<WaylandSurface> get popups =>
+      surfaces.values.where((s) => s.isPopup).toList(growable: false);
 
   void _onEvent(Map<String, Object?> e) {
     final id = (e['id'] as num?)?.toInt() ?? -1;
@@ -105,38 +103,46 @@ class WaylandService extends ChangeNotifier {
       case 'size':
         final s = surfaces[id];
         if (s != null) {
-          s.size = Size((e['w'] as num).toDouble(),
-              (e['h'] as num).toDouble());
+          s.size = Size((e['w'] as num).toDouble(), (e['h'] as num).toDouble());
           s.bufferSize = Size(
-              (e['bw'] as num?)?.toDouble() ?? s.size.width,
-              (e['bh'] as num?)?.toDouble() ?? s.size.height);
+            (e['bw'] as num?)?.toDouble() ?? s.size.width,
+            (e['bh'] as num?)?.toDouble() ?? s.size.height,
+          );
         }
       case 'minSize':
         final s = surfaces[id];
         if (s != null) {
-          s.minSize = Size((e['w'] as num).toDouble(),
-              (e['h'] as num).toDouble());
+          s.minSize = Size(
+            (e['w'] as num).toDouble(),
+            (e['h'] as num).toDouble(),
+          );
         }
       case 'maxSize':
         final s = surfaces[id];
         if (s != null) {
-          s.maxSize = Size((e['w'] as num).toDouble(),
-              (e['h'] as num).toDouble());
+          s.maxSize = Size(
+            (e['w'] as num).toDouble(),
+            (e['h'] as num).toDouble(),
+          );
         }
       case 'popup':
         surfaces[id] = WaylandSurface(
           id: id,
           textureId: (e['textureId'] as num?)?.toInt() ?? -1,
           parentId: (e['parent'] as num).toInt(),
-          offset: Offset((e['x'] as num).toDouble(),
-              (e['y'] as num).toDouble()),
+          offset: Offset(
+            (e['x'] as num).toDouble(),
+            (e['y'] as num).toDouble(),
+          ),
         );
       case 'popupMoved':
       case 'subsurfaceMoved':
         final s = surfaces[id];
         if (s != null) {
-          s.offset = Offset((e['x'] as num).toDouble(),
-              (e['y'] as num).toDouble());
+          s.offset = Offset(
+            (e['x'] as num).toDouble(),
+            (e['y'] as num).toDouble(),
+          );
         }
       case 'popupClosed':
         surfaces.remove(id);
@@ -145,8 +151,10 @@ class WaylandService extends ChangeNotifier {
           id: id,
           parentId: (e['parent'] as num).toInt(),
           isSub: true,
-          offset: Offset((e['x'] as num).toDouble(),
-              (e['y'] as num).toDouble()),
+          offset: Offset(
+            (e['x'] as num).toDouble(),
+            (e['y'] as num).toDouble(),
+          ),
         );
         surfaces[id] = sub;
         surfaces[sub.parentId]?.children.add(id);
@@ -156,26 +164,31 @@ class WaylandService extends ChangeNotifier {
           surfaces[s!.parentId]?.children.remove(id);
         }
       case 'texture':
-        surfaces[id]?.textureId =
-            (e['textureId'] as num?)?.toInt() ?? -1;
+        surfaces[id]?.textureId = (e['textureId'] as num?)?.toInt() ?? -1;
       case 'move':
-        _requests.add(
-            WaylandRequest(WaylandRequestType.move, id));
+        _requests.add(WaylandRequest(WaylandRequestType.move, id));
       case 'resize':
-        _requests.add(WaylandRequest(WaylandRequestType.resize,
-            id,
-            edges: (e['edges'] as num?)?.toInt() ?? 0));
-      case 'maximize':
-        _requests.add(WaylandRequest(
-            WaylandRequestType.maximize, id,
-            on: e['on'] == true));
-      case 'fullscreen':
-        _requests.add(WaylandRequest(
-            WaylandRequestType.fullscreen, id,
-            on: e['on'] == true));
-      case 'minimize':
         _requests.add(
-            WaylandRequest(WaylandRequestType.minimize, id));
+          WaylandRequest(
+            WaylandRequestType.resize,
+            id,
+            edges: (e['edges'] as num?)?.toInt() ?? 0,
+          ),
+        );
+      case 'maximize':
+        _requests.add(
+          WaylandRequest(WaylandRequestType.maximize, id, on: e['on'] == true),
+        );
+      case 'fullscreen':
+        _requests.add(
+          WaylandRequest(
+            WaylandRequestType.fullscreen,
+            id,
+            on: e['on'] == true,
+          ),
+        );
+      case 'minimize':
+        _requests.add(WaylandRequest(WaylandRequestType.minimize, id));
     }
     notifyListeners();
   }
@@ -184,16 +197,24 @@ class WaylandService extends ChangeNotifier {
       available ? _host.launch(argv) : Future.value();
 
   Future<void> configure(
-          int id, int width, int height, bool maximized) =>
-      available
-          ? _host.configure(id, width, height, maximized)
-          : Future.value();
+    int id,
+    int width,
+    int height, {
+    bool maximized = false,
+    bool fullscreen = false,
+  }) => available
+      ? _host.configure(
+          id,
+          width,
+          height,
+          maximized: maximized,
+          fullscreen: fullscreen,
+        )
+      : Future.value();
 
-  Future<void> close(int id) =>
-      available ? _host.close(id) : Future.value();
+  Future<void> close(int id) => available ? _host.close(id) : Future.value();
 
-  Future<void> focus(int? id) =>
-      available ? _host.focus(id) : Future.value();
+  Future<void> focus(int? id) => available ? _host.focus(id) : Future.value();
 
   Future<void> pointerMotion(int id, double x, double y) =>
       available ? _host.pointerMotion(id, x, y) : Future.value();
@@ -202,9 +223,7 @@ class WaylandService extends ChangeNotifier {
       available ? _host.pointerExit(id) : Future.value();
 
   Future<void> pointerButton(int button, bool pressed) =>
-      available
-          ? _host.pointerButton(button, pressed)
-          : Future.value();
+      available ? _host.pointerButton(button, pressed) : Future.value();
 
   Future<void> pointerAxis(double dx, double dy) =>
       available ? _host.pointerAxis(dx, dy) : Future.value();

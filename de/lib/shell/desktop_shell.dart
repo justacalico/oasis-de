@@ -40,7 +40,8 @@ class _DesktopShellState extends State<DesktopShell> {
         final menus = widget.menusBuilder();
         while (_menuLabelKeys.length < menus.length) {
           _menuLabelKeys.add(
-              GlobalKey(debugLabel: menus[_menuLabelKeys.length].label));
+            GlobalKey(debugLabel: menus[_menuLabelKeys.length].label),
+          );
         }
         _menuLabelKeys.length = menus.length;
         return Listener(
@@ -53,33 +54,31 @@ class _DesktopShellState extends State<DesktopShell> {
           onPointerUp: (_) => controller.endSurfaceGesture(),
           child: Stack(
             children: [
-              Positioned.fill(
-                  child: OasisWallpaper(service: widget.wallpaper)),
+              Positioned.fill(child: OasisWallpaper(service: widget.wallpaper)),
               for (final w in controller.windows)
-                if (!w.minimized ||
-                    w.transition != ShellWindowTransition.none)
+                if (!w.minimized || w.transition != ShellWindowTransition.none)
                   Positioned(
                     key: ValueKey(w.id),
-                    left: w.zoomed ? 0 : w.position.dx,
+                    left: w.zoomed || w.fullscreen ? 0 : w.position.dx,
                     top: w.zoomed
                         ? kMenuBarHeight + 4
+                        : w.fullscreen
+                        ? 0
                         : w.position.dy,
                     child: GenieWindow(
                       window: w,
                       rect: _windowRect(w, context),
                       onEnd: () => controller.finishTransition(w.id),
                       child: Listener(
-                        onPointerDown: (_) =>
-                            controller.focusWindow(w.id),
-                        child: w.zoomed
+                        onPointerDown: (_) => controller.focusWindow(w.id),
+                        child: w.zoomed || w.fullscreen
                             ? SizedBox(
-                                width:
-                                    MediaQuery.sizeOf(context).width,
-                                height:
-                                    MediaQuery.sizeOf(context)
-                                            .height -
-                                        kMenuBarHeight -
-                                        8,
+                                width: MediaQuery.sizeOf(context).width,
+                                height: w.fullscreen
+                                    ? MediaQuery.sizeOf(context).height
+                                    : MediaQuery.sizeOf(context).height -
+                                          kMenuBarHeight -
+                                          8,
                                 child: _windowContent(w, context),
                               )
                             : _windowContent(w, context),
@@ -88,37 +87,40 @@ class _DesktopShellState extends State<DesktopShell> {
                   ),
               if (controller.wayland != null)
                 for (final popup in controller.wayland!.popups)
-                  Builder(builder: (context) {
-                    final offset = _popupOffset(popup);
-                    if (offset == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return Positioned(
-                      left: offset.dx,
-                      top: offset.dy,
-                      child: WaylandPopupView(
+                  Builder(
+                    builder: (context) {
+                      final offset = _popupOffset(popup);
+                      if (offset == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return Positioned(
+                        left: offset.dx,
+                        top: offset.dy,
+                        child: WaylandPopupView(
                           surface: popup,
-                          service: controller.wayland!),
-                    );
-                  }),
-              if (controller.openMenu != null ||
-                  controller.controlCenterOpen)
+                          service: controller.wayland!,
+                        ),
+                      );
+                    },
+                  ),
+              if (controller.openMenu != null || controller.controlCenterOpen)
                 Positioned.fill(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: controller.closeOverlays,
                   ),
                 ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: ShellMenuBar(
-                  controller: controller,
-                  menus: menus,
-                  labelKeys: _menuLabelKeys,
+              if (!controller.windows.any((w) => w.fullscreen && !w.minimized))
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: ShellMenuBar(
+                    controller: controller,
+                    menus: menus,
+                    labelKeys: _menuLabelKeys,
+                  ),
                 ),
-              ),
               if (controller.openMenu != null)
                 Positioned(
                   top: kMenuBarHeight + 2,
@@ -131,23 +133,18 @@ class _DesktopShellState extends State<DesktopShell> {
                 ),
               if (controller.controlCenterOpen)
                 Positioned.fill(
-                  child:
-                      ShellControlCenter(controller: controller),
+                  child: ShellControlCenter(controller: controller),
                 ),
               if (controller.launchPadOpen)
-                Positioned.fill(
-                    child:
-                        ShellLaunchPad(controller: controller)),
+                Positioned.fill(child: ShellLaunchPad(controller: controller)),
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child:
-                    Center(child: ShellDock(controller: controller)),
+                child: Center(child: ShellDock(controller: controller)),
               ),
               if (controller.launcherOpen)
-                Positioned.fill(
-                    child: ShellLauncher(controller: controller)),
+                Positioned.fill(child: ShellLauncher(controller: controller)),
             ],
           ),
         );
@@ -170,8 +167,12 @@ class _DesktopShellState extends State<DesktopShell> {
   void _onShellPointerMove(PointerMoveEvent e, Size screen) {
     final resize = controller.surfaceResize;
     if (resize != null) {
-      controller.resizeWindow(resize.id, e.delta, resize.edge,
-          _defaultWindowSize(screen));
+      controller.resizeWindow(
+        resize.id,
+        e.delta,
+        resize.edge,
+        _defaultWindowSize(screen),
+      );
       return;
     }
     final id = controller.surfaceDragWindowId;
@@ -192,17 +193,16 @@ class _DesktopShellState extends State<DesktopShell> {
     final buf = parent.bufferSize;
     final sx = buf.width > 0 ? parent.size.width / buf.width : 1.0;
     final sy = buf.height > 0 ? parent.size.height / buf.height : 1.0;
-    final base = w.zoomed
-        ? const Offset(0, kMenuBarHeight + 4)
-        : w.position;
+    final base = w.zoomed ? const Offset(0, kMenuBarHeight + 4) : w.position;
     return base +
         const Offset(0, kOasisWindowTitleBarHeight) +
         Offset(offset.dx * sx, offset.dy * sy);
   }
 
   Size _defaultWindowSize(Size screen) => Size(
-      (screen.width * 0.62).clamp(kMinWindowWidth, 940.0),
-      (screen.height * 0.62).clamp(kMinWindowHeight, 720.0));
+    (screen.width * 0.62).clamp(kMinWindowWidth, 940.0),
+    (screen.height * 0.62).clamp(kMinWindowHeight, 720.0),
+  );
 
   Size _windowSize(ShellWindowData w, Size screen) =>
       w.size ?? _defaultWindowSize(screen);
@@ -212,8 +212,7 @@ class _DesktopShellState extends State<DesktopShell> {
     final s = w.zoomed
         ? Size(screen.width, screen.height - kMenuBarHeight - 8)
         : _windowSize(w, screen);
-    return (w.zoomed ? const Offset(0, kMenuBarHeight + 4) : w.position) &
-        s;
+    return (w.zoomed ? const Offset(0, kMenuBarHeight + 4) : w.position) & s;
   }
 
   Widget _windowContent(ShellWindowData w, BuildContext context) {
@@ -227,6 +226,7 @@ class _DesktopShellState extends State<DesktopShell> {
         service: service,
         focused: controller.focusedId == w.id,
         maximized: w.zoomed,
+        fullscreen: w.fullscreen,
       );
     } else if (w.launching) {
       body = Center(
@@ -234,14 +234,13 @@ class _DesktopShellState extends State<DesktopShell> {
           mainAxisSize: MainAxisSize.min,
           children: [
             OasisAppIcon(
-                icon: w.app.icon,
-                colors: w.app.iconColors,
-                iconPath: w.app.iconPath,
-                size: 64),
+              icon: w.app.icon,
+              colors: w.app.iconColors,
+              iconPath: w.app.iconPath,
+              size: 64,
+            ),
             const SizedBox(height: 12),
-            Text(w.app.name,
-                style:
-                    Theme.of(context).textTheme.titleMedium),
+            Text(w.app.name, style: Theme.of(context).textTheme.titleMedium),
           ],
         ),
       );
@@ -253,9 +252,7 @@ class _DesktopShellState extends State<DesktopShell> {
       title: w.displayTitle,
       focused: controller.focusedId == w.id,
       width: w.zoomed ? size.width : windowSize.width,
-      height: w.zoomed
-          ? size.height - kMenuBarHeight - 8
-          : windowSize.height,
+      height: w.zoomed ? size.height - kMenuBarHeight - 8 : windowSize.height,
       onClose: () => controller.closeWindow(w.id),
       onMinimize: () => controller.minimizeWindow(w.id),
       onMaximize: () => controller.toggleZoom(w.id),
@@ -263,7 +260,11 @@ class _DesktopShellState extends State<DesktopShell> {
       onResize: w.zoomed
           ? null
           : (d, edge) => controller.resizeWindow(
-              w.id, d, edge, _defaultWindowSize(size)),
+              w.id,
+              d,
+              edge,
+              _defaultWindowSize(size),
+            ),
       child: body,
     );
   }
@@ -276,8 +277,8 @@ class _DesktopShellState extends State<DesktopShell> {
 
   double _menuLeft(BuildContext context, List<ShellMenu> menus) {
     final idx = _menuIndex(menus);
-    final box = _menuLabelKeys[idx].currentContext?.findRenderObject()
-        as RenderBox?;
+    final box =
+        _menuLabelKeys[idx].currentContext?.findRenderObject() as RenderBox?;
     return box?.localToGlobal(Offset.zero).dx ?? 40;
   }
 }
