@@ -42,7 +42,7 @@ void main() {
   test('failure sets failed and keeps cached update', () async {
     final checker = _FakeChecker(
         const AppUpdate(latestVersion: '2.0.0', updateAvailable: true));
-    final service = UpdateService(checker: checker);
+    final service = UpdateService(checker: checker, currentVersion: () async => '1.0.0');
     await service.check();
     expect(service.update!.updateAvailable, isTrue);
 
@@ -57,7 +57,7 @@ void main() {
 
   test('default version provider resolves', () async {
     final checker = _FakeChecker(const AppUpdate());
-    final service = UpdateService(checker: checker);
+    final service = UpdateService(checker: checker, currentVersion: () async => '1.0.0');
     await service.check();
     expect(checker.calls, 1);
     service.dispose();

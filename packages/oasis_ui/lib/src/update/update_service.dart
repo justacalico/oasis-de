@@ -6,9 +6,9 @@ import 'update_checker.dart';
 class UpdateService extends ChangeNotifier {
   UpdateService({
     UpdateChecker? checker,
-    Future<String> Function()? currentVersion,
+    required Future<String> Function() currentVersion,
   })  : _checker = checker ?? UpdateChecker(),
-        _currentVersion = currentVersion ?? (() async => '0.0.0');
+        _currentVersion = currentVersion;
 
   final UpdateChecker _checker;
   final Future<String> Function() _currentVersion;
@@ -45,5 +45,11 @@ class UpdateService extends ChangeNotifier {
       _checking = false;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _checker.close();
+    super.dispose();
   }
 }

@@ -105,7 +105,7 @@ void main() {
       tester,
       OasisHost(
         appearance: appearance,
-        updates: UpdateService(),
+        updates: UpdateService(currentVersion: () async => '1.0.0'),
         setLocale: (_) {},
         child: LandingPage(
           client: _client(body: _releases),

@@ -536,7 +536,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('About').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Check for Updates').last);
+    await tester.tap(find.text('Check now'));
     await tester.pumpAndSettle();
     expect(find.text('Version 2.0.0 is available'), findsOneWidget);
   });
@@ -595,7 +595,7 @@ void main() {
       iconColors: const [Color(0xFF000000), Color(0xFF111111)],
       builder: (_) => const SizedBox(),
     );
-    final c = ShellController(apps: [app]);
+    final c = ShellController(batteryPollInterval: null, apps: [app]);
     addTearDown(c.dispose);
     c.openApp(app);
     final w = c.windows.single;
@@ -623,7 +623,7 @@ void main() {
       iconColors: const [Color(0xFF000000), Color(0xFF111111)],
       builder: (_) => const SizedBox(),
     );
-    final c = ShellController(apps: [mk('a'), mk('b'), mk('ext')]);
+    final c = ShellController(batteryPollInterval: null, apps: [mk('a'), mk('b'), mk('ext')]);
     addTearDown(c.dispose);
     c.pinned.addAll([c.apps[0], c.apps[1]]);
     c.openApp(c.apps[2]);
@@ -665,7 +665,7 @@ void main() {
       iconColors: const [Color(0xFF000000), Color(0xFF111111)],
       builder: (_) => const SizedBox(),
     );
-    final c = ShellController(apps: [mk('a'), mk('b')]);
+    final c = ShellController(batteryPollInterval: null, apps: [mk('a'), mk('b')]);
     addTearDown(c.dispose);
     c.pinned.addAll(c.apps);
     await pumpOasis(
@@ -692,7 +692,7 @@ void main() {
       iconColors: const [Color(0xFF000000), Color(0xFF111111)],
       builder: (_) => const SizedBox(),
     );
-    final c = ShellController(apps: [mk('a'), mk('b')]);
+    final c = ShellController(batteryPollInterval: null, apps: [mk('a'), mk('b')]);
     addTearDown(c.dispose);
     c.pinned.addAll(c.apps);
     await pumpOasis(

@@ -49,6 +49,7 @@
     }
   },
   "updateCheck": "Проверить обновления",
+  "updateCheckNow": "Проверить сейчас",
   "updateChecking": "Проверка обновлений…",
   "updateUpToDate": "Oasis обновлён",
   "updateAvailable": "Доступна версия {version}",

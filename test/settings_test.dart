@@ -37,7 +37,7 @@ Widget _host({
   final app = appearance ?? OasisAppearance();
   return OasisHost(
     appearance: app,
-    updates: UpdateService(checker: checker),
+    updates: UpdateService(checker: checker, currentVersion: () async => '1.0.0'),
     setLocale: setLocale ?? (_) {},
     locale: locale,
     openUrl: opened?.add,
@@ -166,7 +166,7 @@ void main() {
     );
     await tester.tap(find.text('About').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Check for Updates').last);
+    await tester.tap(find.text('Check now'));
     await tester.pumpAndSettle();
     expect(find.text('Version 2.0.0 is available'), findsOneWidget);
     await tester.tap(find.text('View release'));
@@ -184,7 +184,7 @@ void main() {
     );
     await tester.tap(find.text('About').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Check for Updates').last);
+    await tester.tap(find.text('Check now'));
     await tester.pumpAndSettle();
     expect(find.text('Oasis is up to date'), findsOneWidget);
 
@@ -198,7 +198,7 @@ void main() {
     );
     await tester.tap(find.text('About').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Check for Updates').last);
+    await tester.tap(find.text('Check now'));
     await tester.pumpAndSettle();
     expect(find.text("Couldn't check for updates"), findsOneWidget);
   });
@@ -218,7 +218,7 @@ void main() {
   });
 
   testWidgets('update tile spinner while checking', (tester) async {
-    final service = UpdateService(checker: _NeverChecker());
+    final service = UpdateService(checker: _NeverChecker(), currentVersion: () async => '1.0.0');
     await pumpOasis(
       tester,
       OasisHost(
@@ -258,7 +258,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('About').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Check for Updates').last);
+    await tester.tap(find.text('Check now'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('View release'));
     expect(opened, contains('https://rel/9'));

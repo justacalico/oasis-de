@@ -96,7 +96,7 @@ class UpdateCheckTile extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             OasisButton(
-              label: l10n.updateCheck,
+              label: l10n.updateCheckNow,
               dense: true,
               onPressed: service.checking ? null : () => service.check(),
             ),

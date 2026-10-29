@@ -48,6 +48,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.aboutTagline;
   l.versionLabel('9.9.9');
   l.updateCheck;
+  l.updateCheckNow;
   l.updateChecking;
   l.updateUpToDate;
   l.updateAvailable('9.9.9');
