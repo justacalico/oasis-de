@@ -266,6 +266,121 @@ void main() {
     service.dispose();
   });
 
+  testWidgets('popup position scales with parent buffer',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(
+        apps: [_external('x')], wayland: service);
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({
+      'event': 'size',
+      'id': 1,
+      'w': 320,
+      'h': 240,
+      'bw': 640,
+      'bh': 480,
+    });
+    host.emit({
+      'event': 'popup',
+      'id': 2,
+      'parent': 1,
+      'textureId': 55,
+      'x': 40,
+      'y': 60,
+    });
+    host.emit({'event': 'size', 'id': 2, 'w': 50, 'h': 30});
+    await tester.pump();
+    await pumpOasis(
+        tester,
+        DesktopShell(controller: c, menusBuilder: () => const []),
+        size: const Size(1280, 800));
+
+    final w = c.windows.single;
+    final expected = w.position +
+        const Offset(0, kOasisWindowTitleBarHeight) +
+        const Offset(20, 30);
+    expect(
+        tester.getTopLeft(find.byType(WaylandPopupView)),
+        expected);
+    c.dispose();
+    service.dispose();
+  });
+
+  testWidgets('subsurface layers scale with parent buffer',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    _emitToplevel(host);
+    host.emit({
+      'event': 'size',
+      'id': 1,
+      'w': 200,
+      'h': 100,
+      'bw': 400,
+      'bh': 200,
+      'textureId': 50,
+    });
+    host.emit({
+      'event': 'subsurface',
+      'id': 2,
+      'parent': 1,
+      'x': 40,
+      'y': 20,
+    });
+    host.emit({'event': 'size', 'id': 2, 'w': 80, 'h': 40});
+    host.emit({'event': 'texture', 'id': 2, 'textureId': 51});
+    await tester.pump();
+    final surface = service.surfaces[1]!;
+
+    await pumpOasis(
+        tester,
+        SizedBox(
+          width: 200,
+          height: 100,
+          child: WaylandLayerTree(
+              service: service, surface: surface),
+        ),
+        size: const Size(200, 100));
+
+    final textures =
+        tester.widgetList<Texture>(find.byType(Texture)).toList();
+    expect(textures, hasLength(2));
+    expect(tester.getTopLeft(find.byWidget(textures[1])),
+        const Offset(20, 10));
+    expect(tester.getSize(find.byWidget(textures[1])),
+        const Size(40, 20));
+    service.dispose();
+  });
+
+  testWidgets('stale surface gesture ends on releaseless move',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(
+        apps: [_external('x')], wayland: service);
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 100, 'h': 100});
+    await tester.pump();
+    await pumpOasis(
+        tester,
+        DesktopShell(controller: c, menusBuilder: () => const []),
+        size: const Size(1280, 800));
+
+    host.emit({'event': 'move', 'id': 1});
+    await tester.pump();
+    expect(c.surfaceDragWindowId, isNotNull);
+    await tester.sendEventToBinding(
+        TestPointer(1, PointerDeviceKind.mouse)
+            .hover(const Offset(300, 300)));
+    await tester.pump();
+    expect(c.surfaceDragWindowId, isNull);
+    c.dispose();
+    service.dispose();
+  });
+
   testWidgets('popup outside tap dismisses only outside',
       (tester) async {
     final host = FakeWaylandHost();
@@ -439,6 +554,47 @@ void main() {
     expect(host.calls, contains('key:30:false'));
 
     await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
+    service.dispose();
+  });
+
+  testWidgets('surface view sends buffer-space coordinates',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    _emitToplevel(host);
+    host.emit({
+      'event': 'size',
+      'id': 1,
+      'w': 200,
+      'h': 100,
+      'bw': 400,
+      'bh': 300,
+    });
+    await tester.pump();
+    final surface = service.surfaces[1]!;
+    expect(surface.bufferSize, const Size(400, 300));
+
+    await pumpOasis(
+        tester,
+        Center(
+          child: SizedBox(
+            width: 200,
+            height: 100,
+            child: WaylandSurfaceView(
+                surface: surface,
+                service: service,
+                focused: true,
+                maximized: false),
+          ),
+        ),
+        size: const Size(400, 300));
+    await tester.pump();
+
+    await tester.sendEventToBinding(
+        TestPointer(1, PointerDeviceKind.mouse)
+            .hover(const Offset(200, 150)));
+    await tester.pump();
+    expect(host.calls, contains('motion:1:200.0:150.0'));
     service.dispose();
   });
 

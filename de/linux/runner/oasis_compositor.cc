@@ -293,6 +293,8 @@ struct Surface {
   bool cfg_max = false;
   int rep_w = 0;
   int rep_h = 0;
+  int rep_bw = 0;
+  int rep_bh = 0;
   int min_w = 0;
   int min_h = 0;
   int max_w = 0;
@@ -454,13 +456,20 @@ static void finish_frames(Surface* s) {
 static void emit_size(Surface* s) {
   int w = s->geo_w > 0 ? s->geo_w : s->iw;
   int h = s->geo_h > 0 ? s->geo_h : s->ih;
-  if (s->rep_w == w && s->rep_h == h) return;
+  if (s->rep_w == w && s->rep_h == h && s->rep_bw == s->iw &&
+      s->rep_bh == s->ih) {
+    return;
+  }
   s->rep_w = w;
   s->rep_h = h;
+  s->rep_bw = s->iw;
+  s->rep_bh = s->ih;
   FlValue* m = new_event("size");
   ev_id(m, s->public_id);
   fl_value_set_string_take(m, "w", fl_value_new_int(w));
   fl_value_set_string_take(m, "h", fl_value_new_int(h));
+  fl_value_set_string_take(m, "bw", fl_value_new_int(s->iw));
+  fl_value_set_string_take(m, "bh", fl_value_new_int(s->ih));
   send_event(s->comp, m);
 }
 
@@ -639,6 +648,10 @@ static void free_surface(Surface* s) {
   if (s->announced != SURFACE_NONE) emit_closed(c, s);
   if (c->kb_focus == s) c->kb_focus = nullptr;
   if (c->ptr_focus == s) c->ptr_focus = nullptr;
+  if (c->ptr_entered == s) {
+    c->ptr_entered = nullptr;
+    c->ptr_entered_res = nullptr;
+  }
   if (s->parent != nullptr) {
     auto& ch = s->parent->children;
     ch.erase(std::remove(ch.begin(), ch.end(), s), ch.end());
@@ -1027,7 +1040,7 @@ static void seat_get_pointer(wl_client* client,
   st->pointer = p;
   if (c->ptr_focus != nullptr && c->ptr_focus->client == client &&
       c->ptr_focus->wl_surface != nullptr &&
-      c->ptr_entered != c->ptr_focus) {
+      (c->ptr_entered != c->ptr_focus || c->ptr_entered_res != p)) {
     wl_pointer_send_enter(p, wl_display_next_serial(c->display),
                           c->ptr_focus->wl_surface,
                           wl_fixed_from_double(c->ptr_x),
@@ -2602,6 +2615,8 @@ static void replay_state(OasisCompositor* c) {
     }
     s->rep_w = 0;
     s->rep_h = -1;
+    s->rep_bw = -1;
+    s->rep_bh = -1;
     emit_size(s);
   }
 }

@@ -72,7 +72,8 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   }
 
   Offset _surfaceCoords(Offset local, Size box) {
-    final s = surface.size;
+    final b = surface.bufferSize;
+    final s = b.width > 0 && b.height > 0 ? b : surface.size;
     if (s.width <= 0 || s.height <= 0) return local;
     return Offset(local.dx * s.width / box.width,
         local.dy * s.height / box.height);
@@ -123,8 +124,14 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
               return MouseRegion(
                 onExit: (_) => service.pointerExit(surface.id),
                 child: Listener(
-                  onPointerHover: (e) => _motion(e, box),
-                  onPointerMove: (e) => _motion(e, box),
+                  onPointerHover: (e) {
+                    _motion(e, box);
+                    _buttons = e.buttons;
+                  },
+                  onPointerMove: (e) {
+                    _motion(e, box);
+                    _buttons = e.buttons;
+                  },
                   onPointerDown: (e) {
                     _motion(e, box);
                     forwardButtonDiff(service, _buttons, e.buttons);
@@ -180,6 +187,16 @@ class WaylandPopupView extends StatefulWidget {
 class _WaylandPopupViewState extends State<WaylandPopupView> {
   var _buttons = 0;
 
+  void _motion(PointerEvent e) {
+    final b = widget.surface.bufferSize;
+    final s = widget.surface.size;
+    var p = e.localPosition;
+    if (b.width > 0 && b.height > 0 && s.width > 0 && s.height > 0) {
+      p = Offset(p.dx * b.width / s.width, p.dy * b.height / s.height);
+    }
+    widget.service.pointerMotion(widget.surface.id, p.dx, p.dy);
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -196,19 +213,16 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
             onExit: (_) =>
                 widget.service.pointerExit(widget.surface.id),
             child: Listener(
-              onPointerHover: (e) => widget.service.pointerMotion(
-                  widget.surface.id,
-                  e.localPosition.dx,
-                  e.localPosition.dy),
-              onPointerMove: (e) => widget.service.pointerMotion(
-                  widget.surface.id,
-                  e.localPosition.dx,
-                  e.localPosition.dy),
+              onPointerHover: (e) {
+                _motion(e);
+                _buttons = e.buttons;
+              },
+              onPointerMove: (e) {
+                _motion(e);
+                _buttons = e.buttons;
+              },
               onPointerDown: (e) {
-                widget.service.pointerMotion(
-                    widget.surface.id,
-                    e.localPosition.dx,
-                    e.localPosition.dy);
+                _motion(e);
                 forwardButtonDiff(widget.service, _buttons, e.buttons);
                 _buttons = e.buttons;
               },
@@ -244,16 +258,23 @@ class WaylandLayerTree extends StatelessWidget {
   final WaylandSurface surface;
 
   List<Widget> _layers(WaylandSurface root, Offset base) {
+    final buf = surface.bufferSize;
+    final sx =
+        buf.width > 0 ? surface.size.width / buf.width : 1.0;
+    final sy =
+        buf.height > 0 ? surface.size.height / buf.height : 1.0;
     final out = <Widget>[];
     for (final id in root.children) {
       final sub = service.surfaces[id];
       if (sub == null) continue;
       final pos = base + sub.offset;
+      final sw = sub.size.width * sx;
+      final sh = sub.size.height * sy;
       out.add(Positioned(
-        left: pos.dx,
-        top: pos.dy,
-        width: sub.size.width <= 0 ? 1 : sub.size.width,
-        height: sub.size.height <= 0 ? 1 : sub.size.height,
+        left: pos.dx * sx,
+        top: pos.dy * sy,
+        width: sw <= 0 ? 1 : sw,
+        height: sh <= 0 ? 1 : sh,
         child: sub.textureId >= 0
             ? Texture(textureId: sub.textureId)
             : const SizedBox.shrink(),

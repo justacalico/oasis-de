@@ -26,6 +26,7 @@ class WaylandSurface {
   String appId;
   Offset offset;
   Size size;
+  Size bufferSize = Size.zero;
   Size minSize = Size.zero;
   Size maxSize = Size.zero;
 
@@ -106,6 +107,9 @@ class WaylandService extends ChangeNotifier {
         if (s != null) {
           s.size = Size((e['w'] as num).toDouble(),
               (e['h'] as num).toDouble());
+          s.bufferSize = Size(
+              (e['bw'] as num?)?.toDouble() ?? s.size.width,
+              (e['bh'] as num?)?.toDouble() ?? s.size.height);
         }
       case 'minSize':
         final s = surfaces[id];

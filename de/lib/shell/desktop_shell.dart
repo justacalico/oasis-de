@@ -31,6 +31,9 @@ class DesktopShell extends StatelessWidget {
         final menus = menusBuilder();
         return Listener(
           onPointerDown: _onShellPointerDown,
+          onPointerHover: (e) {
+            if (e.buttons == 0) controller.endSurfaceGesture();
+          },
           onPointerMove: (e) =>
               _onShellPointerMove(e, MediaQuery.sizeOf(context)),
           onPointerUp: (_) => controller.endSurfaceGesture(),
@@ -171,10 +174,15 @@ class DesktopShell extends StatelessWidget {
     if (parent == null) return null;
     final w = controller.windowForSurface(parent.id);
     if (w == null) return null;
+    final buf = parent.bufferSize;
+    final sx = buf.width > 0 ? parent.size.width / buf.width : 1.0;
+    final sy = buf.height > 0 ? parent.size.height / buf.height : 1.0;
     final base = w.zoomed
         ? const Offset(0, kMenuBarHeight + 4)
         : w.position;
-    return base + const Offset(0, kOasisWindowTitleBarHeight) + offset;
+    return base +
+        const Offset(0, kOasisWindowTitleBarHeight) +
+        Offset(offset.dx * sx, offset.dy * sy);
   }
 
   Size _defaultWindowSize(Size screen) => Size(
