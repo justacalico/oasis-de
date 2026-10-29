@@ -73,6 +73,7 @@ struct Surface {
   std::vector<wl_resource*> fractional_scales;
   std::vector<std::array<int32_t, 4>> pending_input;
   std::vector<std::array<int32_t, 4>> pending_opaque;
+  std::vector<std::array<int32_t, 4>> pending_damage;
   bool pending_input_set = false;
   bool pending_opaque_set = false;
   int buf_scale = 1;
@@ -257,30 +258,19 @@ static SeatRes* seat_for(OasisCompositor* c, wl_client* client, bool create) {
   return &c->seats.back();
 }
 
-static void apply_buffer(Surface* s, wl_resource* buffer_res) {
-  wl_shm_buffer* b = wl_shm_buffer_get(buffer_res);
-  if (b == nullptr) {
-    g_clear_pointer(&s->img, g_free);
-    s->iw = s->ih = 0;
-    return;
-  }
-  int w = wl_shm_buffer_get_width(b);
-  int h = wl_shm_buffer_get_height(b);
-  int stride = wl_shm_buffer_get_stride(b);
-  uint32_t fmt = wl_shm_buffer_get_format(b);
-  if (w <= 0 || h <= 0) return;
-  if (s->iw != w || s->ih != h) {
-    g_free(s->img);
-    s->img = static_cast<uint8_t*>(g_malloc((size_t)w * h * 4));
-    s->iw = w;
-    s->ih = h;
-  }
-  const uint8_t* src = static_cast<const uint8_t*>(wl_shm_buffer_get_data(b));
-  wl_shm_buffer_begin_access(b);
-  for (int y = 0; y < h; y++) {
+static void copy_shm_region(Surface* s,
+                            const uint8_t* src,
+                            int stride,
+                            int w,
+                            uint32_t fmt,
+                            int x0,
+                            int y0,
+                            int x1,
+                            int y1) {
+  for (int y = y0; y < y1; y++) {
     const uint8_t* row = src + (size_t)y * stride;
     uint8_t* dst = s->img + (size_t)y * w * 4;
-    for (int x = 0; x < w; x++) {
+    for (int x = x0; x < x1; x++) {
       uint32_t px;
       memcpy(&px, row + x * 4, 4);
       dst[x * 4 + 0] = (px >> 16) & 0xff;
@@ -290,7 +280,49 @@ static void apply_buffer(Surface* s, wl_resource* buffer_res) {
           fmt == WL_SHM_FORMAT_XRGB8888 ? 0xff : (px >> 24) & 0xff;
     }
   }
+}
+
+static void apply_buffer(Surface* s, wl_resource* buffer_res) {
+  wl_shm_buffer* b = wl_shm_buffer_get(buffer_res);
+  if (b == nullptr) {
+    g_clear_pointer(&s->img, g_free);
+    s->iw = s->ih = 0;
+    s->pending_damage.clear();
+    return;
+  }
+  int w = wl_shm_buffer_get_width(b);
+  int h = wl_shm_buffer_get_height(b);
+  int stride = wl_shm_buffer_get_stride(b);
+  uint32_t fmt = wl_shm_buffer_get_format(b);
+  if (w <= 0 || h <= 0) {
+    s->pending_damage.clear();
+    return;
+  }
+  const bool fresh = s->iw != w || s->ih != h || s->img == nullptr;
+  if (fresh) {
+    g_free(s->img);
+    s->img = static_cast<uint8_t*>(g_malloc((size_t)w * h * 4));
+    s->iw = w;
+    s->ih = h;
+  }
+  const uint8_t* src = static_cast<const uint8_t*>(wl_shm_buffer_get_data(b));
+  wl_shm_buffer_begin_access(b);
+  bool copied = false;
+  if (!fresh && s->transform == 0 && !s->pending_damage.empty()) {
+    for (const auto& d : s->pending_damage) {
+      int x0 = std::max(d[0], 0), y0 = std::max(d[1], 0);
+      int x1 = std::min(d[0] + d[2], w), y1 = std::min(d[1] + d[3], h);
+      if (x0 < x1 && y0 < y1) {
+        copy_shm_region(s, src, stride, w, fmt, x0, y0, x1, y1);
+        copied = true;
+      }
+    }
+  }
+  if (!copied) {
+    copy_shm_region(s, src, stride, w, fmt, 0, 0, w, h);
+  }
   wl_shm_buffer_end_access(b);
+  s->pending_damage.clear();
 }
 
 static void finish_frames(Surface* s) {
@@ -499,7 +531,15 @@ static void surface_damage(wl_client* client,
                            int32_t x,
                            int32_t y,
                            int32_t w,
-                           int32_t h) {}
+                           int32_t h) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s->transform != 0) {
+    s->pending_damage.push_back({0, 0, INT32_MAX, INT32_MAX});
+    return;
+  }
+  int sc = s->buf_scale > 0 ? s->buf_scale : 1;
+  s->pending_damage.push_back({x * sc, y * sc, w * sc, h * sc});
+}
 
 static void surface_frame(wl_client* client,
                           wl_resource* res,
@@ -575,7 +615,10 @@ static void surface_damage_buffer(wl_client* client,
                                   int32_t x,
                                   int32_t y,
                                   int32_t w,
-                                  int32_t h) {}
+                                  int32_t h) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->pending_damage.push_back({x, y, w, h});
+}
 
 static void surface_offset(wl_client* client,
                            wl_resource* res,
