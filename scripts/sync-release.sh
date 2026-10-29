@@ -14,6 +14,10 @@ for a in rel.get('assets', []):
 print(json.dumps({'assets': {'links': links}}))
 ")
 DESCRIPTION=$(echo "$RESP" | python3 -c "import json,sys; print(json.load(sys.stdin).get('body','') or 'Oasis release')")
+curl -fsS "${CI_API_V4_URL:-https://gitlab.com/api/v4}/projects/${CI_PROJECT_ID}/releases/$TAG" \
+  -H "JOB-TOKEN: ${CI_JOB_TOKEN:-}" >/dev/null 2>&1 && \
+  curl -fsS -X DELETE -H "JOB-TOKEN: ${CI_JOB_TOKEN:-}" \
+  "${CI_API_V4_URL:-https://gitlab.com/api/v4}/projects/${CI_PROJECT_ID}/releases/$TAG" || true
 curl -fsS -X POST -H "JOB-TOKEN: ${CI_JOB_TOKEN:-}" \
   -H "Content-Type: application/json" \
   "${CI_API_V4_URL:-https://gitlab.com/api/v4}/projects/${CI_PROJECT_ID}/releases" \
