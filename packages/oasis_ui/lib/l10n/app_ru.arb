@@ -113,5 +113,8 @@
   "ccMedia": "Медиа",
   "ccNothingPlaying": "Ничего не воспроизводится",
   "dockPin": "Закрепить в доке",
-  "dockUnpin": "Открепить"
+  "dockUnpin": "Открепить",
+  "wallpaperPeaks": "Вершины",
+  "wallpaperAurora": "Сияние",
+  "wallpaperEmber": "Угли"
 }

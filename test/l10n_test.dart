@@ -62,6 +62,9 @@ void exerciseStrings(OasisLocalizations l) {
   l.themeOled;
   l.settingsWallpaper;
   l.wallpaperDunes;
+  l.wallpaperPeaks;
+  l.wallpaperAurora;
+  l.wallpaperEmber;
   l.wallpaperCustom;
   l.wallpaperPathHint;
   l.wallpaperApply;

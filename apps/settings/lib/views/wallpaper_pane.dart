@@ -53,14 +53,34 @@ class _WallpaperPaneState extends State<WallpaperPane> {
             const SizedBox(height: 16),
             OasisSection(
               children: [
-                OasisRow(
-                  leading: const Icon(Icons.landscape),
-                  title: l10n.wallpaperDunes,
-                  trailing: wallpaper.hasCustomImage
-                      ? const SizedBox.shrink()
-                      : Icon(Icons.check, size: 16, color: p.accent),
-                  onTap: wallpaper.useDefault,
-                ),
+                for (final preset in oasisWallpaperPresets)
+                  OasisRow(
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 40,
+                        height: 28,
+                        child: CustomPaint(
+                          painter: OasisDunesPainter(
+                            skyTop: preset.top ?? p.desktopGradientStart,
+                            skyBottom:
+                                preset.mid ?? p.desktopGradientMid,
+                            duneFar:
+                                preset.bottom ?? p.desktopGradientEnd,
+                            duneNear: preset.bottom ??
+                                p.desktopGradientEnd,
+                            night: p.isDark,
+                          ),
+                        ),
+                      ),
+                    ),
+                    title: _presetName(l10n, preset.id),
+                    trailing: !wallpaper.hasCustomImage &&
+                            wallpaper.preset == preset.id
+                        ? Icon(Icons.check, size: 16, color: p.accent)
+                        : const SizedBox.shrink(),
+                    onTap: () => wallpaper.usePreset(preset.id),
+                  ),
                 if (path != null)
                   OasisRow(
                     leading: const Icon(Icons.image),
@@ -119,6 +139,14 @@ class _WallpaperPaneState extends State<WallpaperPane> {
       },
     );
   }
+
+  String _presetName(OasisLocalizations l10n, String id) =>
+      switch (id) {
+        'peaks' => l10n.wallpaperPeaks,
+        'aurora' => l10n.wallpaperAurora,
+        'ember' => l10n.wallpaperEmber,
+        _ => l10n.wallpaperDunes,
+      };
 
   void _apply(String path) {
     final trimmed = path.trim();

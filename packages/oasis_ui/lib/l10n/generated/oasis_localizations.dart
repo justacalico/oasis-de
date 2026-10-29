@@ -659,6 +659,24 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Unpin'**
   String get dockUnpin;
+
+  /// No description provided for @wallpaperPeaks.
+  ///
+  /// In en, this message translates to:
+  /// **'Peaks'**
+  String get wallpaperPeaks;
+
+  /// No description provided for @wallpaperAurora.
+  ///
+  /// In en, this message translates to:
+  /// **'Aurora'**
+  String get wallpaperAurora;
+
+  /// No description provided for @wallpaperEmber.
+  ///
+  /// In en, this message translates to:
+  /// **'Ember'**
+  String get wallpaperEmber;
 }
 
 class _OasisLocalizationsDelegate
