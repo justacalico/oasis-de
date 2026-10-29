@@ -2246,13 +2246,19 @@ static double arg_double(FlValue* args, const char* key) {
 struct KillCheck {
   OasisCompositor* comp;
   int64_t id;
+  int sig;
 };
 
 static gboolean kill_check(gpointer data) {
   KillCheck* k = static_cast<KillCheck*>(data);
   auto it = k->comp->by_id.find(k->id);
   if (it != k->comp->by_id.end() && it->second->pid > 0) {
-    kill(it->second->pid, SIGTERM);
+    kill(it->second->pid, k->sig);
+    if (k->sig == SIGTERM) {
+      k->sig = SIGKILL;
+      g_timeout_add(2500, kill_check, k);
+      return G_SOURCE_REMOVE;
+    }
   }
   delete k;
   return G_SOURCE_REMOVE;
@@ -2297,7 +2303,8 @@ static void method_call_cb(FlMethodChannel* channel,
       if (s->role == SURFACE_TOPLEVEL && s->role_res != nullptr) {
         xdg_toplevel_send_close(s->role_res);
         comp_flush(c);
-        g_timeout_add(2500, kill_check, new KillCheck{c, s->public_id});
+        g_timeout_add(5000, kill_check,
+                      new KillCheck{c, s->public_id, SIGTERM});
       } else if (s->role == SURFACE_POPUP && s->role_res != nullptr) {
         xdg_popup_send_popup_done(s->role_res);
         comp_flush(c);
