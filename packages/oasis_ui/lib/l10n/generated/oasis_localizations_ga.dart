@@ -56,6 +56,11 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get launchPad => 'Painéal Tosaithe';
 
   @override
+  String launchFailed(String app) {
+    return 'Níorbh fhéidir $app a oscailt';
+  }
+
+  @override
   String get launcherHint => 'Cuardaigh aipeanna';
 
   @override

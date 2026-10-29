@@ -56,6 +56,11 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get launchPad => '启动台';
 
   @override
+  String launchFailed(String app) {
+    return '无法打开$app';
+  }
+
+  @override
   String get launcherHint => '搜索应用';
 
   @override

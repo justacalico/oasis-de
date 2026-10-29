@@ -22,6 +22,14 @@
   "menuEnterFullScreen": "进入全屏",
   "menuAbout": "关于 Oasis",
   "launchPad": "启动台",
+  "launchFailed": "无法打开{app}",
+  "@launchFailed": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
   "launcherHint": "搜索应用",
   "launcherNoResults": "无结果",
   "ccWifi": "无线局域网",

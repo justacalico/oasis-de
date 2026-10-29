@@ -118,6 +118,11 @@ class ShellController extends ChangeNotifier {
   String Function() unknownAppName =
       () => lookupOasisLocalizations(const Locale('en')).appUnknown;
 
+  String Function(String) launchFailedMessage = (app) =>
+      lookupOasisLocalizations(const Locale('en')).launchFailed(app);
+
+  var _localNotificationId = 0;
+
   double? batteryLevel;
   bool batteryCharging = false;
 
@@ -580,7 +585,15 @@ class ShellController extends ChangeNotifier {
     window.launchTimer?.cancel();
     launchError = window.app.name;
     windows.remove(window);
-    notifyListeners();
+    pushNotification(
+      OasisNotification(
+        id: --_localNotificationId,
+        appName: window.app.name,
+        summary: window.app.name,
+        body: launchFailedMessage(window.app.name),
+        timestamp: DateTime.now(),
+      ),
+    );
   }
 
   void _syncSurfaces() {
