@@ -1,12 +1,11 @@
 {
-    "name": "oasis_settings",
-    "short_name": "oasis_settings",
+    "name": "Oasis Settings",
+    "short_name": "Oasis Settings",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#05070F",
+    "theme_color": "#0A84FF",
+    "description": "Oasis system settings",
     "prefer_related_applications": false,
     "icons": [
         {
