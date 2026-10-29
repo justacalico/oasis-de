@@ -298,6 +298,30 @@ void main() {
     expect(find.byType(OasisWindow), findsOneWidget);
   });
 
+  testWidgets('OasisWindow border does not inset the content',
+      (tester) async {
+    Size? inner;
+    await pumpOasis(
+      tester,
+      Center(
+        child: OasisWindow(
+          title: 't',
+          width: 400,
+          height: 338,
+          onResize: (d, e) {},
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              inner = constraints.biggest;
+              return const SizedBox();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(inner,
+        const Size(400, 338 - kOasisWindowTitleBarHeight));
+  });
+
   testWidgets('OasisWallpaper paints in light and dark',
       (tester) async {
     await pumpOasis(tester, OasisWallpaper());

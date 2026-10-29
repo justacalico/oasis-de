@@ -331,6 +331,55 @@ void main() {
     service.dispose();
   });
 
+  testWidgets('popup keeps button state across rebuilds',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(
+        apps: [_external('x')], wayland: service);
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 320, 'h': 240});
+    host.emit({
+      'event': 'popup',
+      'id': 2,
+      'parent': 1,
+      'textureId': 55,
+      'x': 10,
+      'y': 10,
+    });
+    host.emit({'event': 'size', 'id': 2, 'w': 50, 'h': 30});
+    await tester.pump();
+    await pumpOasis(
+        tester,
+        DesktopShell(controller: c, menusBuilder: () => const []),
+        size: const Size(1280, 800));
+
+    final popupTopLeft =
+        tester.getTopLeft(find.byType(WaylandPopupView).first);
+    final gesture = await tester
+        .startGesture(popupTopLeft + const Offset(4, 4));
+    await tester.pump();
+    expect(host.calls, contains('button:272:true'));
+
+    host.emit({'event': 'title', 'id': 2, 'title': 'm'});
+    await tester.pump();
+
+    await gesture.up();
+    await tester.pump();
+    expect(host.calls, contains('button:272:false'));
+
+    final pointer = TestPointer(3, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(
+        pointer.hover(popupTopLeft + const Offset(4, 4)));
+    await tester
+        .sendEventToBinding(pointer.hover(const Offset(2, 2)));
+    await tester.pump();
+    expect(host.calls, contains('exit:2'));
+    c.dispose();
+    service.dispose();
+  });
+
   testWidgets('surface view forwards input and keys',
       (tester) async {
     final host = FakeWaylandHost();

@@ -163,7 +163,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   }
 }
 
-class WaylandPopupView extends StatelessWidget {
+class WaylandPopupView extends StatefulWidget {
   const WaylandPopupView({
     super.key,
     required this.surface,
@@ -174,41 +174,58 @@ class WaylandPopupView extends StatelessWidget {
   final WaylandService service;
 
   @override
+  State<WaylandPopupView> createState() => _WaylandPopupViewState();
+}
+
+class _WaylandPopupViewState extends State<WaylandPopupView> {
+  var _buttons = 0;
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: service,
+      animation: widget.service,
       builder: (context, _) {
-        final size = surface.size;
+        final size = widget.surface.size;
         if (size.width <= 0 || size.height <= 0) {
           return const SizedBox.shrink();
         }
-        var buttons = 0;
         return SizedBox(
           width: size.width,
           height: size.height,
-          child: Listener(
-            onPointerHover: (e) => service.pointerMotion(
-                surface.id, e.localPosition.dx, e.localPosition.dy),
-            onPointerMove: (e) => service.pointerMotion(
-                surface.id, e.localPosition.dx, e.localPosition.dy),
-            onPointerDown: (e) {
-              service.pointerMotion(
-                  surface.id, e.localPosition.dx, e.localPosition.dy);
-              forwardButtonDiff(service, buttons, e.buttons);
-              buttons = e.buttons;
-            },
-            onPointerUp: (e) {
-              forwardButtonDiff(service, buttons, e.buttons);
-              buttons = e.buttons;
-            },
-            onPointerSignal: (e) {
-              if (e is PointerScrollEvent) {
-                service.pointerAxis(
-                    e.scrollDelta.dx, e.scrollDelta.dy);
-              }
-            },
-            child: WaylandLayerTree(
-                service: service, surface: surface),
+          child: MouseRegion(
+            onExit: (_) =>
+                widget.service.pointerExit(widget.surface.id),
+            child: Listener(
+              onPointerHover: (e) => widget.service.pointerMotion(
+                  widget.surface.id,
+                  e.localPosition.dx,
+                  e.localPosition.dy),
+              onPointerMove: (e) => widget.service.pointerMotion(
+                  widget.surface.id,
+                  e.localPosition.dx,
+                  e.localPosition.dy),
+              onPointerDown: (e) {
+                widget.service.pointerMotion(
+                    widget.surface.id,
+                    e.localPosition.dx,
+                    e.localPosition.dy);
+                forwardButtonDiff(widget.service, _buttons, e.buttons);
+                _buttons = e.buttons;
+              },
+              onPointerUp: (e) {
+                forwardButtonDiff(widget.service, _buttons, e.buttons);
+                _buttons = e.buttons;
+              },
+              onPointerSignal: (e) {
+                if (e is PointerScrollEvent) {
+                  widget.service.pointerAxis(
+                      e.scrollDelta.dx, e.scrollDelta.dy);
+                }
+              },
+              child: WaylandLayerTree(
+                  service: widget.service,
+                  surface: widget.surface),
+            ),
           ),
         );
       },
