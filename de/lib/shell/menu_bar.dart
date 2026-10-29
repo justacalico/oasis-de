@@ -163,27 +163,39 @@ class _MenuClock extends StatefulWidget {
 
 class _MenuClockState extends State<_MenuClock> {
   late DateTime _now;
-  late final StreamSubscription _timer;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _now = clock.now();
-    _timer = Stream.periodic(const Duration(seconds: 15)).listen((_) {
-      if (mounted) setState(() => _now = clock.now());
-    });
+    _scheduleTick();
+  }
+
+  void _scheduleTick() {
+    final next =
+        DateTime(_now.year, _now.month, _now.day, _now.hour, _now.minute + 1);
+    _timer = Timer(next.difference(_now), _tick);
+  }
+
+  void _tick() {
+    if (mounted) {
+      setState(() => _now = clock.now());
+      _scheduleTick();
+    }
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).toString();
-    final text = DateFormat('E d MMM  HH:mm', locale).format(_now);
+    final text =
+        '${DateFormat.MEd(locale).format(_now)} ${DateFormat.jm(locale).format(_now)}';
     return Text(text, style: widget.style);
   }
 }

@@ -139,7 +139,7 @@ void main() {
         .receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(find.text('Notes'), findsWidgets);
-    await tester.pump(const Duration(seconds: 31));
+    await tester.pump(const Duration(seconds: 61));
     await tester.pumpAndSettle();
   });
 }
