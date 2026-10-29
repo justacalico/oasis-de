@@ -289,6 +289,10 @@ struct Surface {
   bool cfg_max = false;
   int rep_w = 0;
   int rep_h = 0;
+  int min_w = 0;
+  int min_h = 0;
+  int max_w = 0;
+  int max_h = 0;
   pid_t pid = -1;
 };
 
@@ -1650,12 +1654,30 @@ static void toplevel_resize(wl_client* client,
 static void toplevel_set_max_size(wl_client* client,
                                   wl_resource* res,
                                   int32_t w,
-                                  int32_t h) {}
+                                  int32_t h) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->max_w = w;
+  s->max_h = h;
+  FlValue* m = new_event("maxSize");
+  ev_id(m, s->public_id);
+  fl_value_set_string_take(m, "w", fl_value_new_int(w));
+  fl_value_set_string_take(m, "h", fl_value_new_int(h));
+  send_event(s->comp, m);
+}
 
 static void toplevel_set_min_size(wl_client* client,
                                   wl_resource* res,
                                   int32_t w,
-                                  int32_t h) {}
+                                  int32_t h) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->min_w = w;
+  s->min_h = h;
+  FlValue* m = new_event("minSize");
+  ev_id(m, s->public_id);
+  fl_value_set_string_take(m, "w", fl_value_new_int(w));
+  fl_value_set_string_take(m, "h", fl_value_new_int(h));
+  send_event(s->comp, m);
+}
 
 static void toplevel_set_maximized(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));

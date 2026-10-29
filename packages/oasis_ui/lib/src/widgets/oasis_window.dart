@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../theme/oasis_theme.dart';
 import 'oasis_traffic_lights.dart';
 
+const kOasisWindowTitleBarHeight = 38.0;
+
 enum OasisResizeEdge {
   top(0, -1),
   bottom(0, 1),
@@ -76,7 +78,7 @@ class _OasisWindowState extends State<OasisWindow> {
             },
       behavior: HitTestBehavior.deferToChild,
       child: Container(
-        height: 38,
+        height: kOasisWindowTitleBarHeight,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: p.windowBackground.withValues(alpha: 0.55),

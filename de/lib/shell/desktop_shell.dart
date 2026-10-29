@@ -171,7 +171,7 @@ class DesktopShell extends StatelessWidget {
     final base = w.zoomed
         ? const Offset(0, kMenuBarHeight + 4)
         : w.position;
-    return base + const Offset(0, 38) + offset;
+    return base + const Offset(0, kOasisWindowTitleBarHeight) + offset;
   }
 
   Size _defaultWindowSize(Size screen) => Size(

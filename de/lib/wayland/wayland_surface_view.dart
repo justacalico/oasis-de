@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -76,11 +74,8 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   Offset _surfaceCoords(Offset local, Size box) {
     final s = surface.size;
     if (s.width <= 0 || s.height <= 0) return local;
-    final scale = math.min(
-        box.width / s.width, box.height / s.height);
-    final origin = Offset((box.width - s.width * scale) / 2,
-        (box.height - s.height * scale) / 2);
-    return (local - origin) / scale;
+    return Offset(local.dx * s.width / box.width,
+        local.dy * s.height / box.height);
   }
 
   void _motion(PointerEvent e, Size box) {
@@ -149,7 +144,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                   child: ColoredBox(
                     color: const Color(0xFF000000),
                     child: FittedBox(
-                      fit: BoxFit.contain,
+                      fit: BoxFit.fill,
                       child: SizedBox(
                         width: size.width <= 0 ? 1 : size.width,
                         height: size.height <= 0 ? 1 : size.height,
