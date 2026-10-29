@@ -833,8 +833,40 @@ void main() {
     expect(find.byType(Image), findsOneWidget);
     expect(find.byIcon(Icons.apps), findsOneWidget);
   });
+  testWidgets('shell state persists and restores', (tester) async {
+    final store = MemoryOasisStore();
+    store.write('shell.themeMode', 'dark');
+    store.write('shell.accent', '4280391411');
+    store.write('shell.locale', 'ru');
+    store.write('shell.wifi', '0');
+    store.write('shell.bluetooth', '0');
+    store.write('shell.focus', '1');
+    store.write('shell.nightLight', '1');
+    store.write('shell.brightness', '0.5');
+    store.write('shell.volume', '0.25');
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: WaylandService(host: FakeWaylandHost()),
+        externalAppsLoader: () async => const [],
+        store: store,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final dynamic state = tester.state(find.byType(OasisDesktopApp));
+    final c = state.controller as ShellController;
+    expect(c.wifiOn, isFalse);
+    expect(c.focusOn, isTrue);
+    expect(c.brightness, 0.5);
+    c.wifiOnValue = true;
+    await tester.pump();
+    expect(store.read('shell.wifi'), '1');
+  });
 }
-
 class _StubContext extends Fake implements BuildContext {}
 
 const _onePxPng = <int>[

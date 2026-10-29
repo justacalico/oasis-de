@@ -30,6 +30,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.wayland,
     this.externalAppsLoader = loadExternalApps,
     this.appDirWatcher,
+    this.store,
   });
 
   final String version;
@@ -40,6 +41,7 @@ class OasisDesktopApp extends StatefulWidget {
   final WaylandService? wayland;
   final Future<List<OasisApp>> Function() externalAppsLoader;
   final Stream<void> Function()? appDirWatcher;
+  final OasisStore? store;
 
   @override
   State<OasisDesktopApp> createState() => _OasisDesktopAppState();
@@ -69,7 +71,47 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     );
     _wayland = widget.wayland ?? WaylandService();
     _controller = ShellController(apps: const [], wayland: _wayland);
+    _restoreState();
+    _appearance.addListener(_persistState);
+    _controller.addListener(_persistState);
     unawaited(_init());
+  }
+
+  void _restoreState() {
+    final s = widget.store;
+    if (s == null) return;
+    final c = _controller;
+    final mode = OasisThemeMode.values.asNameMap()[s.read('shell.themeMode')];
+    if (mode != null) _appearance.themeMode = mode;
+    final accent = int.tryParse(s.read('shell.accent') ?? '');
+    if (accent != null) _appearance.accent = Color(accent);
+    final locale = s.read('shell.locale');
+    if (locale != null) {
+      _locale = locale.isEmpty ? null : Locale(locale);
+    }
+    c.wifiOn = s.read('shell.wifi') != '0';
+    c.bluetoothOn = s.read('shell.bluetooth') != '0';
+    c.focusOn = s.read('shell.focus') == '1';
+    c.nightLightOn = s.read('shell.nightLight') == '1';
+    final b = double.tryParse(s.read('shell.brightness') ?? '');
+    if (b != null) c.brightness = b;
+    final v = double.tryParse(s.read('shell.volume') ?? '');
+    if (v != null) c.volume = v;
+  }
+
+  void _persistState() {
+    final s = widget.store;
+    if (s == null) return;
+    final c = _controller;
+    s.write('shell.themeMode', _appearance.themeMode.name);
+    s.write('shell.accent', '${_appearance.accent?.toARGB32() ?? ''}');
+    s.write('shell.locale', _locale?.languageCode ?? '');
+    s.write('shell.wifi', c.wifiOn ? '1' : '0');
+    s.write('shell.bluetooth', c.bluetoothOn ? '1' : '0');
+    s.write('shell.focus', c.focusOn ? '1' : '0');
+    s.write('shell.nightLight', c.nightLightOn ? '1' : '0');
+    s.write('shell.brightness', '${c.brightness}');
+    s.write('shell.volume', '${c.volume}');
   }
 
   Future<void> _init() async {
@@ -90,6 +132,8 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   @override
   void dispose() {
     _appDirWatch?.cancel();
+    _appearance.removeListener(_persistState);
+    _controller.removeListener(_persistState);
     _controller.dispose();
     _wayland.dispose();
     _updates.dispose();
@@ -160,6 +204,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
 
   void _setLocale(Locale? locale) {
     setState(() => _locale = locale);
+    _persistState();
   }
 
   String _focusedAppName(OasisLocalizations l10n) {
