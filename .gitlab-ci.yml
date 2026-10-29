@@ -66,7 +66,7 @@ auto-release:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"'
   script:
-    - apk add --no-cache git curl python3 ca-certificates tar gzip
+    - apk add --no-cache git openssh-client curl python3 ca-certificates tar gzip
     - curl -fsSL "https://github.com/cocogitto/cocogitto/releases/download/${COCOGITTO_VERSION}/cocogitto-${COCOGITTO_VERSION}-x86_64-unknown-linux-musl.tar.gz" -o /tmp/cog.tgz
     - tar xzf /tmp/cog.tgz -C /usr/local/bin --strip-components=1
     - cog --version
@@ -76,11 +76,22 @@ auto-release:
     - |
       if git describe --exact-match HEAD >/dev/null 2>&1; then
         echo "HEAD already tagged, skipping"
-      else
-        cog bump --auto || true
-        git push origin HEAD:main || true
-        git push origin --tags || true
+        exit 0
       fi
+      if ! cog bump --auto; then
+        echo "no bump needed"
+        exit 0
+      fi
+      TAG="$(git describe --exact-match HEAD)"
+      git push origin HEAD:main
+      git push origin "$TAG"
+      mkdir -p ~/.ssh && chmod 700 ~/.ssh
+      echo "$GITHUB_SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519 2>/dev/null || echo "$GITHUB_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+      chmod 600 ~/.ssh/id_ed25519
+      ssh-keyscan github.com >> ~/.ssh/known_hosts
+      git push "git@github.com:justacalico/oasis-de.git" "$TAG:$TAG"
+      CI_COMMIT_SHA="$(git rev-parse HEAD)" sh scripts/watch-github-run.sh
+      sh scripts/sync-release.sh "$TAG"
 
 release-assets:
   stage: release
