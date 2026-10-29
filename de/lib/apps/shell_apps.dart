@@ -114,9 +114,33 @@ class _CalculatorWindowState extends State<CalculatorWindow> {
   double? _acc;
   String? _op;
   bool _fresh = true;
+  bool _error = false;
+
+  void _commit() {
+    final b = double.tryParse(_display) ?? 0;
+    final a = _acc ?? 0;
+    final r = switch (_op) {
+      '+' => a + b,
+      '−' => a - b,
+      '×' => a * b,
+      '÷' => b == 0 ? double.nan : a / b,
+      _ => b,
+    };
+    _error = r.isNaN || r.isInfinite;
+    _display = _error
+        ? 'NaN'
+        : (r == r.truncateToDouble() ? '${r.toInt()}' : '$r');
+    _acc = null;
+    _op = null;
+    _fresh = true;
+  }
 
   void _press(String key) {
     setState(() {
+      if (_error) {
+        _display = '0';
+        _error = false;
+      }
       switch (key) {
         case 'C':
           _display = '0';
@@ -127,24 +151,13 @@ class _CalculatorWindowState extends State<CalculatorWindow> {
         case '−':
         case '×':
         case '÷':
+          if (_op != null && !_fresh) _commit();
+          if (_error) return;
           _acc = double.tryParse(_display);
           _op = key;
           _fresh = true;
         case '=':
-          final b = double.tryParse(_display) ?? 0;
-          final a = _acc ?? 0;
-          final r = switch (_op) {
-            '+' => a + b,
-            '−' => a - b,
-            '×' => a * b,
-            '÷' => b == 0 ? double.nan : a / b,
-            _ => b,
-          };
-          _display =
-              r == r.truncateToDouble() ? '${r.toInt()}' : '$r';
-          _acc = null;
-          _op = null;
-          _fresh = true;
+          _commit();
         case '.':
           if (_fresh) {
             _display = '0.';
@@ -153,7 +166,7 @@ class _CalculatorWindowState extends State<CalculatorWindow> {
             _display += '.';
           }
         default:
-          _display = _fresh ? key : _display + key;
+          _display = (_fresh || _display == '0') ? key : _display + key;
           _fresh = false;
       }
     });
