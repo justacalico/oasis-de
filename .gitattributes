@@ -1,0 +1,8 @@
+test/goldens/** binary
+*.png binary
+*.jks binary
+*.keystore binary
+
+packages/oasis_ui/lib/l10n/generated/** linguist-generated=true
+pubspec.lock linguist-generated=true
+**/pubspec.lock linguist-generated=true
