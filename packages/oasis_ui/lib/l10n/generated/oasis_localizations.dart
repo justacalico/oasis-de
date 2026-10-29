@@ -224,6 +224,12 @@ abstract class OasisLocalizations {
   /// **'About Oasis'**
   String get menuAbout;
 
+  /// No description provided for @launchPad.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Launch Pad'**
+  String get launchPad;
+
   /// No description provided for @launcherHint.
   ///
   /// In en_GB, this message translates to:

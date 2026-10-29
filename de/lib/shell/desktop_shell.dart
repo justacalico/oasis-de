@@ -6,6 +6,7 @@ import '../wayland/wayland_surface_view.dart';
 import 'control_center.dart';
 import 'dock.dart';
 import 'genie_window.dart';
+import 'launch_pad.dart';
 import 'launcher.dart';
 import 'menu_bar.dart';
 import 'shell_controller.dart';
@@ -111,6 +112,10 @@ class DesktopShell extends StatelessWidget {
                   child:
                       ShellControlCenter(controller: controller),
                 ),
+              if (controller.launchPadOpen)
+                Positioned.fill(
+                    child:
+                        ShellLaunchPad(controller: controller)),
               Positioned(
                 left: 0,
                 right: 0,

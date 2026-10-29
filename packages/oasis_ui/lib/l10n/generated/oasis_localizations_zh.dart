@@ -71,6 +71,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get menuAbout => '关于 Oasis';
 
   @override
+  String get launchPad => '启动台';
+
+  @override
   String get launcherHint => '搜索应用';
 
   @override
@@ -326,6 +329,9 @@ class OasisLocalizationsZhHans extends OasisLocalizationsZh {
 
   @override
   String get menuAbout => '关于 Oasis';
+
+  @override
+  String get launchPad => '启动台';
 
   @override
   String get launcherHint => '搜索应用';

@@ -71,6 +71,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get menuAbout => 'About Oasis';
 
   @override
+  String get launchPad => 'Launch Pad';
+
+  @override
   String get launcherHint => 'Search apps';
 
   @override
@@ -333,6 +336,9 @@ class OasisLocalizationsEnGb extends OasisLocalizationsEn {
 
   @override
   String get menuAbout => 'About Oasis';
+
+  @override
+  String get launchPad => 'Launch Pad';
 
   @override
   String get launcherHint => 'Search apps';
