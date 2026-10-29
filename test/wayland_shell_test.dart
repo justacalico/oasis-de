@@ -973,6 +973,26 @@ void main() {
     c2.wifiOnValue = true;
     await tester.pump();
     expect(store.read('shell.wifi'), '1');
+
+    await store.write('shell.locale', 'en-GB');
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        backend: const NoopSystemBackend(),
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: WaylandService(host: FakeWaylandHost()),
+        externalAppsLoader: () async => const [],
+        store: store,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final dynamic state3 = tester.state(find.byType(OasisDesktopApp));
+    final c3 = state3.controller as ShellController;
+    c3.wifiOnValue = true;
+    await tester.pump();
+    expect(store.read('shell.locale'), 'en-GB');
   });
   testWidgets('fullscreen window covers shell chrome', (tester) async {
     final host = FakeWaylandHost();
