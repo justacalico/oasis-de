@@ -192,7 +192,10 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get languageSystem => '跟随系统';
 
   @override
-  String get languageEnGb => 'Traditional English';
+  String get languageEn => 'English';
+
+  @override
+  String get languageEnGb => 'English (UK)';
 
   @override
   String get languageZh => '简体中文';

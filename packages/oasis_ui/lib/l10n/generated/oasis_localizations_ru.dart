@@ -193,7 +193,10 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get languageSystem => 'Как в системе';
 
   @override
-  String get languageEnGb => 'Traditional English';
+  String get languageEn => 'English';
+
+  @override
+  String get languageEnGb => 'English (UK)';
 
   @override
   String get languageZh => '简体中文';

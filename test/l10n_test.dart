@@ -82,6 +82,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.wallpaperFitContain;
   l.wallpaperFitFill;
   l.languageSystem;
+  l.languageEn;
   l.languageEnGb;
   l.languageZh;
   l.languageRu;

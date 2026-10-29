@@ -212,6 +212,7 @@ class GeneralPane extends StatelessWidget {
 
     final languages = <(Locale?, String)>[
       (null, l10n.languageSystem),
+      (const Locale('en'), l10n.languageEn),
       (const Locale('en', 'GB'), l10n.languageEnGb),
       (const Locale('zh'), l10n.languageZh),
       (const Locale('ru'), l10n.languageRu),
@@ -222,7 +223,7 @@ class GeneralPane extends StatelessWidget {
       final current = host.locale;
       if (l == null) return current == null;
       return current?.languageCode == l.languageCode &&
-          (l.countryCode == null || current?.countryCode == l.countryCode);
+          current?.countryCode == l.countryCode;
     }
 
     return Column(

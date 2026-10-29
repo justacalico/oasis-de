@@ -86,7 +86,7 @@ void main() {
 
     await tester.tap(find.text('General'));
     await tester.pumpAndSettle();
-    expect(find.text('Traditional English'), findsOneWidget);
+    expect(find.text('English (UK)'), findsOneWidget);
     expect(find.text('Gaeilge'), findsOneWidget);
 
     await tester.tap(find.text('Wi-Fi'));
