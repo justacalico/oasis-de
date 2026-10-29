@@ -8,6 +8,7 @@ List<OasisApp> buildShellApps(
   OasisLocalizations l10n, {
   required String version,
   required OasisAppearance appearance,
+  required OasisWallpaperService wallpaper,
   required UpdateService updates,
   required ValueChanged<Locale?> setLocale,
   Locale? locale,
@@ -25,7 +26,7 @@ List<OasisApp> buildShellApps(
           setLocale: setLocale,
           locale: locale,
           openUrl: openUrl,
-          child: const SettingsHome(),
+          child: SettingsHome(wallpaper: wallpaper),
         ),
       ),
       OasisApp(

@@ -428,6 +428,60 @@ abstract class OasisLocalizations {
   /// **'OLED'**
   String get themeOled;
 
+  /// No description provided for @settingsWallpaper.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Wallpaper'**
+  String get settingsWallpaper;
+
+  /// No description provided for @wallpaperDunes.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Oasis Dunes'**
+  String get wallpaperDunes;
+
+  /// No description provided for @wallpaperCustom.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Custom image'**
+  String get wallpaperCustom;
+
+  /// No description provided for @wallpaperPathHint.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Image path'**
+  String get wallpaperPathHint;
+
+  /// No description provided for @wallpaperApply.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Apply'**
+  String get wallpaperApply;
+
+  /// No description provided for @wallpaperFit.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Fit'**
+  String get wallpaperFit;
+
+  /// No description provided for @wallpaperFitCover.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Fill screen'**
+  String get wallpaperFitCover;
+
+  /// No description provided for @wallpaperFitContain.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Fit to screen'**
+  String get wallpaperFitContain;
+
+  /// No description provided for @wallpaperFitFill.
+  ///
+  /// In en_GB, this message translates to:
+  /// **'Stretch'**
+  String get wallpaperFitFill;
+
   /// No description provided for @languageSystem.
   ///
   /// In en_GB, this message translates to:

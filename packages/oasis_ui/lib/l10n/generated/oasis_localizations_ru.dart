@@ -179,6 +179,33 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get themeOled => 'OLED';
 
   @override
+  String get settingsWallpaper => 'Обои';
+
+  @override
+  String get wallpaperDunes => 'Дюны Oasis';
+
+  @override
+  String get wallpaperCustom => 'Своё изображение';
+
+  @override
+  String get wallpaperPathHint => 'Путь к изображению';
+
+  @override
+  String get wallpaperApply => 'Применить';
+
+  @override
+  String get wallpaperFit => 'Размещение';
+
+  @override
+  String get wallpaperFitCover => 'Заполнить экран';
+
+  @override
+  String get wallpaperFitContain => 'Вместить в экран';
+
+  @override
+  String get wallpaperFitFill => 'Растянуть';
+
+  @override
   String get languageSystem => 'Как в системе';
 
   @override

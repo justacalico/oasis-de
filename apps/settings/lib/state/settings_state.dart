@@ -1,36 +1,11 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:oasis_ui/oasis_ui.dart';
 
-enum SettingsPane { appearance, general, wifi, bluetooth, about }
+typedef SettingsStore = OasisStore;
+typedef MemorySettingsStore = MemoryOasisStore;
+typedef PrefsSettingsStore = PrefsOasisStore;
 
-abstract class SettingsStore {
-  String? read(String key);
-  Future<void> write(String key, String value);
-}
-
-class MemorySettingsStore extends SettingsStore {
-  final _values = <String, String>{};
-
-  @override
-  String? read(String key) => _values[key];
-
-  @override
-  Future<void> write(String key, String value) async =>
-      _values[key] = value;
-}
-
-class PrefsSettingsStore extends SettingsStore {
-  PrefsSettingsStore(this._prefs);
-
-  final SharedPreferences _prefs;
-
-  @override
-  String? read(String key) => _prefs.getString(key);
-
-  @override
-  Future<void> write(String key, String value) =>
-      _prefs.setString(key, value);
-}
+enum SettingsPane { appearance, wallpaper, general, wifi, bluetooth, about }
 
 class SettingsState extends ChangeNotifier {
   SettingsState({SettingsStore? store})

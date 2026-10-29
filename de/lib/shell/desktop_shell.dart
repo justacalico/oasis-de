@@ -15,10 +15,12 @@ class DesktopShell extends StatelessWidget {
   const DesktopShell({
     super.key,
     required this.controller,
+    this.wallpaper,
     required this.menusBuilder,
   });
 
   final ShellController controller;
+  final OasisWallpaperService? wallpaper;
   final List<ShellMenu> Function() menusBuilder;
 
   @override
@@ -34,7 +36,8 @@ class DesktopShell extends StatelessWidget {
           onPointerUp: (_) => controller.endSurfaceGesture(),
           child: Stack(
             children: [
-              const Positioned.fill(child: OasisWallpaper()),
+              Positioned.fill(
+                  child: OasisWallpaper(service: wallpaper)),
               for (final w in controller.windows)
                 if (!w.minimized ||
                     w.transition != ShellWindowTransition.none)

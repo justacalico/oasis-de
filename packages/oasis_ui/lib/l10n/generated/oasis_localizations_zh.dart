@@ -177,6 +177,33 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get themeOled => 'OLED';
 
   @override
+  String get settingsWallpaper => '壁纸';
+
+  @override
+  String get wallpaperDunes => 'Oasis 沙丘';
+
+  @override
+  String get wallpaperCustom => '自定义图片';
+
+  @override
+  String get wallpaperPathHint => '图片路径';
+
+  @override
+  String get wallpaperApply => '应用';
+
+  @override
+  String get wallpaperFit => '填充方式';
+
+  @override
+  String get wallpaperFitCover => '填满屏幕';
+
+  @override
+  String get wallpaperFitContain => '适应屏幕';
+
+  @override
+  String get wallpaperFitFill => '拉伸填充';
+
+  @override
   String get languageSystem => '跟随系统';
 
   @override
@@ -435,6 +462,33 @@ class OasisLocalizationsZhHans extends OasisLocalizationsZh {
 
   @override
   String get themeOled => 'OLED';
+
+  @override
+  String get settingsWallpaper => '壁纸';
+
+  @override
+  String get wallpaperDunes => 'Oasis 沙丘';
+
+  @override
+  String get wallpaperCustom => '自定义图片';
+
+  @override
+  String get wallpaperPathHint => '图片路径';
+
+  @override
+  String get wallpaperApply => '应用';
+
+  @override
+  String get wallpaperFit => '填充方式';
+
+  @override
+  String get wallpaperFitCover => '填满屏幕';
+
+  @override
+  String get wallpaperFitContain => '适应屏幕';
+
+  @override
+  String get wallpaperFitFill => '拉伸填充';
 
   @override
   String get languageSystem => '跟随系统';

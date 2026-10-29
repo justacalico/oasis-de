@@ -11,12 +11,14 @@ class OasisSettingsApp extends StatefulWidget {
     this.updateChecker,
     this.openUrl,
     this.appearance,
+    this.wallpaper,
   });
 
   final String version;
   final UpdateChecker? updateChecker;
   final ValueChanged<String>? openUrl;
   final OasisAppearance? appearance;
+  final OasisWallpaperService? wallpaper;
 
   @override
   State<OasisSettingsApp> createState() => _OasisSettingsAppState();
@@ -24,6 +26,7 @@ class OasisSettingsApp extends StatefulWidget {
 
 class _OasisSettingsAppState extends State<OasisSettingsApp> {
   late final OasisAppearance _appearance;
+  late final OasisWallpaperService _wallpaper;
   late final UpdateService _updates;
   Locale? _locale;
 
@@ -31,6 +34,7 @@ class _OasisSettingsAppState extends State<OasisSettingsApp> {
   void initState() {
     super.initState();
     _appearance = widget.appearance ?? OasisAppearance();
+    _wallpaper = widget.wallpaper ?? OasisWallpaperService();
     _updates = UpdateService(
       checker: widget.updateChecker,
       currentVersion: () async => widget.version,
@@ -72,7 +76,10 @@ class _OasisSettingsAppState extends State<OasisSettingsApp> {
             openUrl: widget.openUrl,
             child: Scaffold(
               body: SafeArea(
-                child: SettingsHome(version: widget.version),
+                child: SettingsHome(
+                  version: widget.version,
+                  wallpaper: _wallpaper,
+                ),
               ),
             ),
           ),

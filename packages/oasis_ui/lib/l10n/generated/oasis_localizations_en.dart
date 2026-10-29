@@ -177,6 +177,33 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get themeOled => 'OLED';
 
   @override
+  String get settingsWallpaper => 'Wallpaper';
+
+  @override
+  String get wallpaperDunes => 'Oasis Dunes';
+
+  @override
+  String get wallpaperCustom => 'Custom image';
+
+  @override
+  String get wallpaperPathHint => 'Image path';
+
+  @override
+  String get wallpaperApply => 'Apply';
+
+  @override
+  String get wallpaperFit => 'Fit';
+
+  @override
+  String get wallpaperFitCover => 'Fill screen';
+
+  @override
+  String get wallpaperFitContain => 'Fit to screen';
+
+  @override
+  String get wallpaperFitFill => 'Stretch';
+
+  @override
   String get languageSystem => 'System';
 
   @override
@@ -442,6 +469,33 @@ class OasisLocalizationsEnGb extends OasisLocalizationsEn {
 
   @override
   String get themeOled => 'OLED';
+
+  @override
+  String get settingsWallpaper => 'Wallpaper';
+
+  @override
+  String get wallpaperDunes => 'Oasis Dunes';
+
+  @override
+  String get wallpaperCustom => 'Custom image';
+
+  @override
+  String get wallpaperPathHint => 'Image path';
+
+  @override
+  String get wallpaperApply => 'Apply';
+
+  @override
+  String get wallpaperFit => 'Fit';
+
+  @override
+  String get wallpaperFitCover => 'Fill screen';
+
+  @override
+  String get wallpaperFitContain => 'Fit to screen';
+
+  @override
+  String get wallpaperFitFill => 'Stretch';
 
   @override
   String get languageSystem => 'System';
