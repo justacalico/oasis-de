@@ -141,15 +141,18 @@ class ShellController extends ChangeNotifier {
 
     int score(OasisApp a) {
       var best = 0;
-      for (final field in [a.name, ?a.genericName, ...a.keywords]) {
-        final f = field.toLowerCase();
-        final s = f.startsWith(q)
+      final fields = [a.name, ?a.genericName, ...a.keywords];
+      for (var i = 0; i < fields.length; i++) {
+        final f = fields[i].toLowerCase();
+        final tier = f.startsWith(q)
             ? 3
             : f.contains(q)
             ? 2
             : fuzzy(f)
             ? 1
             : 0;
+        if (tier == 0) continue;
+        final s = tier * 2 + (i == 0 ? 1 : 0);
         if (s > best) best = s;
       }
       return best;

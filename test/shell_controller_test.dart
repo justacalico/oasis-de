@@ -266,15 +266,16 @@ void main() {
         app('kw', 'Other', kw: const ['settings prefs']),
         app('fz', 'SrEtTuS'),
         app('gen', 'Editor', gen: 'Set text'),
+        app('oth', 'Settings Tool'),
       ],
     );
     addTearDown(c.dispose);
     final ranked = c.filterApps('sett');
     expect(ranked.first.id, 'exact');
     expect(ranked.map((a) => a.id), containsAll(['sub', 'kw', 'fz', 'gen']));
-    c.launchCounts['gen'] = 5;
+    c.launchCounts['oth'] = 5;
     final ids = [for (final a in c.filterApps('sett')) a.id];
-    expect(ids.indexOf('gen'), lessThan(ids.indexOf('fz')));
+    expect(ids.indexOf('oth'), lessThan(ids.indexOf('sub')));
     expect(c.filterApps('nada'), isEmpty);
   });
 
