@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -61,6 +62,17 @@ struct Surface {
   DmabufBuf* pending_dmabuf = nullptr;
   int pending_ox = 0;
   int pending_oy = 0;
+  int pending_scale = 1;
+  int pending_transform = 0;
+  std::vector<std::array<int32_t, 4>> pending_input;
+  std::vector<std::array<int32_t, 4>> pending_opaque;
+  bool pending_input_set = false;
+  bool pending_opaque_set = false;
+  int buf_scale = 1;
+  int transform = 0;
+  std::vector<std::array<int32_t, 4>> input_region;
+  std::vector<std::array<int32_t, 4>> opaque_region;
+  bool commit_queued = false;
   uint8_t* img = nullptr;
   int iw = 0;
   int ih = 0;
@@ -278,8 +290,10 @@ static void finish_frames(Surface* s) {
 }
 
 static void emit_size(Surface* s) {
-  int w = s->geo_w > 0 ? s->geo_w : s->iw;
-  int h = s->geo_h > 0 ? s->geo_h : s->ih;
+  const int scale = s->buf_scale > 0 ? s->buf_scale : 1;
+  const bool swap = (s->transform & 1) != 0;
+  int w = s->geo_w > 0 ? s->geo_w : (swap ? s->ih : s->iw) / scale;
+  int h = s->geo_h > 0 ? s->geo_h : (swap ? s->iw : s->ih) / scale;
   if (s->rep_w == w && s->rep_h == h && s->rep_bw == s->iw &&
       s->rep_bh == s->ih) {
     return;
@@ -294,6 +308,23 @@ static void emit_size(Surface* s) {
   fl_value_set_string_take(m, "h", fl_value_new_int(h));
   fl_value_set_string_take(m, "bw", fl_value_new_int(s->iw));
   fl_value_set_string_take(m, "bh", fl_value_new_int(s->ih));
+  fl_value_set_string_take(m, "scale", fl_value_new_int(scale));
+  fl_value_set_string_take(m, "transform",
+                         fl_value_new_int(s->transform));
+  send_event(s->comp, m);
+}
+
+static void emit_input_region(Surface* s) {
+  FlValue* m = new_event("inputRegion");
+  ev_id(m, s->public_id);
+  FlValue* rects = fl_value_new_list();
+  for (const auto& r : s->input_region) {
+    fl_value_append_take(rects, fl_value_new_int(r[0]));
+    fl_value_append_take(rects, fl_value_new_int(r[1]));
+    fl_value_append_take(rects, fl_value_new_int(r[2]));
+    fl_value_append_take(rects, fl_value_new_int(r[3]));
+  }
+  fl_value_set_string_take(m, "rects", rects);
   send_event(s->comp, m);
 }
 
@@ -353,6 +384,37 @@ static void surface_set_dmabuf(Surface* s, DmabufBuf* db) {
 }
 
 static void surface_commit(Surface* s) {
+  if (s->pending_ox != 0 || s->pending_oy != 0) {
+    s->sx -= s->pending_ox;
+    s->sy -= s->pending_oy;
+    s->pending_ox = 0;
+    s->pending_oy = 0;
+    if (s->announced == SURFACE_POPUP ||
+        s->announced == SURFACE_SUBSURFACE) {
+      FlValue* m = new_event(
+          s->announced == SURFACE_POPUP ? "popupMoved" : "subsurfaceMoved");
+      ev_id(m, s->public_id);
+      fl_value_set_string_take(m, "x", fl_value_new_int(s->sx));
+      fl_value_set_string_take(m, "y", fl_value_new_int(s->sy));
+      send_event(s->comp, m);
+    }
+  }
+  if (s->pending_scale > 0) {
+    s->buf_scale = s->pending_scale;
+    s->pending_scale = 0;
+  }
+  s->transform = s->pending_transform;
+  if (s->pending_input_set) {
+    s->input_region = s->pending_input;
+    s->pending_input.clear();
+    s->pending_input_set = false;
+    if (s->announced != SURFACE_NONE) emit_input_region(s);
+  }
+  if (s->pending_opaque_set) {
+    s->opaque_region = s->pending_opaque;
+    s->pending_opaque.clear();
+    s->pending_opaque_set = false;
+  }
   if (s->pending_dmabuf != nullptr) {
     DmabufBuf* db = s->pending_dmabuf;
     s->pending_buffer = nullptr;
@@ -434,24 +496,63 @@ static void surface_frame(wl_client* client,
 
 static void surface_set_opaque_region(wl_client* client,
                                       wl_resource* res,
-                                      wl_resource* region) {}
+                                      wl_resource* region) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->pending_opaque_set = true;
+  s->pending_opaque.clear();
+  if (region != nullptr) {
+    auto* r = static_cast<std::vector<std::array<int32_t, 4>>*>(
+        wl_resource_get_user_data(region));
+    s->pending_opaque = *r;
+  }
+}
 
 static void surface_set_input_region(wl_client* client,
                                      wl_resource* res,
-                                     wl_resource* region) {}
+                                     wl_resource* region) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->pending_input_set = true;
+  s->pending_input.clear();
+  if (region != nullptr) {
+    auto* r = static_cast<std::vector<std::array<int32_t, 4>>*>(
+        wl_resource_get_user_data(region));
+    s->pending_input = *r;
+  }
+}
+
+static void surface_commit_tree(Surface* s) {
+  surface_commit(s);
+  for (Surface* child : s->children) {
+    if (child->commit_queued) {
+      child->commit_queued = false;
+      surface_commit_tree(child);
+    }
+  }
+}
 
 static void surface_commit_req(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
-  surface_commit(s);
+  if (s->role == SURFACE_SUBSURFACE && s->sync &&
+      s->parent != nullptr) {
+    s->commit_queued = true;
+    return;
+  }
+  surface_commit_tree(s);
 }
 
 static void surface_set_buffer_transform(wl_client* client,
                                          wl_resource* res,
-                                         int32_t transform) {}
+                                         int32_t transform) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->pending_transform = transform;
+}
 
 static void surface_set_buffer_scale(wl_client* client,
                                      wl_resource* res,
-                                     int32_t scale) {}
+                                     int32_t scale) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->pending_scale = scale;
+}
 
 static void surface_damage_buffer(wl_client* client,
                                   wl_resource* res,
@@ -546,6 +647,8 @@ static void role_res_destroyed(wl_resource* res) {
 
 // wl_region
 
+using RegionRects = std::vector<std::array<int32_t, 4>>;
+
 static void region_destroy(wl_client* client, wl_resource* res) {
   wl_resource_destroy(res);
 }
@@ -555,14 +658,38 @@ static void region_add(wl_client* client,
                        int32_t x,
                        int32_t y,
                        int32_t w,
-                       int32_t h) {}
+                       int32_t h) {
+  auto* r = static_cast<RegionRects*>(wl_resource_get_user_data(res));
+  r->push_back({x, y, w, h});
+}
 
 static void region_subtract(wl_client* client,
                             wl_resource* res,
                             int32_t x,
                             int32_t y,
                             int32_t w,
-                            int32_t h) {}
+                            int32_t h) {
+  auto* r = static_cast<RegionRects*>(wl_resource_get_user_data(res));
+  RegionRects out;
+  for (const auto& a : *r) {
+    int ax = a[0], ay = a[1], aw = a[2], ah = a[3];
+    int ix = std::max(ax, x), iy = std::max(ay, y);
+    int ix2 = std::min(ax + aw, x + w), iy2 = std::min(ay + ah, y + h);
+    if (ix >= ix2 || iy >= iy2) {
+      out.push_back(a);
+      continue;
+    }
+    if (ay < iy) out.push_back({ax, ay, aw, iy - ay});
+    if (ay + ah > iy2) out.push_back({ax, iy2, aw, ay + ah - iy2});
+    if (ax < ix) out.push_back({ax, iy, ix - ax, iy2 - iy});
+    if (ax + aw > ix2) out.push_back({ix2, iy, ax + aw - ix2, iy2 - iy});
+  }
+  r->swap(out);
+}
+
+static void region_res_destroyed(wl_resource* res) {
+  delete static_cast<RegionRects*>(wl_resource_get_user_data(res));
+}
 
 static const struct wl_region_interface region_impl = {
     region_destroy, region_add, region_subtract};
@@ -592,7 +719,8 @@ static void compositor_create_region(wl_client* client,
                                      uint32_t id) {
   wl_resource* region = wl_resource_create(client, &wl_region_interface,
                                            wl_resource_get_version(res), id);
-  wl_resource_set_implementation(region, &region_impl, nullptr, nullptr);
+  wl_resource_set_implementation(region, &region_impl, new RegionRects(),
+                                 region_res_destroyed);
 }
 
 static const struct wl_compositor_interface compositor_impl = {
@@ -654,6 +782,10 @@ static void subsurface_set_sync(wl_client* client, wl_resource* res) {
 static void subsurface_set_desync(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   s->sync = false;
+  if (s->commit_queued) {
+    s->commit_queued = false;
+    surface_commit_tree(s);
+  }
 }
 
 static const struct wl_subsurface_interface subsurface_impl = {

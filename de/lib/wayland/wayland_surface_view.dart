@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import 'keymap.dart';
@@ -18,6 +19,93 @@ void forwardButtonDiff(WaylandService service, int before, int after) {
     final was = (before & entry.key) != 0;
     final now = (after & entry.key) != 0;
     if (was != now) service.pointerButton(entry.value, now);
+  }
+}
+
+Size logicalSurfaceSize(WaylandSurface s) {
+  final b = s.bufferSize;
+  final sc = s.scale <= 0 ? 1.0 : s.scale;
+  if (b.width > 0 && b.height > 0) {
+    final w = b.width / sc;
+    final h = b.height / sc;
+    return (s.transform & 1) != 0 ? Size(h, w) : Size(w, h);
+  }
+  return s.size;
+}
+
+Widget applyBufferTransform(Widget child, int transform) {
+  switch (transform) {
+    case 1:
+    case 2:
+    case 3:
+      return RotatedBox(quarterTurns: transform, child: child);
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+      final inner = transform == 4
+          ? child
+          : RotatedBox(quarterTurns: transform - 4, child: child);
+      return Transform(
+        transform: Matrix4.diagonal3Values(-1, 1, 1),
+        alignment: Alignment.center,
+        child: inner,
+      );
+    default:
+      return child;
+  }
+}
+
+class SurfaceHitRegion extends SingleChildRenderObjectWidget {
+  const SurfaceHitRegion({
+    super.key,
+    required this.region,
+    required this.surfaceSize,
+    super.child,
+  });
+
+  final List<Rect>? region;
+  final Size surfaceSize;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      RenderSurfaceHitRegion(region: region, surfaceSize: surfaceSize);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    RenderSurfaceHitRegion renderObject,
+  ) {
+    renderObject
+      ..region = region
+      ..surfaceSize = surfaceSize;
+  }
+}
+
+class RenderSurfaceHitRegion extends RenderProxyBox {
+  RenderSurfaceHitRegion({
+    required List<Rect>? region,
+    required Size surfaceSize,
+  }) : _region = region,
+       _surfaceSize = surfaceSize;
+
+  List<Rect>? _region;
+  Size _surfaceSize;
+
+  set region(List<Rect>? v) => _region = v;
+  set surfaceSize(Size v) => _surfaceSize = v;
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    final region = _region;
+    if (region != null && size.width > 0 && size.height > 0) {
+      final p = Offset(
+        position.dx * _surfaceSize.width / size.width,
+        position.dy * _surfaceSize.height / size.height,
+      );
+      if (!region.any((r) => r.contains(p))) return false;
+    }
+    return super.hitTest(result, position: position);
   }
 }
 
@@ -73,8 +161,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   }
 
   Offset _surfaceCoords(Offset local, Size box) {
-    final b = surface.bufferSize;
-    final s = b.width > 0 && b.height > 0 ? b : surface.size;
+    final s = logicalSurfaceSize(surface);
     if (s.width <= 0 || s.height <= 0) return local;
     return Offset(
       local.dx * s.width / box.width,
@@ -129,42 +216,46 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
             animation: service,
             builder: (context, _) {
               final size = surface.size;
-              return MouseRegion(
-                onExit: (_) => service.pointerExit(surface.id),
-                child: Listener(
-                  onPointerHover: (e) {
-                    _motion(e, box);
-                    _buttons = e.buttons;
-                  },
-                  onPointerMove: (e) {
-                    _motion(e, box);
-                    _buttons = e.buttons;
-                  },
-                  onPointerDown: (e) {
-                    _motion(e, box);
-                    forwardButtonDiff(service, _buttons, e.buttons);
-                    _buttons = e.buttons;
-                  },
-                  onPointerUp: (e) {
-                    _motion(e, box);
-                    forwardButtonDiff(service, _buttons, e.buttons);
-                    _buttons = e.buttons;
-                  },
-                  onPointerSignal: (e) {
-                    if (e is PointerScrollEvent) {
-                      service.pointerAxis(e.scrollDelta.dx, e.scrollDelta.dy);
-                    }
-                  },
-                  child: ColoredBox(
-                    color: const Color(0xFF000000),
-                    child: FittedBox(
-                      fit: BoxFit.fill,
-                      child: SizedBox(
-                        width: size.width <= 0 ? 1 : size.width,
-                        height: size.height <= 0 ? 1 : size.height,
-                        child: WaylandLayerTree(
-                          service: service,
-                          surface: surface,
+              return SurfaceHitRegion(
+                region: surface.inputRegion,
+                surfaceSize: logicalSurfaceSize(surface),
+                child: MouseRegion(
+                  onExit: (_) => service.pointerExit(surface.id),
+                  child: Listener(
+                    onPointerHover: (e) {
+                      _motion(e, box);
+                      _buttons = e.buttons;
+                    },
+                    onPointerMove: (e) {
+                      _motion(e, box);
+                      _buttons = e.buttons;
+                    },
+                    onPointerDown: (e) {
+                      _motion(e, box);
+                      forwardButtonDiff(service, _buttons, e.buttons);
+                      _buttons = e.buttons;
+                    },
+                    onPointerUp: (e) {
+                      _motion(e, box);
+                      forwardButtonDiff(service, _buttons, e.buttons);
+                      _buttons = e.buttons;
+                    },
+                    onPointerSignal: (e) {
+                      if (e is PointerScrollEvent) {
+                        service.pointerAxis(e.scrollDelta.dx, e.scrollDelta.dy);
+                      }
+                    },
+                    child: ColoredBox(
+                      color: const Color(0xFF000000),
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: SizedBox(
+                          width: size.width <= 0 ? 1 : size.width,
+                          height: size.height <= 0 ? 1 : size.height,
+                          child: WaylandLayerTree(
+                            service: service,
+                            surface: surface,
+                          ),
                         ),
                       ),
                     ),
@@ -197,13 +288,11 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
   var _buttons = 0;
 
   void _motion(PointerEvent e) {
-    final b = widget.surface.bufferSize;
-    final s = widget.surface.size;
-    var p = e.localPosition;
-    if (b.width > 0 && b.height > 0 && s.width > 0 && s.height > 0) {
-      p = Offset(p.dx * b.width / s.width, p.dy * b.height / s.height);
-    }
-    widget.service.pointerMotion(widget.surface.id, p.dx, p.dy);
+    widget.service.pointerMotion(
+      widget.surface.id,
+      e.localPosition.dx,
+      e.localPosition.dy,
+    );
   }
 
   @override
@@ -215,40 +304,44 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
         if (size.width <= 0 || size.height <= 0) {
           return const SizedBox.shrink();
         }
-        return SizedBox(
-          width: size.width,
-          height: size.height,
-          child: MouseRegion(
-            onExit: (_) => widget.service.pointerExit(widget.surface.id),
-            child: Listener(
-              onPointerHover: (e) {
-                _motion(e);
-                _buttons = e.buttons;
-              },
-              onPointerMove: (e) {
-                _motion(e);
-                _buttons = e.buttons;
-              },
-              onPointerDown: (e) {
-                _motion(e);
-                forwardButtonDiff(widget.service, _buttons, e.buttons);
-                _buttons = e.buttons;
-              },
-              onPointerUp: (e) {
-                forwardButtonDiff(widget.service, _buttons, e.buttons);
-                _buttons = e.buttons;
-              },
-              onPointerSignal: (e) {
-                if (e is PointerScrollEvent) {
-                  widget.service.pointerAxis(
-                    e.scrollDelta.dx,
-                    e.scrollDelta.dy,
-                  );
-                }
-              },
-              child: WaylandLayerTree(
-                service: widget.service,
-                surface: widget.surface,
+        return SurfaceHitRegion(
+          region: widget.surface.inputRegion,
+          surfaceSize: size,
+          child: SizedBox(
+            width: size.width,
+            height: size.height,
+            child: MouseRegion(
+              onExit: (_) => widget.service.pointerExit(widget.surface.id),
+              child: Listener(
+                onPointerHover: (e) {
+                  _motion(e);
+                  _buttons = e.buttons;
+                },
+                onPointerMove: (e) {
+                  _motion(e);
+                  _buttons = e.buttons;
+                },
+                onPointerDown: (e) {
+                  _motion(e);
+                  forwardButtonDiff(widget.service, _buttons, e.buttons);
+                  _buttons = e.buttons;
+                },
+                onPointerUp: (e) {
+                  forwardButtonDiff(widget.service, _buttons, e.buttons);
+                  _buttons = e.buttons;
+                },
+                onPointerSignal: (e) {
+                  if (e is PointerScrollEvent) {
+                    widget.service.pointerAxis(
+                      e.scrollDelta.dx,
+                      e.scrollDelta.dy,
+                    );
+                  }
+                },
+                child: WaylandLayerTree(
+                  service: widget.service,
+                  surface: widget.surface,
+                ),
               ),
             ),
           ),
@@ -269,7 +362,7 @@ class WaylandLayerTree extends StatelessWidget {
   final WaylandSurface surface;
 
   List<Widget> _layers(WaylandSurface root, Offset base) {
-    final buf = surface.bufferSize;
+    final buf = logicalSurfaceSize(surface);
     final sx = buf.width > 0 ? surface.size.width / buf.width : 1.0;
     final sy = buf.height > 0 ? surface.size.height / buf.height : 1.0;
     final out = <Widget>[];
@@ -286,7 +379,10 @@ class WaylandLayerTree extends StatelessWidget {
           width: sw <= 0 ? 1 : sw,
           height: sh <= 0 ? 1 : sh,
           child: sub.textureId >= 0
-              ? Texture(textureId: sub.textureId)
+              ? applyBufferTransform(
+                  Texture(textureId: sub.textureId),
+                  sub.transform,
+                )
               : const SizedBox.shrink(),
         ),
       );
@@ -300,7 +396,12 @@ class WaylandLayerTree extends StatelessWidget {
     return Stack(
       children: [
         if (surface.textureId >= 0)
-          Positioned.fill(child: Texture(textureId: surface.textureId)),
+          Positioned.fill(
+            child: applyBufferTransform(
+              Texture(textureId: surface.textureId),
+              surface.transform,
+            ),
+          ),
         ..._layers(surface, Offset.zero),
       ],
     );
