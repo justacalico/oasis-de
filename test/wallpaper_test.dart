@@ -59,6 +59,19 @@ void main() {
     restored.dispose();
   });
 
+  test('switching between presets still notifies listeners', () {
+    final s = OasisWallpaperService();
+    var notified = 0;
+    s.addListener(() => notified++);
+
+    s.usePreset('aurora');
+    expect(notified, 1);
+    s.usePreset('ember');
+    expect(notified, 2);
+    expect(s.preset, 'ember');
+    s.dispose();
+  });
+
   test('wallpaper service falls back for unknown fit names', () {
     final store = MemoryOasisStore();
     store.write(OasisWallpaperService.kFitKey, 'bogus');
