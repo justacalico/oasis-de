@@ -301,4 +301,7 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get wallpaperEmber => '余烬';
+
+  @override
+  String get appCalculator => '计算器';
 }

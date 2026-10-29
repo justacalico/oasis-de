@@ -100,6 +100,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.landingTryWeb;
   l.landingWebBody;
   l.appNotes;
+  l.appCalculator;
   l.menuQuit;
 }
 

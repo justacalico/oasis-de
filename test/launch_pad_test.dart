@@ -118,7 +118,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.text('Notes'), findsWidgets);
+    expect(find.text('0'), findsWidgets);
     expect(find.byType(ShellLaunchPad), findsNothing);
   });
 

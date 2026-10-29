@@ -310,4 +310,7 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get wallpaperEmber => 'Угли';
+
+  @override
+  String get appCalculator => 'Калькулятор';
 }

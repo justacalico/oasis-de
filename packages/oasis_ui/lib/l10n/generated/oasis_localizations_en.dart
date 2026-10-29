@@ -308,4 +308,7 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get wallpaperEmber => 'Ember';
+
+  @override
+  String get appCalculator => 'Calculator';
 }

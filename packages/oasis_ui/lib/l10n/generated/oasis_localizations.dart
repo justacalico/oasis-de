@@ -677,6 +677,12 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Ember'**
   String get wallpaperEmber;
+
+  /// No description provided for @appCalculator.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculator'**
+  String get appCalculator;
 }
 
 class _OasisLocalizationsDelegate

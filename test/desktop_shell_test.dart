@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
+import 'package:oasis_de/apps/shell_apps.dart';
 import 'package:oasis_de/shell/dock.dart';
 import 'package:oasis_de/shell/genie_window.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
@@ -567,5 +568,38 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
     expect(c.pinned.first.id, 'b');
+  });
+  testWidgets('notes persists text and calculator computes', (tester) async {
+    final store = MemoryOasisStore();
+    await store.write('notes.content', 'hello');
+    await pumpOasis(tester, Scaffold(body: NotesWindow(store: store)));
+    expect(find.text('hello'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'world');
+    expect(store.read('notes.content'), 'world');
+
+    await pumpOasis(tester, const Scaffold(body: CalculatorWindow()));
+    for (final k in ['7', '+', '5', '=']) {
+      await tester.tap(find.widgetWithText(OasisButton, k));
+      await tester.pump();
+    }
+    expect(find.text('12'), findsOneWidget);
+    await tester.tap(find.widgetWithText(OasisButton, 'C'));
+    await tester.pump();
+    expect(find.text('0'), findsWidgets);
+    await tester.tap(find.widgetWithText(OasisButton, '.'));
+    await tester.pump();
+    expect(find.text('0.'), findsOneWidget);
+    await tester.tap(find.widgetWithText(OasisButton, 'C'));
+    await tester.pump();
+    for (final k in ['1', '.', '5']) {
+      await tester.tap(find.widgetWithText(OasisButton, k));
+      await tester.pump();
+    }
+    expect(find.text('1.5'), findsOneWidget);
+    for (final k in ['÷', '0', '=']) {
+      await tester.tap(find.widgetWithText(OasisButton, k));
+      await tester.pump();
+    }
+    expect(find.text('NaN'), findsOneWidget);
   });
 }
