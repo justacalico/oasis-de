@@ -99,7 +99,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     if (accent != null) _appearance.accent = Color(accent);
     final locale = s.read('shell.locale');
     if (locale != null) {
-      _locale = locale.isEmpty ? null : Locale(locale);
+      _locale = locale.isEmpty ? null : _localeFromTag(locale);
     }
     c.wifiOn = s.read('shell.wifi') != '0';
     c.bluetoothOn = s.read('shell.bluetooth') != '0';
@@ -117,7 +117,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     final c = _controller;
     s.write('shell.themeMode', _appearance.themeMode.name);
     s.write('shell.accent', '${_appearance.accent?.toARGB32() ?? ''}');
-    s.write('shell.locale', _locale?.languageCode ?? '');
+    s.write('shell.locale', _locale?.toLanguageTag() ?? '');
     s.write('shell.wifi', c.wifiOn ? '1' : '0');
     s.write('shell.bluetooth', c.bluetoothOn ? '1' : '0');
     s.write('shell.focus', c.focusOn ? '1' : '0');
@@ -237,4 +237,20 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     final focused = _controller.focusedWindow;
     return focused?.displayTitle ?? l10n.appName;
   }
+}
+
+Locale _localeFromTag(String tag) {
+  final parts = tag.split(RegExp('[-_]'));
+  String? script;
+  String? country;
+  for (var i = 1; i < parts.length; i++) {
+    final p = parts[i];
+    if (script == null && p.length == 4) {
+      script = p;
+    } else {
+      country ??= p;
+    }
+  }
+  return Locale.fromSubtags(
+      languageCode: parts[0], scriptCode: script, countryCode: country);
 }
