@@ -291,6 +291,10 @@ void main() {
     ]) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
+      if (label != 'Lock') {
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+      }
       if (label != 'Shut Down') {
         await tester.tap(find.byIcon(Icons.power_settings_new));
         await tester.pumpAndSettle();

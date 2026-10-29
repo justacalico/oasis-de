@@ -145,5 +145,10 @@
   "sessionShutDown": "Shut Down",
   "notifCenter": "Notifications",
   "notifClearAll": "Clear All",
-  "notifEmpty": "No notifications"
+  "notifEmpty": "No notifications",
+  "sessionConfirmLogOut": "Log out of this session?",
+  "sessionConfirmSuspend": "Suspend the system?",
+  "sessionConfirmRestart": "Restart the system?",
+  "sessionConfirmPoweroff": "Shut down the system?",
+  "dialogCancel": "Cancel"
 }

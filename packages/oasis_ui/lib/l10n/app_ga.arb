@@ -145,5 +145,10 @@
   "sessionShutDown": "Múch",
   "notifCenter": "Fógraí",
   "notifClearAll": "Glan Gach",
-  "notifEmpty": "Gan fhógraí"
+  "notifEmpty": "Gan fhógraí",
+  "sessionConfirmLogOut": "Logáil amach as an seisiún?",
+  "sessionConfirmSuspend": "Cuir an córas ar fionraí?",
+  "sessionConfirmRestart": "Atosaigh an córas?",
+  "sessionConfirmPoweroff": "Múch an córas?",
+  "dialogCancel": "Cealaigh"
 }

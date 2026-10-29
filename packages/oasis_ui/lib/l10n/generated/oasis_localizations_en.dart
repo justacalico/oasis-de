@@ -357,4 +357,19 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get notifEmpty => 'No notifications';
+
+  @override
+  String get sessionConfirmLogOut => 'Log out of this session?';
+
+  @override
+  String get sessionConfirmSuspend => 'Suspend the system?';
+
+  @override
+  String get sessionConfirmRestart => 'Restart the system?';
+
+  @override
+  String get sessionConfirmPoweroff => 'Shut down the system?';
+
+  @override
+  String get dialogCancel => 'Cancel';
 }

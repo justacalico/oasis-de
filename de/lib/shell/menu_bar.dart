@@ -308,6 +308,15 @@ class _SessionMenu extends StatelessWidget {
       onTap: () {
         final box = context.findRenderObject()! as RenderBox;
         final pos = box.localToGlobal(Offset(0, box.size.height + 4));
+        void confirm(String message, String label,
+                OasisSessionAction action) =>
+            confirmShellAction(
+              context,
+              message: message,
+              cancelLabel: l10n.dialogCancel,
+              confirmLabel: label,
+              onConfirm: () => c.session(action),
+            );
         showShellContextMenu(context, pos, [
           ShellMenuItem(
             label: l10n.sessionLock,
@@ -315,19 +324,31 @@ class _SessionMenu extends StatelessWidget {
           ),
           ShellMenuItem(
             label: l10n.sessionLogOut,
-            action: (_) => c.session(OasisSessionAction.logout),
+            action: (ctx) => confirm(
+                l10n.sessionConfirmLogOut,
+                l10n.sessionLogOut,
+                OasisSessionAction.logout),
           ),
           ShellMenuItem(
             label: l10n.sessionSleep,
-            action: (_) => c.session(OasisSessionAction.suspend),
+            action: (ctx) => confirm(
+                l10n.sessionConfirmSuspend,
+                l10n.sessionSleep,
+                OasisSessionAction.suspend),
           ),
           ShellMenuItem(
             label: l10n.sessionRestart,
-            action: (_) => c.session(OasisSessionAction.reboot),
+            action: (ctx) => confirm(
+                l10n.sessionConfirmRestart,
+                l10n.sessionRestart,
+                OasisSessionAction.reboot),
           ),
           ShellMenuItem(
             label: l10n.sessionShutDown,
-            action: (_) => c.session(OasisSessionAction.poweroff),
+            action: (ctx) => confirm(
+                l10n.sessionConfirmPoweroff,
+                l10n.sessionShutDown,
+                OasisSessionAction.poweroff),
           ),
         ]);
       },

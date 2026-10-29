@@ -178,7 +178,12 @@ class CliSystemBackend implements OasisSystemBackend {
       case OasisSessionAction.lock:
         _exec('loginctl', ['lock-session']);
       case OasisSessionAction.logout:
-        _exec('loginctl', ['terminate-user', 'self']);
+        final sid = Platform.environment['XDG_SESSION_ID'];
+        if (sid != null && sid.isNotEmpty) {
+          _exec('loginctl', ['terminate-session', sid]);
+        } else {
+          _exec('loginctl', ['terminate-user', 'self']);
+        }
       case OasisSessionAction.suspend:
         _exec('systemctl', ['suspend']);
       case OasisSessionAction.reboot:

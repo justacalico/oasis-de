@@ -767,6 +767,36 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'No notifications'**
   String get notifEmpty;
+
+  /// No description provided for @sessionConfirmLogOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out of this session?'**
+  String get sessionConfirmLogOut;
+
+  /// No description provided for @sessionConfirmSuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend the system?'**
+  String get sessionConfirmSuspend;
+
+  /// No description provided for @sessionConfirmRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart the system?'**
+  String get sessionConfirmRestart;
+
+  /// No description provided for @sessionConfirmPoweroff.
+  ///
+  /// In en, this message translates to:
+  /// **'Shut down the system?'**
+  String get sessionConfirmPoweroff;
+
+  /// No description provided for @dialogCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get dialogCancel;
 }
 
 class _OasisLocalizationsDelegate

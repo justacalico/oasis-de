@@ -82,6 +82,83 @@ void showShellContextMenu(
   overlay.insert(entry);
 }
 
+void confirmShellAction(
+  BuildContext context, {
+  required String message,
+  required String cancelLabel,
+  required String confirmLabel,
+  required VoidCallback onConfirm,
+}) {
+  final overlay = Overlay.of(context);
+  late final OverlayEntry entry;
+  var closed = false;
+  void close() {
+    if (closed) return;
+    closed = true;
+    entry.remove();
+  }
+
+  entry = OverlayEntry(
+    builder: (context) {
+      final style = OasisStyle.of(context);
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: close,
+              child: const ColoredBox(color: Color(0x33000000)),
+            ),
+          ),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 300),
+              child: OasisGlass(
+                borderRadius: style.menuRadius,
+                blur: 40,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      message,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OasisButton(
+                          label: cancelLabel,
+                          variant: OasisButtonVariant.text,
+                          dense: true,
+                          onPressed: close,
+                        ),
+                        const SizedBox(width: 8),
+                        OasisButton(
+                          label: confirmLabel,
+                          variant: OasisButtonVariant.primary,
+                          dense: true,
+                          onPressed: () {
+                            close();
+                            onConfirm();
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+  overlay.insert(entry);
+}
+
 class OasisMenuEntry extends StatefulWidget {
   const OasisMenuEntry({
     super.key,

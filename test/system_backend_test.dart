@@ -39,7 +39,9 @@ void main() {
       'gammastep -O 3500',
       'gammastep -x',
       'loginctl lock-session',
-      'loginctl terminate-user self',
+      Platform.environment['XDG_SESSION_ID']?.isNotEmpty == true
+          ? 'loginctl terminate-session ${Platform.environment['XDG_SESSION_ID']}'
+          : 'loginctl terminate-user self',
       'systemctl suspend',
       'systemctl reboot',
       'systemctl poweroff',
