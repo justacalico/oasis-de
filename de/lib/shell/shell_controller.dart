@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import 'package:oasis_ui/oasis_ui.dart';
 
+enum ShellWindowTransition { none, minimizing, restoring }
+
 class ShellWindowData {
   ShellWindowData({
     required this.id,
@@ -12,8 +14,10 @@ class ShellWindowData {
   final int id;
   OasisApp app;
   Offset position;
+  final dockIconKey = GlobalKey();
   var minimized = false;
   var zoomed = false;
+  var transition = ShellWindowTransition.none;
 }
 
 class ShellMenuItem {
@@ -89,6 +93,7 @@ class ShellController extends ChangeNotifier {
   void openApp(OasisApp app) {
     for (final w in windows) {
       if (w.app.id == app.id) {
+        if (w.minimized) w.transition = ShellWindowTransition.restoring;
         w.minimized = false;
         _focus(w.id);
         closeOverlays();
@@ -113,17 +118,26 @@ class ShellController extends ChangeNotifier {
 
   void minimizeWindow(int id) {
     final window = _byId(id);
-    if (window == null) return;
+    if (window == null || window.minimized) return;
     window.minimized = true;
+    window.transition = ShellWindowTransition.minimizing;
     if (_focusedId == id) _focusedId = null;
     notifyListeners();
   }
 
   void restoreWindow(int id) {
     final window = _byId(id);
-    if (window == null) return;
+    if (window == null || !window.minimized) return;
     window.minimized = false;
+    window.transition = ShellWindowTransition.restoring;
     _focus(id);
+  }
+
+  void finishTransition(int id) {
+    final window = _byId(id);
+    if (window == null) return;
+    window.transition = ShellWindowTransition.none;
+    notifyListeners();
   }
 
   void toggleZoom(int id) {
@@ -147,7 +161,11 @@ class ShellController extends ChangeNotifier {
 
   void dragWindow(int id, Offset delta) {
     final window = _byId(id);
-    if (window == null || window.zoomed) return;
+    if (window == null ||
+        window.zoomed ||
+        window.transition != ShellWindowTransition.none) {
+      return;
+    }
     window.position += delta;
     notifyListeners();
   }

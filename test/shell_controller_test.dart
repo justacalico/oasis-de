@@ -37,6 +37,8 @@ void main() {
     c.openApp(c.apps[0]);
     expect(c.windows.length, 1);
     expect(c.windows.first.minimized, isFalse);
+    expect(
+        c.windows.first.transition, ShellWindowTransition.restoring);
     expect(c.focusedId, id);
     c.dispose();
   });
@@ -80,10 +82,36 @@ void main() {
     c.dispose();
   });
 
+  test('minimize and restore run through a transition', () {
+    final c = _controller();
+    c.openApp(c.apps[0]);
+    final w = c.windows.first;
+    c.restoreWindow(w.id);
+    expect(w.transition, ShellWindowTransition.none);
+    c.minimizeWindow(w.id);
+    expect(w.minimized, isTrue);
+    expect(w.transition, ShellWindowTransition.minimizing);
+    c.minimizeWindow(w.id);
+    expect(c.windows.length, 1);
+    c.dragWindow(w.id, const Offset(9, 9));
+    expect(w.position, const Offset(56, 52));
+    c.finishTransition(w.id);
+    expect(w.transition, ShellWindowTransition.none);
+    c.restoreWindow(w.id);
+    expect(w.minimized, isFalse);
+    expect(w.transition, ShellWindowTransition.restoring);
+    c.dragWindow(w.id, const Offset(9, 9));
+    expect(w.position, const Offset(56, 52));
+    c.finishTransition(w.id);
+    expect(w.transition, ShellWindowTransition.none);
+    c.dispose();
+  });
+
   test('mutating a missing window is a no-op', () {
     final c = _controller();
     c.minimizeWindow(999);
     c.restoreWindow(999);
+    c.finishTransition(999);
     c.toggleZoom(999);
     c.dragWindow(999, const Offset(1, 1));
     expect(c.windows, isEmpty);

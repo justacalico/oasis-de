@@ -3,6 +3,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 
 import 'control_center.dart';
 import 'dock.dart';
+import 'genie_window.dart';
 import 'launcher.dart';
 import 'menu_bar.dart';
 import 'shell_controller.dart';
@@ -27,23 +28,33 @@ class DesktopShell extends StatelessWidget {
           children: [
             const Positioned.fill(child: OasisWallpaper()),
             for (final w in controller.windows)
-              if (!w.minimized)
+              if (!w.minimized ||
+                  w.transition != ShellWindowTransition.none)
                 Positioned(
+                  key: ValueKey(w.id),
                   left: w.zoomed ? 0 : w.position.dx,
                   top: w.zoomed
                       ? kMenuBarHeight + 4
                       : w.position.dy,
-                  child: Listener(
-                    onPointerDown: (_) => controller.focusWindow(w.id),
-                    child: w.zoomed
-                        ? SizedBox(
-                            width: MediaQuery.sizeOf(context).width,
-                            height: MediaQuery.sizeOf(context).height -
-                                kMenuBarHeight -
-                                8,
-                            child: _windowContent(w, context),
-                          )
-                        : _windowContent(w, context),
+                  child: GenieWindow(
+                    window: w,
+                    rect: _windowRect(w, context),
+                    onEnd: () => controller.finishTransition(w.id),
+                    child: Listener(
+                      onPointerDown: (_) =>
+                          controller.focusWindow(w.id),
+                      child: w.zoomed
+                          ? SizedBox(
+                              width:
+                                  MediaQuery.sizeOf(context).width,
+                              height:
+                                  MediaQuery.sizeOf(context).height -
+                                      kMenuBarHeight -
+                                      8,
+                              child: _windowContent(w, context),
+                            )
+                          : _windowContent(w, context),
+                    ),
                   ),
                 ),
             if (controller.openMenu != null ||
@@ -90,6 +101,16 @@ class DesktopShell extends StatelessWidget {
         );
       },
     );
+  }
+
+  Rect _windowRect(ShellWindowData w, BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final s = w.zoomed
+        ? Size(size.width, size.height - kMenuBarHeight - 8)
+        : Size((size.width * 0.62).clamp(360.0, 940.0),
+            (size.height * 0.62).clamp(300.0, 720.0));
+    return (w.zoomed ? const Offset(0, kMenuBarHeight + 4) : w.position) &
+        s;
   }
 
   Widget _windowContent(ShellWindowData w, BuildContext context) {
