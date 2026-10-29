@@ -171,6 +171,11 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
     if (self->image != EGL_NO_IMAGE && self->img_dpy != EGL_NO_DISPLAY) {
       eglDestroyImage(self->img_dpy, self->image);
     }
+    self->image = EGL_NO_IMAGE;
+    if (self->img_buf != nullptr) {
+      oasis_dmabuf_unref(self->img_buf);
+      self->img_buf = nullptr;
+    }
     self->image = dmabuf_import(dpy, self->dmabuf);
     self->img_dpy = dpy;
     if (self->image == EGL_NO_IMAGE) {
@@ -179,6 +184,7 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
       return FALSE;
     }
     self->img_buf = self->dmabuf;
+    oasis_dmabuf_ref(self->img_buf);
   }
   static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC image_target = nullptr;
   if (image_target == nullptr) {
@@ -200,12 +206,31 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
 }
 
 void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, DmabufBuf* db) {
+  if (self->dmabuf == db) return;
+  if (self->dmabuf != nullptr) oasis_dmabuf_unref(self->dmabuf);
   self->dmabuf = db;
-  self->w = static_cast<uint32_t>(db->w);
-  self->h = static_cast<uint32_t>(db->h);
+  if (db != nullptr) {
+    oasis_dmabuf_ref(db);
+    self->w = static_cast<uint32_t>(db->w);
+    self->h = static_cast<uint32_t>(db->h);
+  }
+}
+
+static void oasis_gl_texture_dispose(GObject* object) {
+  OasisGLTexture* self = OASIS_GL_TEXTURE(object);
+  if (self->image != EGL_NO_IMAGE && self->img_dpy != EGL_NO_DISPLAY) {
+    eglDestroyImage(self->img_dpy, self->image);
+    self->image = EGL_NO_IMAGE;
+  }
+  oasis_dmabuf_unref(self->img_buf);
+  self->img_buf = nullptr;
+  oasis_dmabuf_unref(self->dmabuf);
+  self->dmabuf = nullptr;
+  G_OBJECT_CLASS(oasis_gl_texture_parent_class)->dispose(object);
 }
 
 static void oasis_gl_texture_class_init(OasisGLTextureClass* klass) {
+  G_OBJECT_CLASS(klass)->dispose = oasis_gl_texture_dispose;
   FL_TEXTURE_GL_CLASS(klass)->populate = oasis_gl_texture_populate;
 }
 

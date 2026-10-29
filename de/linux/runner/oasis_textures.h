@@ -25,6 +25,8 @@ G_DECLARE_FINAL_TYPE(OasisGLTexture,
 struct DmabufBuf {
   OasisCompositor* comp = nullptr;
   wl_resource* res = nullptr;
+  int refs = 1;
+  bool destroyed = false;
   int w = 0;
   int h = 0;
   uint32_t format = 0;
@@ -35,6 +37,8 @@ struct DmabufBuf {
   uint64_t mods[4] = {0, 0, 0, 0};
 };
 
+void oasis_dmabuf_ref(DmabufBuf* b);
+void oasis_dmabuf_unref(DmabufBuf* b);
 void oasis_texture_push(OasisTexture* self,
                         const uint8_t* rgba,
                         uint32_t w,

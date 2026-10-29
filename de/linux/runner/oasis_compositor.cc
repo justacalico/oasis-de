@@ -34,6 +34,8 @@
 #include "xdg-shell-server-protocol.h"
 
 
+static bool is_dmabuf_buffer(wl_resource* b);
+
 enum SurfaceRole {
   SURFACE_NONE,
   SURFACE_TOPLEVEL,
@@ -54,6 +56,7 @@ struct Surface {
   wl_client* client = nullptr;
 
   wl_resource* pending_buffer = nullptr;
+  DmabufBuf* pending_dmabuf = nullptr;
   int pending_ox = 0;
   int pending_oy = 0;
   uint8_t* img = nullptr;
@@ -308,29 +311,50 @@ static void ensure_texture(Surface* s, int kind) {
   }
 }
 
+void oasis_dmabuf_ref(DmabufBuf* b) {
+  if (b != nullptr) b->refs++;
+}
+
+void oasis_dmabuf_unref(DmabufBuf* b) {
+  if (b == nullptr || --b->refs > 0) return;
+  for (int i = 0; i < 4; i++) {
+    if (b->fds[i] >= 0) close(b->fds[i]);
+  }
+  auto& v = b->comp->dmabufs;
+  v.erase(std::remove(v.begin(), v.end(), b), v.end());
+  delete b;
+}
+
+static void surface_set_dmabuf(Surface* s, DmabufBuf* db) {
+  if (s->dmabuf == db) return;
+  oasis_dmabuf_unref(s->dmabuf);
+  s->dmabuf = db;
+  oasis_dmabuf_ref(db);
+}
+
 static void surface_commit(Surface* s) {
-  if (s->pending_buffer != nullptr) {
+  if (s->pending_dmabuf != nullptr) {
+    DmabufBuf* db = s->pending_dmabuf;
+    s->pending_buffer = nullptr;
+    oasis_dmabuf_unref(s->pending_dmabuf);
+    s->pending_dmabuf = nullptr;
+    ensure_texture(s, 2);
+    surface_set_dmabuf(s, db);
+    g_clear_pointer(&s->img, g_free);
+    s->iw = db->w;
+    s->ih = db->h;
+    if (s->gl_texture != nullptr) {
+      oasis_gl_texture_set_dmabuf(s->gl_texture, db);
+    }
+  } else if (s->pending_buffer != nullptr) {
     wl_resource* b = s->pending_buffer;
     s->pending_buffer = nullptr;
     if (wl_shm_buffer_get(b) != nullptr) {
       ensure_texture(s, 1);
-      s->dmabuf = nullptr;
+      surface_set_dmabuf(s, nullptr);
       apply_buffer(s, b);
       if (s->texture != nullptr && s->iw > 0 && s->ih > 0) {
         oasis_texture_push(s->texture, s->img, s->iw, s->ih);
-      }
-    } else {
-      DmabufBuf* db =
-          static_cast<DmabufBuf*>(wl_resource_get_user_data(b));
-      if (db != nullptr && db->res == b) {
-        ensure_texture(s, 2);
-        s->dmabuf = db;
-        g_clear_pointer(&s->img, g_free);
-        s->iw = db->w;
-        s->ih = db->h;
-        if (s->gl_texture != nullptr) {
-          oasis_gl_texture_set_dmabuf(s->gl_texture, db);
-        }
       }
     }
   }
@@ -360,6 +384,14 @@ static void surface_attach(wl_client* client,
                            int32_t y) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   s->pending_buffer = buffer;
+  oasis_dmabuf_unref(s->pending_dmabuf);
+  s->pending_dmabuf = nullptr;
+  if (buffer != nullptr && wl_shm_buffer_get(buffer) == nullptr &&
+      is_dmabuf_buffer(buffer)) {
+    s->pending_dmabuf =
+        static_cast<DmabufBuf*>(wl_resource_get_user_data(buffer));
+    oasis_dmabuf_ref(s->pending_dmabuf);
+  }
   s->pending_ox = x;
   s->pending_oy = y;
 }
@@ -469,6 +501,8 @@ static void free_surface(Surface* s) {
   c->surfaces.erase(
       std::remove(c->surfaces.begin(), c->surfaces.end(), s),
       c->surfaces.end());
+  surface_set_dmabuf(s, nullptr);
+  oasis_dmabuf_unref(s->pending_dmabuf);
   g_free(s->img);
   delete s;
   comp_flush(c);
@@ -1854,14 +1888,16 @@ static void dmabuf_buf_destroy(wl_client* client, wl_resource* res) {
 static const struct wl_buffer_interface dmabuf_buf_impl = {
     dmabuf_buf_destroy};
 
+static bool is_dmabuf_buffer(wl_resource* b) {
+  return wl_resource_instance_of(b, &wl_buffer_interface,
+                                 &dmabuf_buf_impl) != 0;
+}
+
 static void dmabuf_buf_res_destroyed(wl_resource* res) {
   DmabufBuf* b = static_cast<DmabufBuf*>(wl_resource_get_user_data(res));
-  for (int i = 0; i < 4; i++) {
-    if (b->fds[i] >= 0) close(b->fds[i]);
-  }
-  auto& v = b->comp->dmabufs;
-  v.erase(std::remove(v.begin(), v.end(), b), v.end());
-  delete b;
+  b->res = nullptr;
+  b->destroyed = true;
+  oasis_dmabuf_unref(b);
 }
 
 static wl_resource* dmabuf_make_buffer(DmabufParams* p,
@@ -2531,10 +2567,14 @@ void oasis_compositor_free(OasisCompositor* c) {
   for (Surface* s : c->surfaces) {
     if (s->texture != nullptr) g_object_unref(s->texture);
     if (s->gl_texture != nullptr) g_object_unref(s->gl_texture);
+    surface_set_dmabuf(s, nullptr);
+    oasis_dmabuf_unref(s->pending_dmabuf);
     g_free(s->img);
     delete s;
   }
-  for (DmabufBuf* b : c->dmabufs) delete b;
+  while (!c->dmabufs.empty()) {
+    oasis_dmabuf_unref(c->dmabufs.back());
+  }
   for (DataSource* ds : c->sources) delete ds;
   for (DataOffer* o : c->offers) delete o;
   for (DataDevice* d : c->devices) delete d;
