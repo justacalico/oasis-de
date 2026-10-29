@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -83,18 +84,169 @@ const _iconSizes = [
   '16x16',
 ];
 
-String? findIconPath(String icon, {List<String>? roots}) {
+const _iconExts = ['png', 'svg', 'xpm'];
+
+class _IconThemeDir {
+  const _IconThemeDir({
+    required this.name,
+    required this.size,
+    required this.scale,
+    required this.type,
+    required this.minSize,
+    required this.maxSize,
+    required this.threshold,
+  });
+
+  final String name;
+  final int size;
+  final int scale;
+  final String type;
+  final int minSize;
+  final int maxSize;
+  final int threshold;
+}
+
+class _IconThemeIndex {
+  const _IconThemeIndex(this.dirs, this.inherits);
+
+  final List<_IconThemeDir> dirs;
+  final List<String> inherits;
+}
+
+final _iconIndexCache = <String, _IconThemeIndex?>{};
+
+_IconThemeIndex? _loadIconIndex(String root, String theme) {
+  final key = '$root/$theme';
+  if (_iconIndexCache.containsKey(key)) return _iconIndexCache[key];
+  final file = File('$key/index.theme');
+  _IconThemeIndex? index;
+  if (file.existsSync()) {
+    final sections = <String, Map<String, String>>{};
+    var current = '';
+    for (final raw in file.readAsStringSync().split('\n')) {
+      final line = raw.trim();
+      if (line.startsWith('[') && line.endsWith(']')) {
+        current = line.substring(1, line.length - 1);
+        sections.putIfAbsent(current, () => {});
+      } else if (line.contains('=')) {
+        final eq = line.indexOf('=');
+        sections.putIfAbsent(current, () => {});
+        sections[current]!.putIfAbsent(
+          line.substring(0, eq).trim(),
+          () => line.substring(eq + 1).trim(),
+        );
+      }
+    }
+    final meta = sections['Icon Theme'];
+    if (meta != null) {
+      index = _IconThemeIndex([
+        for (final name in _splitList(meta['Directories']))
+          _parseThemeDir(name, sections[name] ?? const {}),
+      ], _splitList(meta['Inherits']));
+    }
+  }
+  return _iconIndexCache[key] = index;
+}
+
+_IconThemeDir _parseThemeDir(String name, Map<String, String> keys) {
+  final size = int.tryParse(keys['Size'] ?? '') ?? 48;
+  return _IconThemeDir(
+    name: name,
+    size: size,
+    scale: int.tryParse(keys['Scale'] ?? '') ?? 1,
+    type: keys['Type'] ?? 'Fixed',
+    minSize: int.tryParse(keys['MinSize'] ?? '') ?? size,
+    maxSize: int.tryParse(keys['MaxSize'] ?? '') ?? size,
+    threshold: int.tryParse(keys['Threshold'] ?? '') ?? 2,
+  );
+}
+
+bool _themeDirMatches(_IconThemeDir dir, int size) =>
+    _themeDirDistance(dir, size) == 0;
+
+int _themeDirDistance(_IconThemeDir dir, int size) {
+  final scaled = dir.size * dir.scale;
+  switch (dir.type) {
+    case 'Scalable':
+      if (size < dir.minSize * dir.scale) {
+        return dir.minSize * dir.scale - size;
+      }
+      if (size > dir.maxSize * dir.scale) {
+        return size - dir.maxSize * dir.scale;
+      }
+      return 0;
+    case 'Threshold':
+      final diff = (scaled - size).abs();
+      return diff <= dir.threshold ? 0 : diff - dir.threshold;
+    default:
+      return (scaled - size).abs();
+  }
+}
+
+String? findIconPath(
+  String icon, {
+  List<String>? roots,
+  String theme = 'hicolor',
+  int size = 48,
+}) {
   if (icon.isEmpty) return null;
   if (icon.startsWith('/')) {
     return File(icon).existsSync() ? icon : null;
   }
-  for (final root in roots ?? _iconSearchRoots()) {
-    for (final size in _iconSizes) {
-      final p = '$root/hicolor/$size/apps/$icon.png';
+  final searchRoots = roots ?? _iconSearchRoots();
+  final visited = <String>{};
+  String? result;
+  String? loose;
+
+  String? probe(String path) {
+    for (final ext in _iconExts) {
+      final p = '$path.$ext';
       if (File(p).existsSync()) return p;
     }
-    final direct = '$root/$icon.png';
-    if (File(direct).existsSync()) return direct;
+    return null;
+  }
+
+  void visit(String themeName) {
+    if (result != null || !visited.add(themeName)) return;
+    for (final root in searchRoots) {
+      if (result != null) return;
+      final index = _loadIconIndex(root, themeName);
+      if (index == null) {
+        for (final s in _iconSizes) {
+          loose ??= probe('$root/$themeName/$s/apps/$icon');
+        }
+        loose ??= probe('$root/$themeName/$icon');
+        continue;
+      }
+      var bestDiff = 1 << 30;
+      String? bestHit;
+      for (final dir in index.dirs) {
+        final hit = probe('$root/$themeName/${dir.name}/$icon');
+        if (hit == null) continue;
+        if (_themeDirMatches(dir, size)) {
+          result = hit;
+          return;
+        }
+        final diff = _themeDirDistance(dir, size);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestHit = hit;
+        }
+      }
+      loose ??= bestHit;
+      for (final parent in index.inherits) {
+        visit(parent);
+      }
+    }
+  }
+
+  visit(theme);
+  visit('hicolor');
+  if (result != null) return result;
+  if (loose != null) return loose;
+  for (final root in searchRoots) {
+    final flat = probe('$root/$icon');
+    if (flat != null) return flat;
   }
   return null;
 }
@@ -276,17 +428,20 @@ DesktopAppEntry? parseDesktopEntry(
   );
 }
 
-Future<List<DesktopAppEntry>> loadDesktopEntries({List<String>? dirs}) async {
+Future<List<DesktopAppEntry>> loadDesktopEntries({List<String>? dirs}) =>
+    Isolate.run(() => loadDesktopEntriesSync(dirs: dirs));
+
+List<DesktopAppEntry> loadDesktopEntriesSync({List<String>? dirs}) {
   final found = <String, DesktopAppEntry>{};
   for (final dirPath in dirs ?? desktopSearchDirs()) {
     final dir = Directory(dirPath);
-    if (!await dir.exists()) continue;
-    await for (final entity in dir.list()) {
+    if (!dir.existsSync()) continue;
+    for (final entity in dir.listSync()) {
       if (entity is! File || !entity.path.endsWith('.desktop')) {
         continue;
       }
       final id = entity.path.split('/').last.replaceAll('.desktop', '');
-      final contents = await entity.readAsString();
+      final contents = entity.readAsStringSync();
       final entry = parseDesktopEntry(id, contents);
       if (entry != null) found[id] = entry;
     }

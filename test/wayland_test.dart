@@ -619,6 +619,76 @@ TryExec=/bin/sh
     expect(findIconPath('pix', roots: [dir.path]), pix.path);
   });
 
+  test('findIconPath honours index.theme', () {
+    final dir = _tmpDir('themeicons');
+    void png(String rel) {
+      final f = File('${dir.path}/$rel')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(const [0x89]);
+    }
+
+    File('${dir.path}/adwaita/index.theme')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('''
+[Icon Theme]
+Directories=16x16/apps;48x48/apps;scalable/apps;64x64/apps
+Inherits=base-theme
+[16x16/apps]
+Size=16
+Type=Fixed
+[48x48/apps]
+Size=48
+Type=Fixed
+[scalable/apps]
+Type=Scalable
+MinSize=24
+MaxSize=256
+[64x64/apps]
+Size=64
+Type=Threshold
+Threshold=4
+''');
+    File('${dir.path}/base-theme/index.theme')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('''
+[Icon Theme]
+Directories=32x32/apps
+[32x32/apps]
+Size=32
+''');
+    png('adwaita/48x48/apps/exact.png');
+    png('adwaita/scalable/apps/scaled.svg');
+    png('adwaita/64x64/apps/near.png');
+    png('base-theme/32x32/apps/inherited.png');
+    png('adwaita/scalable/apps/second.svg');
+    png('adwaita/64x64/apps/second.png');
+
+    expect(
+      findIconPath('exact', roots: [dir.path], theme: 'adwaita'),
+      endsWith('48x48/apps/exact.png'),
+    );
+    expect(
+      findIconPath('scaled', roots: [dir.path], theme: 'adwaita'),
+      endsWith('scalable/apps/scaled.svg'),
+    );
+    expect(
+      findIconPath('near', roots: [dir.path], theme: 'adwaita'),
+      endsWith('64x64/apps/near.png'),
+    );
+    expect(
+      findIconPath('inherited', roots: [dir.path], theme: 'adwaita'),
+      endsWith('32x32/apps/inherited.png'),
+    );
+    expect(
+      findIconPath('second', roots: [dir.path], theme: 'adwaita'),
+      endsWith('scalable/apps/second.svg'),
+    );
+    expect(
+      findIconPath('missing-xyz', roots: [dir.path], theme: 'adwaita'),
+      isNull,
+    );
+  });
+
   test('loadDesktopEntries scans directories', () async {
     final dir = _tmpDir('apps');
     File('${dir.path}/good.desktop').writeAsStringSync('''
