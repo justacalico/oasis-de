@@ -59,12 +59,6 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get launcherNoResults => 'No results';
 
   @override
-  String get sessionLock => 'Lock';
-  String get sessionLogOut => 'Log Out';
-  String get sessionSleep => 'Sleep';
-  String get sessionRestart => 'Restart';
-  String get sessionShutDown => 'Shut Down';
-
   String get ccWifi => 'Wi-Fi';
 
   @override
@@ -322,4 +316,28 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String ctxMoveToDesktop(int n) {
     return 'Move to desktop $n';
   }
+
+  @override
+  String get sessionLock => 'Lock';
+
+  @override
+  String get sessionLogOut => 'Log Out';
+
+  @override
+  String get sessionSleep => 'Sleep';
+
+  @override
+  String get sessionRestart => 'Restart';
+
+  @override
+  String get sessionShutDown => 'Shut Down';
+
+  @override
+  String get notifCenter => 'Notifications';
+
+  @override
+  String get notifClearAll => 'Clear All';
+
+  @override
+  String get notifEmpty => 'No notifications';
 }

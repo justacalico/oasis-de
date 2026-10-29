@@ -59,12 +59,6 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get launcherNoResults => '无结果';
 
   @override
-  String get sessionLock => '锁定';
-  String get sessionLogOut => '注销';
-  String get sessionSleep => '睡眠';
-  String get sessionRestart => '重启';
-  String get sessionShutDown => '关机';
-
   String get ccWifi => '无线局域网';
 
   @override
@@ -315,4 +309,28 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String ctxMoveToDesktop(int n) {
     return '移到桌面 $n';
   }
+
+  @override
+  String get sessionLock => '锁定';
+
+  @override
+  String get sessionLogOut => '注销';
+
+  @override
+  String get sessionSleep => '睡眠';
+
+  @override
+  String get sessionRestart => '重启';
+
+  @override
+  String get sessionShutDown => '关机';
+
+  @override
+  String get notifCenter => '通知';
+
+  @override
+  String get notifClearAll => '全部清除';
+
+  @override
+  String get notifEmpty => '没有通知';
 }

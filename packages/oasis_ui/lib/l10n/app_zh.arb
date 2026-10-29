@@ -130,5 +130,8 @@
   "sessionLogOut": "注销",
   "sessionSleep": "睡眠",
   "sessionRestart": "重启",
-  "sessionShutDown": "关机"
+  "sessionShutDown": "关机",
+  "notifCenter": "通知",
+  "notifClearAll": "全部清除",
+  "notifEmpty": "没有通知"
 }

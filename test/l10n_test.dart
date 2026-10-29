@@ -29,6 +29,9 @@ void exerciseStrings(OasisLocalizations l) {
   l.sessionSleep;
   l.sessionRestart;
   l.sessionShutDown;
+  l.notifCenter;
+  l.notifClearAll;
+  l.notifEmpty;
   l.ccWifi;
   l.ccBluetooth;
   l.ccFocus;

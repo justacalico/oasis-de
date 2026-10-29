@@ -130,5 +130,8 @@
   "sessionLogOut": "Logáil Amach",
   "sessionSleep": "Codladh",
   "sessionRestart": "Atosaigh",
-  "sessionShutDown": "Múch"
+  "sessionShutDown": "Múch",
+  "notifCenter": "Fógraí",
+  "notifClearAll": "Glan Gach",
+  "notifEmpty": "Gan fhógraí"
 }

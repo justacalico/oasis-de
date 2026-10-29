@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
+import 'services/notifications.dart';
 
 const kInterfaceMode = bool.fromEnvironment(
   'OASIS_INTERFACE',
@@ -43,6 +44,7 @@ Future<void> main() async {
 
   runApp(
     OasisDesktopApp(
+      notificationDaemon: NotificationDaemon(),
       version: info.version,
       wallpaper: OasisWallpaperService(store: PrefsOasisStore(prefs)),
       store: PrefsOasisStore(prefs),

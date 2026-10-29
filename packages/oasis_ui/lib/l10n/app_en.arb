@@ -130,5 +130,8 @@
   "sessionLogOut": "Log Out",
   "sessionSleep": "Sleep",
   "sessionRestart": "Restart",
-  "sessionShutDown": "Shut Down"
+  "sessionShutDown": "Shut Down",
+  "notifCenter": "Notifications",
+  "notifClearAll": "Clear All",
+  "notifEmpty": "No notifications"
 }

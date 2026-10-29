@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import 'apps/shell_apps.dart';
+import 'services/notifications.dart';
 import 'shell/desktop_shell.dart';
 import 'shell/shell_controller.dart';
 import 'shell/shell_menus.dart';
@@ -29,6 +30,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.wallpaper,
     this.wayland,
     this.externalAppsLoader = loadExternalApps,
+    this.notificationDaemon,
     this.appDirWatcher,
     this.store,
     this.backend,
@@ -41,6 +43,7 @@ class OasisDesktopApp extends StatefulWidget {
   final OasisWallpaperService? wallpaper;
   final WaylandService? wayland;
   final Future<List<OasisApp>> Function() externalAppsLoader;
+  final NotificationDaemon? notificationDaemon;
   final Stream<void> Function()? appDirWatcher;
   final OasisStore? store;
   final OasisSystemBackend? backend;
@@ -123,6 +126,13 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   }
 
   Future<void> _init() async {
+    unawaited(
+      widget.notificationDaemon?.start(
+            onNotify: _controller.pushNotification,
+            onClose: _controller.dismissNotification,
+          ) ??
+          Future.value(),
+    );
     await _wayland.start();
     if (!mounted || !_wayland.available) return;
     Future<void> reload() async {
@@ -139,6 +149,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
 
   @override
   void dispose() {
+    unawaited(widget.notificationDaemon?.stop() ?? Future.value());
     _appDirWatch?.cancel();
     _appearance.removeListener(_persistState);
     _controller.removeListener(_persistState);
