@@ -1024,7 +1024,11 @@ void main() {
   ) async {
     final host = FakeWaylandHost();
     final service = await _service(host);
-    final c = ShellController(apps: [_external('x')], wayland: service);
+    final c = ShellController(
+      apps: [_external('x')],
+      wayland: service,
+      batteryPollInterval: null,
+    );
     addTearDown(c.dispose);
     c.openApp(c.apps.single);
     expect(c.windows.single.launching, isTrue);
@@ -1054,7 +1058,11 @@ void main() {
   testWidgets('failed launch removes window and sets error', (tester) async {
     final host = _FailingLaunchHost();
     final service = await _service(host);
-    final c = ShellController(apps: [_external('x')], wayland: service);
+    final c = ShellController(
+      apps: [_external('x')],
+      wayland: service,
+      batteryPollInterval: null,
+    );
     addTearDown(c.dispose);
     c.openApp(c.apps.single);
     await tester.pump();

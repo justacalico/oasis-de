@@ -1,3 +1,4 @@
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
@@ -123,6 +124,23 @@ void main() {
     c.minimizeWindow(first);
     expect(c.focusedId, isNull);
     c.dispose();
+  });
+
+  test('battery level polls on an interval', () {
+    fakeAsync((async) {
+      final backend = _BatteryBackend();
+      final c = ShellController(
+        apps: const [],
+        backend: backend,
+        batteryPollInterval: const Duration(seconds: 1),
+      );
+      async.flushMicrotasks();
+      async.elapse(const Duration(seconds: 3));
+      async.flushMicrotasks();
+      expect(backend.calls, greaterThanOrEqualTo(4));
+      expect(c.batteryLevel, 0.5);
+      c.dispose();
+    });
   });
 
   test('showDesktop toggles minimize and restore', () {
@@ -489,6 +507,37 @@ void main() {
 }
 
 class _Ctx extends Fake implements BuildContext {}
+
+class _BatteryBackend implements OasisSystemBackend {
+  var calls = 0;
+
+  @override
+  Future<OasisBattery> battery() async {
+    calls++;
+    return const OasisBattery(level: 0.5, charging: false);
+  }
+
+  @override
+  Future<OasisSystemState> read() async => const OasisSystemState();
+
+  @override
+  void wifi(bool enabled) {}
+
+  @override
+  void bluetooth(bool enabled) {}
+
+  @override
+  void brightness(double level) {}
+
+  @override
+  void volume(double level) {}
+
+  @override
+  void nightLight(bool enabled) {}
+
+  @override
+  void session(OasisSessionAction action) {}
+}
 
 class _RecordingBackend implements OasisSystemBackend {
   _RecordingBackend(this.calls);

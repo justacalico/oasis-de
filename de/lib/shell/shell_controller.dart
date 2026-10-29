@@ -83,10 +83,17 @@ class ShellController extends ChangeNotifier {
     required List<OasisApp> apps,
     this.wayland,
     this.backend = const NoopSystemBackend(),
+    this.batteryPollInterval = const Duration(seconds: 60),
   }) : apps = List.of(apps) {
     wayland?.addListener(_syncSurfaces);
     _requestSub = wayland?.requests.listen(_onWaylandRequest);
     _refreshSystemState();
+    if (batteryPollInterval != null) {
+      _batteryTimer = Timer.periodic(
+        batteryPollInterval!,
+        (_) => unawaited(pollBattery()),
+      );
+    }
   }
 
   Future<void> pollBattery() async {
@@ -114,6 +121,7 @@ class ShellController extends ChangeNotifier {
   final List<OasisApp> pinned = [];
   final List<ShellWindowData> windows = [];
   final WaylandService? wayland;
+  final Duration? batteryPollInterval;
 
   String Function() unknownAppName =
       () => lookupOasisLocalizations(const Locale('en')).appUnknown;
@@ -125,6 +133,7 @@ class ShellController extends ChangeNotifier {
 
   double? batteryLevel;
   bool batteryCharging = false;
+  Timer? _batteryTimer;
 
   final List<OasisNotification> notifications = [];
   OasisNotification? bannerNotification;
@@ -903,6 +912,7 @@ class ShellController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _bannerTimer?.cancel();
+    _batteryTimer?.cancel();
     for (final w in windows) {
       w.launchTimer?.cancel();
     }
