@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
+import 'context_menu.dart';
 import 'shell_controller.dart';
 
 const kMenuBarHeight = 30.0;
@@ -270,7 +271,10 @@ class MenuDropdown extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (final item in items) ...[
-                _MenuEntry(item: item, controller: controller),
+                OasisMenuEntry(
+                  item: item,
+                  onSelect: () => controller.selectMenu(null),
+                ),
                 if (item.separatorAfter)
                   Divider(
                     height: 9,
@@ -288,74 +292,6 @@ class MenuDropdown extends StatelessWidget {
   }
 }
 
-class _MenuEntry extends StatefulWidget {
-  const _MenuEntry({required this.item, required this.controller});
-
-  final ShellMenuItem item;
-  final ShellController controller;
-
-  @override
-  State<_MenuEntry> createState() => _MenuEntryState();
-}
-
-class _MenuEntryState extends State<_MenuEntry> {
-  var _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = OasisStyle.of(context).palette;
-    final enabled = widget.item.enabled;
-    final color = !enabled
-        ? p.textTertiary
-        : _hovered
-        ? const Color(0xFFFFFFFF)
-        : p.textPrimary;
-    return MouseRegion(
-      onEnter: (_) {
-        if (enabled) setState(() => _hovered = true);
-      },
-      onExit: (_) {
-        if (enabled) setState(() => _hovered = false);
-      },
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: enabled
-            ? () {
-                widget.controller.selectMenu(null);
-                widget.item.action?.call(context);
-              }
-            : null,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          decoration: BoxDecoration(
-            color: _hovered ? p.accent : const Color(0x00000000),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  child: widget.item.checked
-                      ? Icon(Icons.check, size: 14, color: color)
-                      : null,
-                ),
-                Text(
-                  widget.item.label,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: color),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SessionMenu extends StatelessWidget {
   const _SessionMenu({required this.controller, required this.style});
 
@@ -365,32 +301,36 @@ class _SessionMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = OasisLocalizations.of(context);
-    return PopupMenuButton<OasisSessionAction>(
-      tooltip: '',
-      icon: Icon(Icons.power_settings_new, size: 15, color: style?.color),
-      onSelected: controller.session,
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: OasisSessionAction.lock,
-          child: Text(l10n.sessionLock),
-        ),
-        PopupMenuItem(
-          value: OasisSessionAction.logout,
-          child: Text(l10n.sessionLogOut),
-        ),
-        PopupMenuItem(
-          value: OasisSessionAction.suspend,
-          child: Text(l10n.sessionSleep),
-        ),
-        PopupMenuItem(
-          value: OasisSessionAction.reboot,
-          child: Text(l10n.sessionRestart),
-        ),
-        PopupMenuItem(
-          value: OasisSessionAction.poweroff,
-          child: Text(l10n.sessionShutDown),
-        ),
-      ],
+    final c = controller;
+    return _StatusIcon(
+      icon: Icons.power_settings_new,
+      style: style,
+      onTap: () {
+        final box = context.findRenderObject()! as RenderBox;
+        final pos = box.localToGlobal(Offset(0, box.size.height + 4));
+        showShellContextMenu(context, pos, [
+          ShellMenuItem(
+            label: l10n.sessionLock,
+            action: (_) => c.session(OasisSessionAction.lock),
+          ),
+          ShellMenuItem(
+            label: l10n.sessionLogOut,
+            action: (_) => c.session(OasisSessionAction.logout),
+          ),
+          ShellMenuItem(
+            label: l10n.sessionSleep,
+            action: (_) => c.session(OasisSessionAction.suspend),
+          ),
+          ShellMenuItem(
+            label: l10n.sessionRestart,
+            action: (_) => c.session(OasisSessionAction.reboot),
+          ),
+          ShellMenuItem(
+            label: l10n.sessionShutDown,
+            action: (_) => c.session(OasisSessionAction.poweroff),
+          ),
+        ]);
+      },
     );
   }
 }
