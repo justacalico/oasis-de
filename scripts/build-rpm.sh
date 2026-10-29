@@ -13,7 +13,7 @@ cp packaging/oasis-session packaging/oasis.desktop \
   de/linux/data/gitlab.httpanimations.oasisde.png "$TOP/SOURCES/"
 cp packaging/rpm/oasis.spec "$TOP/SPECS/oasis.spec"
 
-rpmbuild -bb "$TOP/SPECS/oasis.spec" \
+rpmbuild -bb --nodeps "$TOP/SPECS/oasis.spec" \
   --define "_topdir $TOP" \
   --define "pkg_version $VERSION" \
   --define "bundle_dir $(cd "$BUNDLE" && pwd)"
