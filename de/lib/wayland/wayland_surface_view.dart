@@ -169,8 +169,34 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
     );
   }
 
+  (WaylandSurface, Offset)? _subHit(WaylandSurface root, Offset p) {
+    for (final id in root.children.reversed) {
+      final sub = service.surfaces[id];
+      if (sub == null) continue;
+      final lp = p - sub.offset;
+      final size = logicalSurfaceSize(sub);
+      if (lp.dx < 0 ||
+          lp.dy < 0 ||
+          lp.dx >= size.width ||
+          lp.dy >= size.height) {
+        continue;
+      }
+      final region = sub.inputRegion;
+      if (region != null && !region.any((r) => r.contains(lp))) {
+        continue;
+      }
+      return _subHit(sub, lp) ?? (sub, lp);
+    }
+    return null;
+  }
+
   void _motion(PointerEvent e, Size box) {
     final p = _surfaceCoords(e.localPosition, box);
+    final hit = _subHit(surface, p);
+    if (hit != null) {
+      service.pointerMotion(hit.$1.id, hit.$2.dx, hit.$2.dy);
+      return;
+    }
     service.pointerMotion(surface.id, p.dx, p.dy);
   }
 

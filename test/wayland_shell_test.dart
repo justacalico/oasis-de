@@ -526,6 +526,84 @@ void main() {
     service.dispose();
   });
 
+  testWidgets('pointer motion targets deepest subsurface', (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    host.emit({
+      'event': 'subsurface',
+      'id': 2,
+      'parent': 1,
+      'x': 100,
+      'y': 50,
+    });
+    host.emit({'event': 'size', 'id': 2, 'w': 100, 'h': 100});
+    host.emit({
+      'event': 'subsurface',
+      'id': 3,
+      'parent': 2,
+      'x': 10,
+      'y': 10,
+    });
+    host.emit({'event': 'size', 'id': 3, 'w': 40, 'h': 40});
+    host.emit({
+      'event': 'subsurface',
+      'id': 4,
+      'parent': 1,
+      'x': 250,
+      'y': 50,
+    });
+    host.emit({'event': 'size', 'id': 4, 'w': 100, 'h': 100});
+    host.emit({
+      'event': 'inputRegion',
+      'id': 4,
+      'rects': [0, 0, 20, 20],
+    });
+    host.emit({'event': 'subsurface', 'id': 5, 'parent': 1, 'x': 0, 'y': 0});
+    await tester.pump();
+    final surface = service.surfaces[1]!;
+
+    await pumpOasis(
+      tester,
+      Center(
+        child: SizedBox(
+          width: 400,
+          height: 300,
+          child: WaylandSurfaceView(
+            surface: surface,
+            service: service,
+            focused: true,
+            maximized: false,
+          ),
+        ),
+      ),
+      size: const Size(400, 300),
+    );
+    await tester.pump();
+    final topLeft = tester.getTopLeft(find.byType(WaylandSurfaceView));
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(
+      pointer.hover(topLeft + const Offset(120, 70)),
+    );
+    await tester.pump();
+    expect(host.calls, contains('motion:3:10.0:10.0'));
+    await tester.sendEventToBinding(
+      pointer.hover(topLeft + const Offset(300, 100)),
+    );
+    await tester.pump();
+    expect(host.calls, contains('motion:1:300.0:100.0'));
+    await tester.sendEventToBinding(
+      pointer.hover(topLeft + const Offset(260, 60)),
+    );
+    await tester.pump();
+    expect(
+      host.calls.where((c) => c.startsWith('motion:4:')),
+      isNotEmpty,
+    );
+    service.dispose();
+  });
+
   testWidgets('surface view sends buffer-space coordinates', (tester) async {
     final host = FakeWaylandHost();
     final service = await _service(host);
