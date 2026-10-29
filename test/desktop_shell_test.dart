@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
+import 'package:oasis_de/services/notifications.dart';
+import 'package:oasis_de/shell/notification_center.dart';
 import 'package:oasis_de/apps/shell_apps.dart';
 import 'package:oasis_de/shell/dock.dart';
 import 'package:oasis_de/shell/genie_window.dart';
@@ -29,6 +31,7 @@ Future<void> pumpDesktop(
   UpdateChecker? updateChecker,
   List<String>? opened,
   OasisSystemBackend? backend,
+  NotificationDaemon? notificationDaemon,
 }) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
@@ -36,6 +39,7 @@ Future<void> pumpDesktop(
   await tester.pumpWidget(
     OasisDesktopApp(
       backend: backend ?? const NoopSystemBackend(),
+      notificationDaemon: notificationDaemon,
       version: '1.0.0',
       appearance: appearance ?? OasisAppearance(themeMode: mode),
       updateChecker: updateChecker ?? _FakeChecker(const AppUpdate()),
@@ -277,6 +281,69 @@ void main() {
       OasisSessionAction.reboot,
       OasisSessionAction.poweroff,
     ]);
+  });
+
+  testWidgets('notification center shows, dismisses and clears', (
+    tester,
+  ) async {
+    final daemon = _FakeDaemon();
+    await pumpDesktop(tester, notificationDaemon: daemon);
+    expect(daemon.startedFake, isTrue);
+    daemon.push!(
+      OasisNotification(
+        id: 1,
+        appName: 'app',
+        summary: 'Hello',
+        body: 'World',
+        timestamp: nullTimestamp,
+      ),
+    );
+    await tester.pump();
+    expect(find.text('World'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.notifications));
+    await tester.pumpAndSettle();
+    expect(find.text('Hello'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    expect(find.text('No notifications'), findsOneWidget);
+    await tester.tap(find.text('Clear All'));
+    await tester.pumpAndSettle();
+    daemon.push!(
+      OasisNotification(
+        id: 2,
+        appName: 'app',
+        summary: 'Again',
+        body: '',
+        timestamp: nullTimestamp,
+      ),
+    );
+    await tester.pump();
+    expect(
+      find.descendant(
+        of: find.byType(NotificationCenterPanel),
+        matching: find.text('Again'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NotificationCenterPanel),
+        matching: find.byIcon(Icons.close),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(NotificationCenterPanel), findsOneWidget);
+    await tester.tapAt(const Offset(1105, 45));
+    await tester.pumpAndSettle();
+    expect(find.byType(NotificationCenterPanel), findsOneWidget);
+    await tester.tapAt(const Offset(40, 400));
+    await tester.pumpAndSettle();
+    expect(find.byType(NotificationCenterPanel), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    expect(daemon.stopped, isTrue);
   });
 
   testWidgets('battery icon follows level and charging', (tester) async {
@@ -733,4 +800,26 @@ class _SessionBackend extends NoopSystemBackend {
 
   @override
   void session(OasisSessionAction action) => calls.add(action);
+}
+
+final nullTimestamp = DateTime(2024);
+
+class _FakeDaemon extends NotificationDaemon {
+  void Function(OasisNotification)? push;
+  var startedFake = false;
+  var stopped = false;
+
+  @override
+  Future<void> start({
+    required void Function(OasisNotification) onNotify,
+    required void Function(int) onClose,
+  }) async {
+    push = onNotify;
+    startedFake = true;
+  }
+
+  @override
+  Future<void> stop() async {
+    stopped = true;
+  }
 }

@@ -59,12 +59,6 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get launcherNoResults => 'Torthaí ar bith';
 
   @override
-  String get sessionLock => 'Glasáil';
-  String get sessionLogOut => 'Logáil Amach';
-  String get sessionSleep => 'Codladh';
-  String get sessionRestart => 'Atosaigh';
-  String get sessionShutDown => 'Múch';
-
   String get ccWifi => 'Wi-Fi';
 
   @override
@@ -323,4 +317,28 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String ctxMoveToDesktop(int n) {
     return 'Bog go deasc $n';
   }
+
+  @override
+  String get sessionLock => 'Glasáil';
+
+  @override
+  String get sessionLogOut => 'Logáil Amach';
+
+  @override
+  String get sessionSleep => 'Codladh';
+
+  @override
+  String get sessionRestart => 'Atosaigh';
+
+  @override
+  String get sessionShutDown => 'Múch';
+
+  @override
+  String get notifCenter => 'Fógraí';
+
+  @override
+  String get notifClearAll => 'Glan Gach';
+
+  @override
+  String get notifEmpty => 'Gan fhógraí';
 }

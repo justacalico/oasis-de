@@ -92,6 +92,13 @@ class ShellMenuBar extends StatelessWidget {
               onTap: controller.toggleControlCenter,
               style: textStyle,
             ),
+            _StatusIcon(
+              icon: controller.notifications.isEmpty
+                  ? Icons.notifications_none
+                  : Icons.notifications,
+              onTap: controller.toggleNotificationCenter,
+              style: textStyle,
+            ),
             _SessionMenu(controller: controller, style: textStyle),
             const SizedBox(width: 6),
             _MenuClock(style: textStyle),

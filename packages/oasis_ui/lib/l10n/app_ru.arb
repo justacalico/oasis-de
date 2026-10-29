@@ -130,5 +130,8 @@
   "sessionLogOut": "Выйти",
   "sessionSleep": "Сон",
   "sessionRestart": "Перезапуск",
-  "sessionShutDown": "Выключение"
+  "sessionShutDown": "Выключение",
+  "notifCenter": "Уведомления",
+  "notifClearAll": "Очистить всё",
+  "notifEmpty": "Нет уведомлений"
 }

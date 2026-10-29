@@ -202,12 +202,6 @@ abstract class OasisLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Wi-Fi'**
-  String get sessionLock;
-  String get sessionLogOut;
-  String get sessionSleep;
-  String get sessionRestart;
-  String get sessionShutDown;
-
   String get ccWifi;
 
   /// No description provided for @ccBluetooth.
@@ -695,6 +689,54 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Move to desktop {n}'**
   String ctxMoveToDesktop(int n);
+
+  /// No description provided for @sessionLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get sessionLock;
+
+  /// No description provided for @sessionLogOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Out'**
+  String get sessionLogOut;
+
+  /// No description provided for @sessionSleep.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep'**
+  String get sessionSleep;
+
+  /// No description provided for @sessionRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get sessionRestart;
+
+  /// No description provided for @sessionShutDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Shut Down'**
+  String get sessionShutDown;
+
+  /// No description provided for @notifCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifCenter;
+
+  /// No description provided for @notifClearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All'**
+  String get notifClearAll;
+
+  /// No description provided for @notifEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications'**
+  String get notifEmpty;
 }
 
 class _OasisLocalizationsDelegate

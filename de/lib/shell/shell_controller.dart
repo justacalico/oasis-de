@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import 'package:oasis_ui/oasis_ui.dart';
 
+import '../services/notifications.dart';
+
 import '../wayland/wayland_service.dart';
 import 'menu_bar.dart';
 
@@ -115,6 +117,48 @@ class ShellController extends ChangeNotifier {
 
   double? batteryLevel;
   bool batteryCharging = false;
+
+  final List<OasisNotification> notifications = [];
+  OasisNotification? bannerNotification;
+  var notificationCenterOpen = false;
+  Timer? _bannerTimer;
+
+  void pushNotification(OasisNotification n) {
+    notifications.insert(0, n);
+    if (!focusOn) {
+      bannerNotification = n;
+      _bannerTimer?.cancel();
+      _bannerTimer = Timer(const Duration(seconds: 5), () {
+        if (_disposed) return;
+        bannerNotification = null;
+        notifyListeners();
+      });
+    }
+    notifyListeners();
+  }
+
+  void dismissNotification(int id) {
+    if (bannerNotification?.id == id) bannerNotification = null;
+    notifications.removeWhere((n) => n.id == id);
+    notifyListeners();
+  }
+
+  void clearNotifications() {
+    notifications.clear();
+    bannerNotification = null;
+    notifyListeners();
+  }
+
+  void toggleNotificationCenter() {
+    notificationCenterOpen = !notificationCenterOpen;
+    if (notificationCenterOpen) {
+      launcherOpen = false;
+      launchPadOpen = false;
+      controlCenterOpen = false;
+      _openMenu = null;
+    }
+    notifyListeners();
+  }
 
   StreamSubscription<WaylandRequest>? _requestSub;
   int _nextId = 1;
@@ -771,6 +815,7 @@ class ShellController extends ChangeNotifier {
     launcherOpen = false;
     launchPadOpen = false;
     controlCenterOpen = false;
+    notificationCenterOpen = false;
     _openMenu = null;
     notifyListeners();
   }
@@ -800,6 +845,7 @@ class ShellController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _bannerTimer?.cancel();
     for (final w in windows) {
       w.launchTimer?.cancel();
     }

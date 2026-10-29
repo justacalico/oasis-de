@@ -13,6 +13,7 @@ import 'genie_window.dart';
 import 'launch_pad.dart';
 import 'launcher.dart';
 import 'menu_bar.dart';
+import 'notification_center.dart';
 import 'shell_controller.dart';
 import 'window_switcher.dart';
 
@@ -222,10 +223,25 @@ class _DesktopShellState extends State<DesktopShell> {
                   Positioned.fill(
                     child: ShellLaunchPad(controller: controller),
                   ),
+                if (controller.notificationCenterOpen)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: controller.toggleNotificationCenter,
+                      child: NotificationCenterPanel(
+                        controller: controller,
+                      ),
+                    ),
+                  ),
                 if (controller.switcherIndex != null)
                   Positioned.fill(
                     child: WindowSwitcher(controller: controller),
                   ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: NotificationBanner(controller: controller),
+                  ),
+                ),
                 Positioned.fill(
                   child: IgnorePointer(
                     child: ValueListenableBuilder<Offset>(

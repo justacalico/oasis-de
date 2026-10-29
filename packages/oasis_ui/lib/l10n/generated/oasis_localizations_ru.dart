@@ -59,12 +59,6 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get launcherNoResults => 'Ничего не найдено';
 
   @override
-  String get sessionLock => 'Блокировать';
-  String get sessionLogOut => 'Выйти';
-  String get sessionSleep => 'Сон';
-  String get sessionRestart => 'Перезапуск';
-  String get sessionShutDown => 'Выключение';
-
   String get ccWifi => 'Wi-Fi';
 
   @override
@@ -324,4 +318,28 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String ctxMoveToDesktop(int n) {
     return 'Переместить на стол $n';
   }
+
+  @override
+  String get sessionLock => 'Блокировать';
+
+  @override
+  String get sessionLogOut => 'Выйти';
+
+  @override
+  String get sessionSleep => 'Сон';
+
+  @override
+  String get sessionRestart => 'Перезапуск';
+
+  @override
+  String get sessionShutDown => 'Выключение';
+
+  @override
+  String get notifCenter => 'Уведомления';
+
+  @override
+  String get notifClearAll => 'Очистить всё';
+
+  @override
+  String get notifEmpty => 'Нет уведомлений';
 }
