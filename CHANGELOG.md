@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.1 - 2026-10-29
+#### Bug Fixes
+- 修复 GitLab 发布链接参数被拒绝 - (906c9e4) - HttpAnimations
+#### Continuous Integration
+- cog 打带 v 前缀的版本标签 - (f4779ff) - HttpAnimations
+
+- - -
+
 ## 0.4.0 - 2026-10-29
 #### Features
 - 新增自定义壁纸服务与设置面板 - (53d28b9) - HttpAnimations
