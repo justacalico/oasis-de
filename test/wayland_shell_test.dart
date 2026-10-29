@@ -761,6 +761,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       OasisDesktopApp(
+        backend: const NoopSystemBackend(),
         version: '1.0.0',
         appearance: OasisAppearance(themeMode: OasisThemeMode.light),
         wayland: service,
@@ -796,6 +797,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       OasisDesktopApp(
+        backend: const NoopSystemBackend(),
         version: '1.0.0',
         appearance: OasisAppearance(themeMode: OasisThemeMode.light),
         wayland: service,
@@ -855,6 +857,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       OasisDesktopApp(
+        backend: const NoopSystemBackend(),
         version: '1.0.0',
         appearance: OasisAppearance(themeMode: OasisThemeMode.light),
         wayland: WaylandService(host: FakeWaylandHost()),
@@ -874,6 +877,7 @@ void main() {
     final service2 = WaylandService(host: FakeWaylandHost());
     await tester.pumpWidget(
       OasisDesktopApp(
+        backend: const NoopSystemBackend(),
         version: '1.0.0',
         appearance: OasisAppearance(themeMode: OasisThemeMode.light),
         wayland: service2,
@@ -882,11 +886,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    final dynamic state2 =
-        tester.state(find.byType(OasisDesktopApp));
+    final dynamic state2 = tester.state(find.byType(OasisDesktopApp));
     final c2 = state2.controller as ShellController;
-    expect([for (final a in c2.pinned) a.id],
-        contains('desktop:x'));
+    expect([for (final a in c2.pinned) a.id], contains('desktop:x'));
     c2.wifiOnValue = true;
     await tester.pump();
     expect(store.read('shell.wifi'), '1');
@@ -899,6 +901,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       OasisDesktopApp(
+        backend: const NoopSystemBackend(),
         version: '1.0.0',
         appearance: OasisAppearance(themeMode: OasisThemeMode.light),
         wayland: service,

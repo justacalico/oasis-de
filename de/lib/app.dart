@@ -31,6 +31,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.externalAppsLoader = loadExternalApps,
     this.appDirWatcher,
     this.store,
+    this.backend,
   });
 
   final String version;
@@ -42,6 +43,7 @@ class OasisDesktopApp extends StatefulWidget {
   final Future<List<OasisApp>> Function() externalAppsLoader;
   final Stream<void> Function()? appDirWatcher;
   final OasisStore? store;
+  final OasisSystemBackend? backend;
 
   @override
   State<OasisDesktopApp> createState() => _OasisDesktopAppState();
@@ -70,7 +72,11 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       currentVersion: () async => widget.version,
     );
     _wayland = widget.wayland ?? WaylandService();
-    _controller = ShellController(apps: const [], wayland: _wayland);
+    _controller = ShellController(
+      apps: const [],
+      wayland: _wayland,
+      backend: widget.backend ?? const CliSystemBackend(),
+    );
     _restoreState();
     _appearance.addListener(_persistState);
     _controller.addListener(_persistState);

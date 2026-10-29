@@ -8,13 +8,14 @@ typedef PrefsSettingsStore = PrefsOasisStore;
 enum SettingsPane { appearance, wallpaper, general, wifi, bluetooth, about }
 
 class SettingsState extends ChangeNotifier {
-  SettingsState({SettingsStore? store})
+  SettingsState({SettingsStore? store, this.backend})
       : _store = store ?? MemorySettingsStore() {
-    wifiOn = _store.read('wifi') != 'off';
-    bluetoothOn = _store.read('bluetooth') != 'off';
+    wifiOn = _store.read('shell.wifi') != '0';
+    bluetoothOn = _store.read('shell.bluetooth') != '0';
   }
 
   final SettingsStore _store;
+  final OasisSystemBackend? backend;
 
   var pane = SettingsPane.appearance;
   var wifiOn = true;
@@ -26,13 +27,16 @@ class SettingsState extends ChangeNotifier {
     notifyListeners();
   }
 
-  set wifiEnabled(bool v) => _set('wifi', v, () => wifiOn = v);
-  set bluetoothEnabled(bool v) =>
-      _set('bluetooth', v, () => bluetoothOn = v);
+  set wifiEnabled(bool v) =>
+      _set('shell.wifi', v, () => wifiOn = v, () => backend?.wifi(v));
+  set bluetoothEnabled(bool v) => _set('shell.bluetooth', v,
+      () => bluetoothOn = v, () => backend?.bluetooth(v));
 
-  void _set(String key, bool v, void Function() apply) {
+  void _set(String key, bool v, void Function() apply,
+      [void Function()? after]) {
     apply();
-    _store.write(key, v ? 'on' : 'off');
+    _store.write(key, v ? '1' : '0');
+    after?.call();
     notifyListeners();
   }
 }

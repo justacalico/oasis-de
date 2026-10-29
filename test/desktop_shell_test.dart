@@ -34,6 +34,7 @@ Future<void> pumpDesktop(
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     OasisDesktopApp(
+      backend: const NoopSystemBackend(),
       version: '1.0.0',
       appearance: appearance ?? OasisAppearance(themeMode: mode),
       updateChecker: updateChecker ?? _FakeChecker(const AppUpdate()),
