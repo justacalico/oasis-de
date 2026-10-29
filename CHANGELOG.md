@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## 0.3.0 - 2026-10-29
+#### Features
+- 支持 Wayland 应用窗口嵌入 - (8977f75) - calico
+
+- - -
+
 ## 0.2.0 - 2026-10-29
 #### Features
 - 窗口最小化添加精灵动画 - (ea08d12) - Calico
