@@ -3,7 +3,34 @@ export XDG_CURRENT_DESKTOP=Oasis
 export XDG_SESSION_DESKTOP=oasis
 export DESKTOP_SESSION=oasis
 export XDG_SESSION_TYPE=wayland
-if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-run-session >/dev/null 2>&1; then
-  exec dbus-run-session -- /opt/oasis/oasis "$@"
+
+OASIS_CRASH_LOG="${XDG_STATE_HOME:-$HOME/.local/state}/oasis/crashes.log"
+OASIS_MAX_CRASHES=5
+
+run_oasis() {
+  mkdir -p "$(dirname "$OASIS_CRASH_LOG")"
+  crashes=0
+  while true; do
+    /opt/oasis/oasis "$@"
+    code=$?
+    [ "$code" -eq 0 ] && exit 0
+    crashes=$((crashes + 1))
+    printf '%s oasis exited with code %s (crash %s/%s)\n' \
+      "$(date -Iseconds)" "$code" "$crashes" "$OASIS_MAX_CRASHES" \
+      >> "$OASIS_CRASH_LOG"
+    if [ "$crashes" -ge "$OASIS_MAX_CRASHES" ]; then
+      if command -v weston-terminal >/dev/null 2>&1; then
+        exec weston-terminal --shell=/bin/sh \
+          -c "echo 'Oasis failed to start; see $OASIS_CRASH_LOG'; exec /bin/sh"
+      fi
+      sleep infinity
+    fi
+    sleep 1
+  done
+}
+
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && \
+   command -v dbus-run-session >/dev/null 2>&1; then
+  exec dbus-run-session -- sh -c "exec $(realpath "$0") --inner \"\$@\"" -- "$@"
 fi
-exec /opt/oasis/oasis "$@"
+run_oasis "$@"
