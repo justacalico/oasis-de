@@ -141,9 +141,6 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get settingsLanguage => '语言';
 
   @override
-  String get settingsEnabled => '已启用';
-
-  @override
   String get settingsWifiBody => '开启或关闭 Wi-Fi。';
 
   @override

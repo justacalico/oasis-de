@@ -142,9 +142,6 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get settingsLanguage => 'Teanga';
 
   @override
-  String get settingsEnabled => 'Cumasaithe';
-
-  @override
   String get settingsWifiBody => 'Cas Wi-Fi air nó as.';
 
   @override
