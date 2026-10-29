@@ -33,7 +33,10 @@ Future<void> main() async {
       windowManager.waitUntilReadyToShow(options, () async {
         await windowManager.show();
         await windowManager.focus();
-        if (kInterfaceMode) await windowManager.setFullScreen(true);
+        if (kInterfaceMode ||
+            Platform.environment['OASIS_SESSION'] == '1') {
+          await windowManager.setFullScreen(true);
+        }
       }),
     );
   }

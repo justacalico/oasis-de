@@ -3,6 +3,7 @@ export XDG_CURRENT_DESKTOP=Oasis
 export XDG_SESSION_DESKTOP=oasis
 export DESKTOP_SESSION=oasis
 export XDG_SESSION_TYPE=wayland
+export OASIS_SESSION=1
 
 OASIS_CRASH_LOG="${XDG_STATE_HOME:-$HOME/.local/state}/oasis/crashes.log"
 OASIS_MAX_CRASHES=5
