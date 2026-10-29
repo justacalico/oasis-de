@@ -51,7 +51,10 @@ class _DesktopShellState extends State<DesktopShell> {
           },
           onPointerMove: (e) =>
               _onShellPointerMove(e, MediaQuery.sizeOf(context)),
-          onPointerUp: (_) => controller.endSurfaceGesture(),
+          onPointerUp: (e) => controller.endSurfaceGesture(
+            e.position,
+            MediaQuery.sizeOf(context),
+          ),
           child: Stack(
             children: [
               Positioned.fill(child: OasisWallpaper(service: widget.wallpaper)),
@@ -176,7 +179,9 @@ class _DesktopShellState extends State<DesktopShell> {
       return;
     }
     final id = controller.surfaceDragWindowId;
-    if (id != null) controller.dragWindow(id, e.delta);
+    if (id != null) {
+      controller.dragWindow(id, e.delta, screen);
+    }
   }
 
   Offset? _popupOffset(WaylandSurface popup) {
@@ -256,7 +261,7 @@ class _DesktopShellState extends State<DesktopShell> {
       onClose: () => controller.closeWindow(w.id),
       onMinimize: () => controller.minimizeWindow(w.id),
       onMaximize: () => controller.toggleZoom(w.id),
-      onDrag: (d) => controller.dragWindow(w.id, d),
+      onDrag: (d) => controller.dragWindow(w.id, d, MediaQuery.sizeOf(context)),
       onResize: w.zoomed
           ? null
           : (d, edge) => controller.resizeWindow(
