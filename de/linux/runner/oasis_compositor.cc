@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <set>
@@ -104,6 +105,7 @@ struct SeatRes {
 
 struct DataSource {
   OasisCompositor* comp;
+  wl_client* client;
   wl_resource* res;
   std::vector<std::string> mimes;
 };
@@ -115,6 +117,20 @@ struct DataDevice {
 
 struct DataOffer {
   wl_resource* res;
+  DataSource* source;
+};
+
+struct SelectionQuery {
+  OasisCompositor* comp;
+  wl_resource* offer;
+  wl_resource* device;
+};
+
+struct WriteCtx {
+  int fd;
+  GIOChannel* channel;
+  GByteArray* data;
+  gsize off;
 };
 
 struct Positioner {
@@ -172,6 +188,8 @@ struct _OasisCompositor {
   std::vector<DataDevice*> devices;
   std::vector<DataSource*> sources;
   std::vector<DataOffer*> offers;
+  std::vector<SelectionQuery*> sel_queries;
+  DataSource* selection_source = nullptr;
   std::vector<WmBase*> wm_bases;
   guint ping_timer = 0;
 
@@ -946,25 +964,95 @@ static void offer_accept(wl_client* client,
                          uint32_t serial,
                          const char* mime) {}
 
+static DataOffer* offer_for(OasisCompositor* c, wl_resource* res) {
+  for (auto* o : c->offers) {
+    if (o->res == res) return o;
+  }
+  return nullptr;
+}
+
+static gboolean paste_write_cb(GIOChannel* ch,
+                               GIOCondition cond,
+                               gpointer data) {
+  WriteCtx* ctx = static_cast<WriteCtx*>(data);
+  if (cond & G_IO_OUT) {
+    while (ctx->off < ctx->data->len) {
+      ssize_t n = write(ctx->fd, ctx->data->data + ctx->off,
+                        ctx->data->len - ctx->off);
+      if (n < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          return G_SOURCE_CONTINUE;
+        }
+        break;
+      }
+      ctx->off += (gsize)n;
+    }
+    if (ctx->off >= ctx->data->len) cond = G_IO_HUP;
+  }
+  if (cond & (G_IO_HUP | G_IO_ERR)) {
+    close(ctx->fd);
+    g_io_channel_unref(ctx->channel);
+    g_byte_array_unref(ctx->data);
+    delete ctx;
+    return G_SOURCE_REMOVE;
+  }
+  return G_SOURCE_CONTINUE;
+}
+
+static void paste_write_start(int fd, const guint8* bytes, gsize len) {
+  if (bytes == nullptr || len == 0) {
+    close(fd);
+    return;
+  }
+  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
+  WriteCtx* ctx = new WriteCtx;
+  ctx->fd = fd;
+  ctx->channel = g_io_channel_unix_new(fd);
+  ctx->data = g_byte_array_sized_new(len);
+  g_byte_array_append(ctx->data, bytes, len);
+  ctx->off = 0;
+  g_io_add_watch(ctx->channel,
+                 static_cast<GIOCondition>(G_IO_OUT | G_IO_ERR | G_IO_HUP),
+                 paste_write_cb, ctx);
+}
+
+static void clipboard_contents_cb(GtkClipboard* clipboard,
+                                  GtkSelectionData* sel,
+                                  gpointer data) {
+  int fd = GPOINTER_TO_INT(data);
+  const guint8* bytes = gtk_selection_data_get_data(sel);
+  gint len = gtk_selection_data_get_length(sel);
+  if (len <= 0) {
+    close(fd);
+    return;
+  }
+  paste_write_start(fd, bytes, (gsize)len);
+}
+
 static void offer_receive(wl_client* client,
                           wl_resource* res,
                           const char* mime,
                           int32_t fd) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  DataOffer* o = offer_for(c, res);
+  if (o != nullptr && o->source != nullptr &&
+      o->source->res != nullptr) {
+    wl_data_source_send_send(o->source->res, mime, fd);
+    close(fd);
+    return;
+  }
   GtkClipboard* cb =
       gtk_clipboard_get_for_display(gdk_display_get_default(),
                                     GDK_SELECTION_CLIPBOARD);
-  gchar* text = gtk_clipboard_wait_for_text(cb);
-  if (text != nullptr) {
-    size_t len = strlen(text);
-    size_t off = 0;
-    while (off < len) {
-      ssize_t n = write(fd, text + off, len - off);
-      if (n <= 0) break;
-      off += (size_t)n;
-    }
-    g_free(text);
+  GdkAtom atom;
+  if (g_strcmp0(mime, "text/plain;charset=utf-8") == 0) {
+    atom = gdk_atom_intern_static_string("UTF8_STRING");
+  } else {
+    atom = gdk_atom_intern(mime, FALSE);
   }
-  close(fd);
+  gtk_clipboard_request_contents(cb, atom, clipboard_contents_cb,
+                                 GINT_TO_POINTER(fd));
 }
 
 static void offer_destroy_req(wl_client* client, wl_resource* res) {
@@ -985,6 +1073,14 @@ static const struct wl_data_offer_interface offer_impl = {
 static void data_offer_destroyed(wl_resource* res) {
   OasisCompositor* c =
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  for (auto it = c->sel_queries.begin(); it != c->sel_queries.end();) {
+    if ((*it)->offer == res) {
+      delete *it;
+      it = c->sel_queries.erase(it);
+    } else {
+      ++it;
+    }
+  }
   for (auto it = c->offers.begin(); it != c->offers.end(); ++it) {
     if ((*it)->res == res) {
       delete *it;
@@ -992,6 +1088,45 @@ static void data_offer_destroyed(wl_resource* res) {
       return;
     }
   }
+}
+
+static const char* atom_mime(const char* name) {
+  if (g_strcmp0(name, "UTF8_STRING") == 0) {
+    return "text/plain;charset=utf-8";
+  }
+  if (g_strcmp0(name, "TEXT") == 0 || g_strcmp0(name, "STRING") == 0) {
+    return "text/plain";
+  }
+  if (name != nullptr &&
+      (g_str_has_prefix(name, "text/") ||
+       g_str_has_prefix(name, "image/") ||
+       g_str_has_prefix(name, "application/"))) {
+    return name;
+  }
+  return nullptr;
+}
+
+static void clipboard_targets_cb(GtkClipboard* clipboard,
+                                 GdkAtom* atoms,
+                                 gint n_atoms,
+                                 gpointer data) {
+  SelectionQuery* q = static_cast<SelectionQuery*>(data);
+  OasisCompositor* c = q->comp;
+  auto it = std::find(c->sel_queries.begin(), c->sel_queries.end(), q);
+  if (it != c->sel_queries.end()) {
+    std::set<std::string> sent;
+    for (gint i = 0; i < n_atoms; i++) {
+      gchar* name = gdk_atom_name(atoms[i]);
+      const char* mime = atom_mime(name);
+      if (mime != nullptr && sent.insert(mime).second) {
+        wl_data_offer_send_offer(q->offer, mime);
+      }
+      g_free(name);
+    }
+    wl_data_device_send_selection(q->device, q->offer);
+    c->sel_queries.erase(it);
+  }
+  delete q;
 }
 
 static void offer_selection(OasisCompositor* c, wl_client* client) {
@@ -1003,14 +1138,26 @@ static void offer_selection(OasisCompositor* c, wl_client* client) {
   wl_resource* offer = wl_resource_create(client, &wl_data_offer_interface,
                                           wl_resource_get_version(dev->res),
                                           0);
-  DataOffer* o = new DataOffer{offer};
+  DataOffer* o = new DataOffer{offer, nullptr};
   c->offers.push_back(o);
   wl_resource_set_implementation(offer, &offer_impl, c,
                                  data_offer_destroyed);
   wl_data_device_send_data_offer(dev->res, offer);
-  wl_data_offer_send_offer(offer, "text/plain");
-  wl_data_offer_send_offer(offer, "text/plain;charset=utf-8");
-  wl_data_device_send_selection(dev->res, offer);
+  DataSource* sel = c->selection_source;
+  if (sel != nullptr && sel->res != nullptr) {
+    o->source = sel;
+    for (const auto& m : sel->mimes) {
+      wl_data_offer_send_offer(offer, m.c_str());
+    }
+    wl_data_device_send_selection(dev->res, offer);
+    return;
+  }
+  GtkClipboard* cb =
+      gtk_clipboard_get_for_display(gdk_display_get_default(),
+                                    GDK_SELECTION_CLIPBOARD);
+  SelectionQuery* q = new SelectionQuery{c, offer, dev->res};
+  c->sel_queries.push_back(q);
+  gtk_clipboard_request_targets(cb, clipboard_targets_cb, q);
 }
 
 static gboolean source_read_cb(GIOChannel* ch,
@@ -1082,6 +1229,10 @@ static void data_source_destroyed(wl_resource* res) {
   DataSource* ds =
       static_cast<DataSource*>(wl_resource_get_user_data(res));
   OasisCompositor* c = ds->comp;
+  if (c->selection_source == ds) c->selection_source = nullptr;
+  for (auto* o : c->offers) {
+    if (o->source == ds) o->source = nullptr;
+  }
   c->sources.erase(
       std::remove(c->sources.begin(), c->sources.end(), ds),
       c->sources.end());
@@ -1093,7 +1244,11 @@ static void device_start_drag(wl_client* client,
                               wl_resource* source,
                               wl_resource* origin,
                               wl_resource* icon,
-                              uint32_t serial) {}
+                              uint32_t serial) {
+  if (source != nullptr) {
+    wl_data_source_send_cancelled(source);
+  }
+}
 
 static void device_set_selection(wl_client* client,
                                  wl_resource* res,
@@ -1101,9 +1256,11 @@ static void device_set_selection(wl_client* client,
                                  uint32_t serial) {
   OasisCompositor* c =
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  c->selection_source = nullptr;
   if (source == nullptr) return;
   for (auto* ds : c->sources) {
     if (ds->res == source) {
+      c->selection_source = ds;
       read_client_selection(c, ds);
       return;
     }
@@ -1120,6 +1277,14 @@ static const struct wl_data_device_interface device_impl = {
 static void data_device_destroyed(wl_resource* res) {
   OasisCompositor* c =
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  for (auto it = c->sel_queries.begin(); it != c->sel_queries.end();) {
+    if ((*it)->device == res) {
+      delete *it;
+      it = c->sel_queries.erase(it);
+    } else {
+      ++it;
+    }
+  }
   for (auto it = c->devices.begin(); it != c->devices.end(); ++it) {
     if ((*it)->res == res) {
       delete *it;
@@ -1137,7 +1302,7 @@ static void manager_create_data_source(wl_client* client,
   wl_resource* ds =
       wl_resource_create(client, &wl_data_source_interface,
                          wl_resource_get_version(res), id);
-  DataSource* source = new DataSource{c, ds, {}};
+  DataSource* source = new DataSource{c, client, ds, {}};
   c->sources.push_back(source);
   wl_resource_set_implementation(ds, &source_impl, source,
                                  data_source_destroyed);
@@ -2578,6 +2743,7 @@ void oasis_compositor_free(OasisCompositor* c) {
   for (DataSource* ds : c->sources) delete ds;
   for (DataOffer* o : c->offers) delete o;
   for (DataDevice* d : c->devices) delete d;
+  for (SelectionQuery* q : c->sel_queries) delete q;
   g_free(c->keymap);
   g_free(c->socket_name);
   g_clear_object(&c->method_channel);
