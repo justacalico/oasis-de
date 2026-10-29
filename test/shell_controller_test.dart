@@ -506,7 +506,11 @@ void main() {
   });
 }
 
-class _Ctx extends Fake implements BuildContext {}
+class _Ctx extends Fake implements BuildContext {
+  @override
+  InheritedElement? getElementForInheritedWidgetOfExactType<
+      T extends InheritedWidget>() => null;
+}
 
 class _BatteryBackend implements OasisSystemBackend {
   var calls = 0;

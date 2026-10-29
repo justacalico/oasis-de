@@ -282,8 +282,9 @@ class ShellController extends ChangeNotifier {
     return [for (final s in scored) s.$1];
   }
 
-  void openApp(OasisApp app) {
+  void openApp(OasisApp app, {bool newWindow = false}) {
     for (final w in windows) {
+      if (newWindow) break;
       if (w.app.id == app.id) {
         for (final m in [w, ...transientFamily(w)]) {
           if (m.minimized) {
