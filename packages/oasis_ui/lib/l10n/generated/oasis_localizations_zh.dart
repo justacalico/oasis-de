@@ -292,4 +292,13 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get dockUnpin => '取消固定';
+
+  @override
+  String get wallpaperPeaks => '山峰';
+
+  @override
+  String get wallpaperAurora => '极光';
+
+  @override
+  String get wallpaperEmber => '余烬';
 }

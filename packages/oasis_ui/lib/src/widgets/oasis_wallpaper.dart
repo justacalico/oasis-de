@@ -24,14 +24,20 @@ class OasisWallpaper extends StatelessWidget {
   Widget _build(BuildContext context, OasisWallpaperService? s) {
     final p = OasisStyle.of(context).palette;
     final path = s?.imagePath;
+    OasisWallpaperPreset? preset;
+    if (s != null) {
+      for (final e in oasisWallpaperPresets) {
+        if (e.id == s.preset) preset = e;
+      }
+    }
     return Stack(
       fit: StackFit.expand,
       children: [
         CustomPaint(
           painter: OasisDunesPainter(
-            skyTop: p.desktopGradientStart,
-            skyBottom: p.desktopGradientMid,
-            duneFar: p.desktopGradientEnd,
+            skyTop: preset?.top ?? p.desktopGradientStart,
+            skyBottom: preset?.mid ?? p.desktopGradientMid,
+            duneFar: preset?.bottom ?? p.desktopGradientEnd,
             duneNear: p.isDark
                 ? p.desktopGradientEnd.withValues(alpha: 0.55)
                 : p.desktopGradientEnd.withValues(alpha: 0.85),

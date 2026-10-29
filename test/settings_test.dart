@@ -279,4 +279,21 @@ void main() {
     await tester.tap(find.byType(OasisToggle));
     await tester.pumpAndSettle();
   });
+  testWidgets('wallpaper pane picks bundled presets', (tester) async {
+    final wallpaper = OasisWallpaperService(store: MemoryOasisStore());
+    await pumpOasis(
+      tester,
+      Scaffold(body: WallpaperPane(wallpaper: wallpaper)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Peaks'));
+    await tester.pumpAndSettle();
+    expect(wallpaper.preset, 'peaks');
+    wallpaper.useDefault();
+    wallpaper.imagePath = '/tmp/x.png';
+    expect(wallpaper.hasCustomImage, isTrue);
+    wallpaper.usePreset('aurora');
+    expect(wallpaper.preset, 'aurora');
+    expect(wallpaper.hasCustomImage, isFalse);
+  });
 }

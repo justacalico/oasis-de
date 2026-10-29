@@ -113,5 +113,8 @@
   "ccMedia": "Media",
   "ccNothingPlaying": "Nothing playing",
   "dockPin": "Pin to Dock",
-  "dockUnpin": "Unpin"
+  "dockUnpin": "Unpin",
+  "wallpaperPeaks": "Peaks",
+  "wallpaperAurora": "Aurora",
+  "wallpaperEmber": "Ember"
 }

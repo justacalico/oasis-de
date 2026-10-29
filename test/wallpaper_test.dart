@@ -145,6 +145,8 @@ void main() {
     expect(find.text('lagoon.png'), findsOneWidget);
     expect(find.text('Fit to screen'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Fit to screen'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Fit to screen'));
     await tester.pumpAndSettle();
     expect(wallpaper.fit, BoxFit.contain);
