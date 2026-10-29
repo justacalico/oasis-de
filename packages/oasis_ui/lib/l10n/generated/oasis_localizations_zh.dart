@@ -350,4 +350,19 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get notifEmpty => '没有通知';
+
+  @override
+  String get sessionConfirmLogOut => '注销当前会话？';
+
+  @override
+  String get sessionConfirmSuspend => '挂起系统？';
+
+  @override
+  String get sessionConfirmRestart => '重启系统？';
+
+  @override
+  String get sessionConfirmPoweroff => '关闭系统？';
+
+  @override
+  String get dialogCancel => '取消';
 }

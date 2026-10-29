@@ -145,5 +145,10 @@
   "sessionShutDown": "Выключение",
   "notifCenter": "Уведомления",
   "notifClearAll": "Очистить всё",
-  "notifEmpty": "Нет уведомлений"
+  "notifEmpty": "Нет уведомлений",
+  "sessionConfirmLogOut": "Выйти из сеанса?",
+  "sessionConfirmSuspend": "Приостановить систему?",
+  "sessionConfirmRestart": "Перезагрузить систему?",
+  "sessionConfirmPoweroff": "Выключить систему?",
+  "dialogCancel": "Отмена"
 }

@@ -358,4 +358,19 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get notifEmpty => 'Gan fhógraí';
+
+  @override
+  String get sessionConfirmLogOut => 'Logáil amach as an seisiún?';
+
+  @override
+  String get sessionConfirmSuspend => 'Cuir an córas ar fionraí?';
+
+  @override
+  String get sessionConfirmRestart => 'Atosaigh an córas?';
+
+  @override
+  String get sessionConfirmPoweroff => 'Múch an córas?';
+
+  @override
+  String get dialogCancel => 'Cealaigh';
 }

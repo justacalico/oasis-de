@@ -145,5 +145,10 @@
   "sessionShutDown": "关机",
   "notifCenter": "通知",
   "notifClearAll": "全部清除",
-  "notifEmpty": "没有通知"
+  "notifEmpty": "没有通知",
+  "sessionConfirmLogOut": "注销当前会话？",
+  "sessionConfirmSuspend": "挂起系统？",
+  "sessionConfirmRestart": "重启系统？",
+  "sessionConfirmPoweroff": "关闭系统？",
+  "dialogCancel": "取消"
 }
