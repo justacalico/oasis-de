@@ -31,7 +31,9 @@
 #include <wayland-server.h>
 #include <xkbcommon/xkbcommon.h>
 
+#include "fractional-scale-v1-server-protocol.h"
 #include "linux-dmabuf-v1-server-protocol.h"
+#include "viewporter-server-protocol.h"
 #include "xdg-decoration-unstable-v1-server-protocol.h"
 #include "xdg-shell-server-protocol.h"
 
@@ -64,6 +66,11 @@ struct Surface {
   int pending_oy = 0;
   int pending_scale = 1;
   int pending_transform = 0;
+  int pending_vp_w = -1;
+  int pending_vp_h = -1;
+  int vp_w = -1;
+  int vp_h = -1;
+  std::vector<wl_resource*> fractional_scales;
   std::vector<std::array<int32_t, 4>> pending_input;
   std::vector<std::array<int32_t, 4>> pending_opaque;
   bool pending_input_set = false;
@@ -179,6 +186,7 @@ struct _OasisCompositor {
   FlTextureRegistrar* texture_registrar;
   FlMethodChannel* method_channel;
   FlEventChannel* event_channel;
+  GtkWidget* view = nullptr;
   gboolean listening = FALSE;
 
   wl_display* display = nullptr;
@@ -206,6 +214,10 @@ struct _OasisCompositor {
   DataSource* selection_source = nullptr;
   std::vector<WmBase*> wm_bases;
   guint ping_timer = 0;
+  std::vector<wl_resource*> outputs;
+  int out_w = 1920;
+  int out_h = 1080;
+  int out_scale = 1;
 
   char* keymap = nullptr;
   size_t keymap_len = 0;
@@ -292,8 +304,10 @@ static void finish_frames(Surface* s) {
 static void emit_size(Surface* s) {
   const int scale = s->buf_scale > 0 ? s->buf_scale : 1;
   const bool swap = (s->transform & 1) != 0;
-  int w = s->geo_w > 0 ? s->geo_w : (swap ? s->ih : s->iw) / scale;
-  int h = s->geo_h > 0 ? s->geo_h : (swap ? s->iw : s->ih) / scale;
+  int bw = (swap ? s->ih : s->iw) / scale;
+  int bh = (swap ? s->iw : s->ih) / scale;
+  int w = s->geo_w > 0 ? s->geo_w : s->vp_w > 0 ? s->vp_w : bw;
+  int h = s->geo_h > 0 ? s->geo_h : s->vp_h > 0 ? s->vp_h : bh;
   if (s->rep_w == w && s->rep_h == h && s->rep_bw == s->iw &&
       s->rep_bh == s->ih) {
     return;
@@ -404,6 +418,8 @@ static void surface_commit(Surface* s) {
     s->pending_scale = 0;
   }
   s->transform = s->pending_transform;
+  s->vp_w = s->pending_vp_w;
+  s->vp_h = s->pending_vp_h;
   if (s->pending_input_set) {
     s->input_region = s->pending_input;
     s->pending_input.clear();
@@ -617,6 +633,9 @@ static void free_surface(Surface* s) {
   if (tex != nullptr) {
     fl_texture_registrar_unregister_texture(c->texture_registrar, tex);
     g_object_unref(tex);
+  }
+  for (wl_resource* fs : s->fractional_scales) {
+    wl_resource_set_user_data(fs, nullptr);
   }
   c->by_id.erase(s->public_id);
   c->surfaces.erase(
@@ -1090,6 +1109,73 @@ static void output_release(wl_client* client, wl_resource* res) {
 }
 
 static const struct wl_output_interface output_impl = {output_release};
+
+static void send_output_props(OasisCompositor* c, wl_resource* res) {
+  uint32_t ver = wl_resource_get_version(res);
+  int phys_w = 340, phys_h = 190;
+  if (c->view != nullptr && gtk_widget_get_window(c->view) != nullptr) {
+    GdkDisplay* dpy = gtk_widget_get_display(c->view);
+    GdkMonitor* mon = gdk_display_get_monitor_at_window(
+        dpy, gtk_widget_get_window(c->view));
+    if (mon != nullptr) {
+      phys_w = gdk_monitor_get_width_mm(mon);
+      phys_h = gdk_monitor_get_height_mm(mon);
+    }
+  }
+  wl_output_send_geometry(res, 0, 0, phys_w, phys_h,
+                          WL_OUTPUT_SUBPIXEL_UNKNOWN, "Oasis", "embedded",
+                          WL_OUTPUT_TRANSFORM_NORMAL);
+  if (ver >= WL_OUTPUT_MODE_SINCE_VERSION) {
+    wl_output_send_mode(res, WL_OUTPUT_MODE_CURRENT, c->out_w, c->out_h,
+                        60000);
+  }
+  if (ver >= WL_OUTPUT_SCALE_SINCE_VERSION) {
+    wl_output_send_scale(res, c->out_scale);
+  }
+  if (ver >= WL_OUTPUT_NAME_SINCE_VERSION) {
+    wl_output_send_name(res, "oasis-embedded");
+  }
+  if (ver >= WL_OUTPUT_DESCRIPTION_SINCE_VERSION) {
+    wl_output_send_description(res, "Oasis embedded output");
+  }
+  if (ver >= WL_OUTPUT_DONE_SINCE_VERSION) {
+    wl_output_send_done(res);
+  }
+}
+
+static void output_res_destroyed(wl_resource* res) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  auto& v = c->outputs;
+  v.erase(std::remove(v.begin(), v.end(), res), v.end());
+}
+
+static void output_resend_all(OasisCompositor* c) {
+  if (c->view != nullptr) {
+    int scale = gtk_widget_get_scale_factor(c->view);
+    c->out_scale = scale > 0 ? scale : 1;
+    c->out_w = gtk_widget_get_allocated_width(c->view) * c->out_scale;
+    c->out_h = gtk_widget_get_allocated_height(c->view) * c->out_scale;
+  }
+  if (c->out_w <= 0) c->out_w = 1920;
+  if (c->out_h <= 0) c->out_h = 1080;
+  for (wl_resource* res : c->outputs) {
+    send_output_props(c, res);
+  }
+  for (Surface* s : c->surfaces) {
+    for (wl_resource* fs : s->fractional_scales) {
+      wp_fractional_scale_v1_send_preferred_scale(
+          fs, static_cast<uint32_t>(c->out_scale) * 120);
+    }
+  }
+  comp_flush(c);
+}
+
+static void view_resized(GtkWidget* widget,
+                         GdkRectangle* allocation,
+                         OasisCompositor* c) {
+  output_resend_all(c);
+}
 
 // wl_data_device family
 
@@ -2063,6 +2149,107 @@ static const struct xdg_wm_base_interface wm_base_impl = {
     wm_base_destroy, wm_base_create_positioner, wm_base_get_xdg_surface,
     wm_base_pong};
 
+// wp_viewporter / wp_fractional_scale_v1
+
+static void viewport_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void viewport_set_source(wl_client* client,
+                                wl_resource* res,
+                                wl_fixed_t x,
+                                wl_fixed_t y,
+                                wl_fixed_t w,
+                                wl_fixed_t h) {}
+
+static void viewport_set_destination(wl_client* client,
+                                     wl_resource* res,
+                                     int32_t w,
+                                     int32_t h) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->pending_vp_w = w;
+  s->pending_vp_h = h;
+}
+
+static const struct wp_viewport_interface viewport_impl = {
+    viewport_destroy, viewport_set_source, viewport_set_destination};
+
+static void viewporter_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void viewporter_get_viewport(wl_client* client,
+                                    wl_resource* res,
+                                    uint32_t id,
+                                    wl_resource* surface_res) {
+  Surface* s =
+      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  wl_resource* vp = wl_resource_create(client, &wp_viewport_interface,
+                                       wl_resource_get_version(res), id);
+  wl_resource_set_implementation(vp, &viewport_impl, s, nullptr);
+}
+
+static const struct wp_viewporter_interface viewporter_impl = {
+    viewporter_destroy, viewporter_get_viewport};
+
+static void fractional_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void fractional_res_destroyed(wl_resource* res) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
+  auto& v = s->fractional_scales;
+  v.erase(std::remove(v.begin(), v.end(), res), v.end());
+}
+
+static const struct wp_fractional_scale_v1_interface fractional_impl = {
+    fractional_destroy};
+
+static void fs_manager_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void fs_manager_get_fractional_scale(wl_client* client,
+                                            wl_resource* res,
+                                            uint32_t id,
+                                            wl_resource* surface_res) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  Surface* s =
+      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  wl_resource* fs =
+      wl_resource_create(client, &wp_fractional_scale_v1_interface,
+                         wl_resource_get_version(res), id);
+  s->fractional_scales.push_back(fs);
+  wl_resource_set_implementation(fs, &fractional_impl, s,
+                                 fractional_res_destroyed);
+  wp_fractional_scale_v1_send_preferred_scale(
+      fs, static_cast<uint32_t>(c->out_scale) * 120);
+}
+
+static const struct wp_fractional_scale_manager_v1_interface
+    fs_manager_impl = {fs_manager_destroy,
+                       fs_manager_get_fractional_scale};
+
+static void bind_viewporter(wl_client* client,
+                            void* data,
+                            uint32_t ver,
+                            uint32_t id) {
+  wl_resource* res =
+      wl_resource_create(client, &wp_viewporter_interface, ver, id);
+  wl_resource_set_implementation(res, &viewporter_impl, data, nullptr);
+}
+
+static void bind_fs_manager(wl_client* client,
+                            void* data,
+                            uint32_t ver,
+                            uint32_t id) {
+  wl_resource* res = wl_resource_create(
+      client, &wp_fractional_scale_manager_v1_interface, ver, id);
+  wl_resource_set_implementation(res, &fs_manager_impl, data, nullptr);
+}
+
 // xdg decoration
 
 static void deco_destroy(wl_client* client, wl_resource* res) {
@@ -2135,26 +2322,13 @@ static void bind_output(wl_client* client,
                         void* data,
                         uint32_t ver,
                         uint32_t id) {
+  OasisCompositor* c = static_cast<OasisCompositor*>(data);
   wl_resource* res =
       wl_resource_create(client, &wl_output_interface, ver, id);
-  wl_resource_set_implementation(res, &output_impl, data, nullptr);
-  wl_output_send_geometry(res, 0, 0, 340, 190, WL_OUTPUT_SUBPIXEL_NONE,
-                          "Oasis", "embedded", WL_OUTPUT_TRANSFORM_NORMAL);
-  if (ver >= WL_OUTPUT_MODE_SINCE_VERSION) {
-    wl_output_send_mode(res, WL_OUTPUT_MODE_CURRENT, 1920, 1080, 60000);
-  }
-  if (ver >= WL_OUTPUT_SCALE_SINCE_VERSION) {
-    wl_output_send_scale(res, 1);
-  }
-  if (ver >= WL_OUTPUT_NAME_SINCE_VERSION) {
-    wl_output_send_name(res, "oasis-embedded");
-  }
-  if (ver >= WL_OUTPUT_DESCRIPTION_SINCE_VERSION) {
-    wl_output_send_description(res, "Oasis embedded output");
-  }
-  if (ver >= WL_OUTPUT_DONE_SINCE_VERSION) {
-    wl_output_send_done(res);
-  }
+  c->outputs.push_back(res);
+  wl_resource_set_implementation(res, &output_impl, c,
+                                 output_res_destroyed);
+  send_output_props(c, res);
 }
 
 static void bind_data_device_manager(wl_client* client,
@@ -2530,6 +2704,11 @@ static bool display_start(OasisCompositor* c, GError** error) {
                    c, bind_deco_manager);
   wl_global_create(c->display, &zwp_linux_dmabuf_v1_interface, 4, c,
                    bind_dmabuf);
+  wl_global_create(c->display, &wp_viewporter_interface, 1, c,
+                   bind_viewporter);
+  wl_global_create(c->display,
+                   &wp_fractional_scale_manager_v1_interface, 1, c,
+                   bind_fs_manager);
   const char* name = wl_display_add_socket_auto(c->display);
   if (name == nullptr) {
     wl_display_destroy(c->display);
@@ -2871,8 +3050,10 @@ OasisCompositor* oasis_compositor_new(FlPluginRegistrar* registrar,
                                         FlView* view) {
   OasisCompositor* c = new OasisCompositor();
   c->registrar = registrar;
+  c->view = GTK_WIDGET(view);
   FlEngine* engine = fl_view_get_engine(view);
   c->texture_registrar = fl_engine_get_texture_registrar(engine);
+  g_signal_connect(view, "size-allocate", G_CALLBACK(view_resized), c);
   FlBinaryMessenger* messenger = fl_engine_get_binary_messenger(engine);
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
   c->method_channel = fl_method_channel_new(messenger, "oasis/wayland",

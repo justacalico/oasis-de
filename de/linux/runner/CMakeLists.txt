@@ -25,11 +25,34 @@ set(WAYLAND_PROTOCOLS
   "stable/linux-dmabuf/linux-dmabuf-v1.xml"
 )
 
+set(VENDORED_PROTOCOLS
+  "viewporter"
+  "fractional-scale-v1"
+)
+
 set(GENERATED_SOURCES "")
 set(GENERATED_HEADERS "")
 foreach(proto ${WAYLAND_PROTOCOLS})
   get_filename_component(proto_name ${proto} NAME_WE)
   set(xml "${WAYLAND_PROTOCOLS_DIR}/${proto}")
+  set(header "${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-server-protocol.h")
+  set(code "${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-protocol.c")
+  add_custom_command(
+    OUTPUT ${header}
+    COMMAND ${WAYLAND_SCANNER} server-header ${xml} ${header}
+    DEPENDS ${xml}
+  )
+  add_custom_command(
+    OUTPUT ${code}
+    COMMAND ${WAYLAND_SCANNER} private-code ${xml} ${code}
+    DEPENDS ${xml}
+  )
+  list(APPEND GENERATED_HEADERS ${header})
+  list(APPEND GENERATED_SOURCES ${code})
+endforeach()
+
+foreach(proto_name ${VENDORED_PROTOCOLS})
+  set(xml "${CMAKE_CURRENT_SOURCE_DIR}/../protocols/${proto_name}.xml")
   set(header "${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-server-protocol.h")
   set(code "${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-protocol.c")
   add_custom_command(
