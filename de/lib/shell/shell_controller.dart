@@ -42,6 +42,7 @@ class ShellWindowData {
   var transition = ShellWindowTransition.none;
   WaylandSurface? surface;
   var launching = false;
+  Timer? launchTimer;
 
   String get displayTitle =>
       surface != null && surface!.title.isNotEmpty ? surface!.title : app.name;
@@ -128,6 +129,7 @@ class ShellController extends ChangeNotifier {
   }
 
   final Map<String, int> launchCounts = {};
+  String? launchError;
 
   List<OasisApp> filterApps(String query) {
     final q = query.trim().toLowerCase();
@@ -185,23 +187,44 @@ class ShellController extends ChangeNotifier {
         return;
       }
     }
+    ShellWindowData? window;
     if (app.isExternal) {
       final service = wayland;
       if (service == null || !service.available) {
         closeOverlays();
         return;
       }
-      unawaited(service.launch(app.exec!));
+      window = ShellWindowData(
+        id: _nextId++,
+        app: app,
+        position: Offset(
+          56 + windows.length * 28.0,
+          52 + windows.length * 24.0,
+        ),
+      );
+      unawaited(
+        service.launch(app.exec!).catchError((Object e) {
+          _failLaunch(window!);
+        }),
+      );
+      window.launchTimer = Timer(const Duration(seconds: 8), () {
+        if (window!.launching) _failLaunch(window);
+      });
     }
     launchCounts[app.id] = (launchCounts[app.id] ?? 0) + 1;
-    final window = ShellWindowData(
-      id: _nextId++,
-      app: app,
-      position: Offset(56 + windows.length * 28.0, 52 + windows.length * 24.0),
-    );
-    window.launching = app.isExternal;
-    windows.add(window);
-    _focus(window.id);
+    final w =
+        window ??
+        ShellWindowData(
+          id: _nextId++,
+          app: app,
+          position: Offset(
+            56 + windows.length * 28.0,
+            52 + windows.length * 24.0,
+          ),
+        );
+    w.launching = app.isExternal;
+    windows.add(w);
+    _focus(w.id);
     closeOverlays();
   }
 
@@ -361,6 +384,14 @@ class ShellController extends ChangeNotifier {
     );
   }
 
+  void _failLaunch(ShellWindowData window) {
+    if (!window.launching) return;
+    window.launchTimer?.cancel();
+    launchError = window.app.name;
+    windows.remove(window);
+    notifyListeners();
+  }
+
   void _syncSurfaces() {
     final service = wayland;
     if (service == null) return;
@@ -381,12 +412,20 @@ class ShellController extends ChangeNotifier {
     for (final s in service.toplevels) {
       if (bound.contains(s.id)) continue;
       ShellWindowData? target;
-      for (final w in windows) {
-        if (w.launching) {
-          target = w;
-          break;
+      final launching = [
+        for (final w in windows)
+          if (w.launching) w,
+      ];
+      if (s.appId.isNotEmpty) {
+        final match = _appForSurface(s);
+        for (final w in launching) {
+          if (w.app.id == match.id) {
+            target = w;
+            break;
+          }
         }
       }
+      target ??= launching.isEmpty ? null : launching.first;
       target ??= () {
         final w = ShellWindowData(
           id: _nextId++,
@@ -401,7 +440,8 @@ class ShellController extends ChangeNotifier {
       }();
       target
         ..surface = s
-        ..launching = false;
+        ..launching = false
+        ..launchTimer?.cancel();
       bound.add(s.id);
       _focus(target.id);
       changed = true;
@@ -518,6 +558,9 @@ class ShellController extends ChangeNotifier {
 
   @override
   void dispose() {
+    for (final w in windows) {
+      w.launchTimer?.cancel();
+    }
     _requestSub?.cancel();
     wayland?.removeListener(_syncSurfaces);
     super.dispose();

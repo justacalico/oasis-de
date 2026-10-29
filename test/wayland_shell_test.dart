@@ -896,6 +896,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('File'), findsOneWidget);
   });
+  testWidgets('launching window times out and failures surface', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    addTearDown(c.dispose);
+    c.openApp(c.apps.single);
+    expect(c.windows.single.launching, isTrue);
+    await tester.pump(const Duration(seconds: 9));
+    expect(c.windows, isEmpty);
+    expect(c.launchError, isNotNull);
+  });
+
+  test('appId binds to the matching launching window', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(
+      apps: [_external('gedit'), _external('term')],
+      wayland: service,
+    );
+    addTearDown(c.dispose);
+    c.openApp(c.apps.first);
+    c.openApp(c.apps.last);
+    expect(c.windows.length, 2);
+    host.emit({'event': 'appId', 'id': 9, 'appId': 'term'});
+    _emitToplevel(host, id: 9, appId: 'term');
+    await pumpEventQueue();
+    expect(c.windows.last.surface?.id, 9);
+    expect(c.windows.first.surface, isNull);
+  });
 }
 
 class _StubContext extends Fake implements BuildContext {}
