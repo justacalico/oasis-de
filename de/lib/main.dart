@@ -12,8 +12,10 @@ import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
 
-const kInterfaceMode =
-    bool.fromEnvironment('OASIS_INTERFACE', defaultValue: false);
+const kInterfaceMode = bool.fromEnvironment(
+  'OASIS_INTERFACE',
+  defaultValue: false,
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,19 +29,24 @@ Future<void> main() async {
       titleBarStyle: TitleBarStyle.hidden,
       backgroundColor: Color(0x00000000),
     );
-    unawaited(windowManager.waitUntilReadyToShow(options, () async {
-      await windowManager.show();
-      await windowManager.focus();
-      if (kInterfaceMode) await windowManager.setFullScreen(true);
-    }));
+    unawaited(
+      windowManager.waitUntilReadyToShow(options, () async {
+        await windowManager.show();
+        await windowManager.focus();
+        if (kInterfaceMode) await windowManager.setFullScreen(true);
+      }),
+    );
   }
 
-  runApp(OasisDesktopApp(
-    version: info.version,
-    wallpaper: OasisWallpaperService(store: PrefsOasisStore(prefs)),
-    openUrl: (url) async {
-      final uri = Uri.tryParse(url);
-      if (uri != null) await launchUrl(uri);
-    },
-  ));
+  runApp(
+    OasisDesktopApp(
+      version: info.version,
+      wallpaper: OasisWallpaperService(store: PrefsOasisStore(prefs)),
+      store: PrefsOasisStore(prefs),
+      openUrl: (url) async {
+        final uri = Uri.tryParse(url);
+        if (uri != null) await launchUrl(uri);
+      },
+    ),
+  );
 }
