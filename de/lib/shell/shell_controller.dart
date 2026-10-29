@@ -845,6 +845,12 @@ class ShellController extends ChangeNotifier {
   void selectMenu(String? label) {
     if (_openMenu == label) return;
     _openMenu = label;
+    if (label != null) {
+      launcherOpen = false;
+      launchPadOpen = false;
+      controlCenterOpen = false;
+      notificationCenterOpen = false;
+    }
     notifyListeners();
   }
 
@@ -853,6 +859,7 @@ class ShellController extends ChangeNotifier {
     if (launcherOpen) {
       launchPadOpen = false;
       controlCenterOpen = false;
+      notificationCenterOpen = false;
       _openMenu = null;
     }
     notifyListeners();
@@ -863,6 +870,7 @@ class ShellController extends ChangeNotifier {
     if (launchPadOpen) {
       launcherOpen = false;
       controlCenterOpen = false;
+      notificationCenterOpen = false;
       _openMenu = null;
     }
     notifyListeners();
@@ -873,6 +881,7 @@ class ShellController extends ChangeNotifier {
     if (controlCenterOpen) {
       launcherOpen = false;
       launchPadOpen = false;
+      notificationCenterOpen = false;
       _openMenu = null;
     }
     notifyListeners();
