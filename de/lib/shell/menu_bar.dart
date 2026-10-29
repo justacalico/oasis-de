@@ -25,6 +25,7 @@ class ShellMenuBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
       color: const Color(0xFFFFFFFF),
       fontWeight: FontWeight.w500,
@@ -49,10 +50,17 @@ class ShellMenuBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                const Icon(
-                  Icons.water_drop,
-                  size: 15,
-                  color: Color(0xFFFFFFFF),
+                GestureDetector(
+                  onTap: () => controller.selectMenu(
+                    controller.openMenu == menus[0].label
+                        ? null
+                        : menus[0].label,
+                  ),
+                  child: const Icon(
+                    Icons.water_drop,
+                    size: 15,
+                    color: Color(0xFFFFFFFF),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 for (var i = 0; i < menus.length; i++) ...[
@@ -81,11 +89,13 @@ class ShellMenuBar extends StatelessWidget {
                   icon: Icons.search,
                   onTap: controller.toggleLauncher,
                   style: textStyle,
+                  tooltip: l10n.launcherHint,
                 ),
                 _StatusIcon(
                   icon: controller.wifiOn ? Icons.wifi : Icons.wifi_off,
                   onTap: controller.toggleControlCenter,
                   style: textStyle,
+                  tooltip: l10n.ccWifi,
                 ),
                 if (controller.batteryLevel != null)
                   _StatusIcon(
@@ -98,13 +108,15 @@ class ShellMenuBar extends StatelessWidget {
                             <= 8 => Icons.battery_6_bar,
                             _ => Icons.battery_full,
                           },
-                    onTap: () {},
+                    onTap: controller.toggleControlCenter,
                     style: textStyle,
+                    tooltip: l10n.ccBattery,
                   ),
                 _StatusIcon(
                   icon: Icons.tune,
                   onTap: controller.toggleControlCenter,
                   style: textStyle,
+                  tooltip: l10n.tipControlCenter,
                 ),
                 _StatusIcon(
                   icon: controller.notifications.isEmpty
@@ -112,10 +124,14 @@ class ShellMenuBar extends StatelessWidget {
                       : Icons.notifications,
                   onTap: controller.toggleNotificationCenter,
                   style: textStyle,
+                  tooltip: l10n.notifCenter,
                 ),
                 _SessionMenu(controller: controller, style: textStyle),
                 const SizedBox(width: 6),
-                _MenuClock(style: textStyle),
+                GestureDetector(
+                  onTap: controller.toggleNotificationCenter,
+                  child: _MenuClock(style: textStyle),
+                ),
               ],
             ),
           ),
@@ -172,19 +188,26 @@ class _StatusIcon extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.style,
+    this.tooltip,
   });
 
   final IconData icon;
   final VoidCallback onTap;
   final TextStyle? style;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
+    final tip = tooltip;
+    final iconWidget = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: Icon(icon, size: 15, color: style?.color),
+    );
     return GestureDetector(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 5),
-        child: Icon(icon, size: 15, color: style?.color),
+      child: tip == null ? iconWidget : Tooltip(
+        message: tip,
+        child: iconWidget,
       ),
     );
   }

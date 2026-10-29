@@ -365,4 +365,7 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get dialogCancel => '取消';
+
+  @override
+  String get tipControlCenter => '控制中心';
 }

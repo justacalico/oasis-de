@@ -150,5 +150,6 @@
   "sessionConfirmSuspend": "Приостановить систему?",
   "sessionConfirmRestart": "Перезагрузить систему?",
   "sessionConfirmPoweroff": "Выключить систему?",
-  "dialogCancel": "Отмена"
+  "dialogCancel": "Отмена",
+  "tipControlCenter": "Центр управления"
 }

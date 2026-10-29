@@ -373,4 +373,7 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get dialogCancel => 'Cealaigh';
+
+  @override
+  String get tipControlCenter => 'Lárionad Rialaithe';
 }

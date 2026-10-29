@@ -150,5 +150,6 @@
   "sessionConfirmSuspend": "Suspend the system?",
   "sessionConfirmRestart": "Restart the system?",
   "sessionConfirmPoweroff": "Shut down the system?",
-  "dialogCancel": "Cancel"
+  "dialogCancel": "Cancel",
+  "tipControlCenter": "Control Center"
 }
