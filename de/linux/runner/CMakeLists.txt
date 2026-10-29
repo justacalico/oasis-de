@@ -10,6 +10,9 @@ project(runner LANGUAGES CXX)
 pkg_check_modules(WAYLAND REQUIRED IMPORTED_TARGET
   wayland-server
   xkbcommon
+  egl
+  glesv2
+  libdrm
   wayland-protocols
 )
 
@@ -19,6 +22,7 @@ pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 set(WAYLAND_PROTOCOLS
   "stable/xdg-shell/xdg-shell.xml"
   "unstable/xdg-decoration/xdg-decoration-unstable-v1.xml"
+  "stable/linux-dmabuf/linux-dmabuf-v1.xml"
 )
 
 set(GENERATED_SOURCES "")

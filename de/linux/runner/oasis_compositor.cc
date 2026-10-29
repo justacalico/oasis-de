@@ -19,10 +19,16 @@
 #include <unordered_map>
 #include <vector>
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include <gtk/gtk.h>
+#include <libdrm/drm_fourcc.h>
 #include <wayland-server.h>
 #include <xkbcommon/xkbcommon.h>
 
+#include "linux-dmabuf-v1-server-protocol.h"
 #include "xdg-decoration-unstable-v1-server-protocol.h"
 #include "xdg-shell-server-protocol.h"
 
@@ -106,6 +112,139 @@ static void oasis_texture_push(OasisTexture* self,
   g_mutex_unlock(&self->mutex);
 }
 
+struct DmabufBuf {
+  OasisCompositor* comp = nullptr;
+  wl_resource* res = nullptr;
+  int w = 0;
+  int h = 0;
+  uint32_t format = 0;
+  int nplanes = 0;
+  int fds[4] = {-1, -1, -1, -1};
+  uint32_t offsets[4] = {0, 0, 0, 0};
+  uint32_t strides[4] = {0, 0, 0, 0};
+  uint64_t mods[4] = {0, 0, 0, 0};
+};
+
+#define OASIS_TYPE_GL_TEXTURE (oasis_gl_texture_get_type())
+G_DECLARE_FINAL_TYPE(OasisGLTexture,
+                     oasis_gl_texture,
+                     OASIS,
+                     GL_TEXTURE,
+                     FlTextureGL)
+
+struct _OasisGLTexture {
+  FlTextureGL parent_instance;
+  DmabufBuf* dmabuf = nullptr;
+  DmabufBuf* img_buf = nullptr;
+  EGLImage image = EGL_NO_IMAGE;
+  EGLDisplay img_dpy = EGL_NO_DISPLAY;
+  GLuint gl_name = 0;
+  uint32_t w = 0;
+  uint32_t h = 0;
+};
+
+G_DEFINE_TYPE(OasisGLTexture, oasis_gl_texture, fl_texture_gl_get_type())
+
+static EGLImage dmabuf_import(EGLDisplay dpy, DmabufBuf* b) {
+  EGLAttrib attrs[64];
+  int i = 0;
+  attrs[i++] = EGL_WIDTH;
+  attrs[i++] = b->w;
+  attrs[i++] = EGL_HEIGHT;
+  attrs[i++] = b->h;
+  attrs[i++] = EGL_LINUX_DRM_FOURCC_EXT;
+  attrs[i++] = static_cast<EGLAttrib>(b->format);
+  static const EGLint fd_at[4] = {EGL_DMA_BUF_PLANE0_FD_EXT,
+                                  EGL_DMA_BUF_PLANE1_FD_EXT,
+                                  EGL_DMA_BUF_PLANE2_FD_EXT,
+                                  EGL_DMA_BUF_PLANE3_FD_EXT};
+  static const EGLint off_at[4] = {EGL_DMA_BUF_PLANE0_OFFSET_EXT,
+                                   EGL_DMA_BUF_PLANE1_OFFSET_EXT,
+                                   EGL_DMA_BUF_PLANE2_OFFSET_EXT,
+                                   EGL_DMA_BUF_PLANE3_OFFSET_EXT};
+  static const EGLint pitch_at[4] = {EGL_DMA_BUF_PLANE0_PITCH_EXT,
+                                     EGL_DMA_BUF_PLANE1_PITCH_EXT,
+                                     EGL_DMA_BUF_PLANE2_PITCH_EXT,
+                                     EGL_DMA_BUF_PLANE3_PITCH_EXT};
+  static const EGLint mlo_at[4] = {EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT,
+                                   EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT,
+                                   EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT,
+                                   EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT};
+  static const EGLint mhi_at[4] = {EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT,
+                                   EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT,
+                                   EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT,
+                                   EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT};
+  int n = b->nplanes < 4 ? b->nplanes : 4;
+  for (int p = 0; p < n; p++) {
+    attrs[i++] = fd_at[p];
+    attrs[i++] = b->fds[p];
+    attrs[i++] = off_at[p];
+    attrs[i++] = static_cast<EGLAttrib>(b->offsets[p]);
+    attrs[i++] = pitch_at[p];
+    attrs[i++] = static_cast<EGLAttrib>(b->strides[p]);
+    attrs[i++] = mlo_at[p];
+    attrs[i++] = static_cast<EGLAttrib>(b->mods[p] & 0xffffffffu);
+    attrs[i++] = mhi_at[p];
+    attrs[i++] = static_cast<EGLAttrib>(b->mods[p] >> 32);
+  }
+  attrs[i++] = EGL_NONE;
+  return eglCreateImage(dpy, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
+                        static_cast<EGLClientBuffer>(nullptr), attrs);
+}
+
+static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
+                                          uint32_t* target,
+                                          uint32_t* name,
+                                          uint32_t* width,
+                                          uint32_t* height,
+                                          GError** error) {
+  OasisGLTexture* self = OASIS_GL_TEXTURE(texture);
+  EGLDisplay dpy = eglGetCurrentDisplay();
+  if (self->dmabuf == nullptr || dpy == EGL_NO_DISPLAY ||
+      eglGetCurrentContext() == EGL_NO_CONTEXT) {
+    g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                "no dmabuf or no egl context");
+    return FALSE;
+  }
+  if (self->gl_name == 0) glGenTextures(1, &self->gl_name);
+  if (self->img_buf != self->dmabuf) {
+    if (self->image != EGL_NO_IMAGE && self->img_dpy != EGL_NO_DISPLAY) {
+      eglDestroyImage(self->img_dpy, self->image);
+    }
+    self->image = dmabuf_import(dpy, self->dmabuf);
+    self->img_dpy = dpy;
+    if (self->image == EGL_NO_IMAGE) {
+      g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                  "dmabuf import failed");
+      return FALSE;
+    }
+    self->img_buf = self->dmabuf;
+  }
+  static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC image_target = nullptr;
+  if (image_target == nullptr) {
+    image_target = reinterpret_cast<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>(
+        eglGetProcAddress("glEGLImageTargetTexture2DOES"));
+  }
+  if (image_target == nullptr) {
+    g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                "glEGLImageTargetTexture2DOES unavailable");
+    return FALSE;
+  }
+  glBindTexture(GL_TEXTURE_2D, self->gl_name);
+  image_target(GL_TEXTURE_2D, self->image);
+  *target = GL_TEXTURE_2D;
+  *name = self->gl_name;
+  *width = self->w;
+  *height = self->h;
+  return TRUE;
+}
+
+static void oasis_gl_texture_class_init(OasisGLTextureClass* klass) {
+  FL_TEXTURE_GL_CLASS(klass)->populate = oasis_gl_texture_populate;
+}
+
+static void oasis_gl_texture_init(OasisGLTexture* self) {}
+
 enum SurfaceRole {
   SURFACE_NONE,
   SURFACE_TOPLEVEL,
@@ -135,7 +274,10 @@ struct Surface {
   int sy = 0;
   bool sync = true;
 
+  int tex_kind = 0;
   OasisTexture* texture = nullptr;
+  OasisGLTexture* gl_texture = nullptr;
+  DmabufBuf* dmabuf = nullptr;
   int64_t texture_id = -1;
   int64_t public_id = -1;
   std::string title;
@@ -204,6 +346,7 @@ struct _OasisCompositor {
   char* socket_name = nullptr;
 
   std::vector<Surface*> surfaces;
+  std::vector<DmabufBuf*> dmabufs;
   std::unordered_map<int64_t, Surface*> by_id;
   int64_t next_id = 1;
   Surface* kb_focus = nullptr;
@@ -252,13 +395,6 @@ static SeatRes* seat_for(OasisCompositor* c, wl_client* client, bool create) {
   return &c->seats.back();
 }
 
-static Surface* surface_root(Surface* s) {
-  while (s->parent != nullptr) s = s->parent;
-  return s;
-}
-
-static void flatten_push(Surface* top);
-
 static void apply_buffer(Surface* s, wl_resource* buffer_res) {
   wl_shm_buffer* b = wl_shm_buffer_get(buffer_res);
   if (b == nullptr) {
@@ -295,40 +431,6 @@ static void apply_buffer(Surface* s, wl_resource* buffer_res) {
   wl_shm_buffer_end_access(b);
 }
 
-static void flatten_into(Surface* s, uint8_t* dst, int dw, int dh, int ox,
-                         int oy) {
-  if (s->img == nullptr) return;
-  for (int y = 0; y < s->ih; y++) {
-    int dy = oy + s->sy + y;
-    if (dy < 0 || dy >= dh) continue;
-    for (int x = 0; x < s->iw; x++) {
-      int dx = ox + s->sx + x;
-      if (dx < 0 || dx >= dw) continue;
-      const uint8_t* sp = s->img + (size_t)y * s->iw * 4 + x * 4;
-      uint8_t* dp = dst + (size_t)dy * dw * 4 + dx * 4;
-      uint8_t a = sp[3];
-      dp[0] = sp[0] + ((255 - a) * dp[0]) / 255;
-      dp[1] = sp[1] + ((255 - a) * dp[1]) / 255;
-      dp[2] = sp[2] + ((255 - a) * dp[2]) / 255;
-      dp[3] = a + ((255 - a) * dp[3]) / 255;
-    }
-  }
-  for (Surface* child : s->children) {
-    flatten_into(child, dst, dw, dh, ox + s->sx, oy + s->sy);
-  }
-}
-
-static void flatten_push(Surface* top) {
-  if (top->texture == nullptr || top->iw <= 0 || top->ih <= 0) return;
-  size_t size = (size_t)top->iw * top->ih * 4;
-  uint8_t* flat = static_cast<uint8_t*>(g_malloc(size));
-  flatten_into(top, flat, top->iw, top->ih, 0, 0);
-  oasis_texture_push(top->texture, flat, top->iw, top->ih);
-  g_free(flat);
-  fl_texture_registrar_mark_texture_frame_available(
-      top->comp->texture_registrar, FL_TEXTURE(top->texture));
-}
-
 static void finish_frames(Surface* s) {
   for (wl_resource* cb : s->frames) {
     wl_callback_send_done(cb, now_ms());
@@ -348,18 +450,78 @@ static void emit_size(Surface* s) {
   send_event(s->comp, m);
 }
 
+static void ensure_texture(Surface* s, int kind) {
+  if (s->tex_kind == kind) return;
+  OasisCompositor* c = s->comp;
+  FlTexture* old = s->tex_kind == 1 ? FL_TEXTURE(s->texture)
+                                  : FL_TEXTURE(s->gl_texture);
+  if (old != nullptr) {
+    fl_texture_registrar_unregister_texture(c->texture_registrar, old);
+    g_object_unref(old);
+    s->texture = nullptr;
+    s->gl_texture = nullptr;
+  }
+  s->tex_kind = kind;
+  s->texture_id = -1;
+  FlTexture* tex;
+  if (kind == 1) {
+    s->texture =
+        OASIS_TEXTURE(g_object_new(oasis_texture_get_type(), nullptr));
+    tex = FL_TEXTURE(s->texture);
+  } else {
+    s->gl_texture = OASIS_GL_TEXTURE(
+        g_object_new(oasis_gl_texture_get_type(), nullptr));
+    tex = FL_TEXTURE(s->gl_texture);
+  }
+  fl_texture_registrar_register_texture(c->texture_registrar, tex);
+  s->texture_id = fl_texture_get_id(tex);
+  if (s->announced != SURFACE_NONE) {
+    FlValue* m = new_event("texture");
+    ev_id(m, s->public_id);
+    fl_value_set_string_take(m, "textureId",
+                             fl_value_new_int(s->texture_id));
+    send_event(c, m);
+  }
+}
+
 static void surface_commit(Surface* s) {
   if (s->pending_buffer != nullptr) {
-    apply_buffer(s, s->pending_buffer);
+    wl_resource* b = s->pending_buffer;
     s->pending_buffer = nullptr;
+    if (wl_shm_buffer_get(b) != nullptr) {
+      ensure_texture(s, 1);
+      s->dmabuf = nullptr;
+      apply_buffer(s, b);
+      if (s->texture != nullptr && s->iw > 0 && s->ih > 0) {
+        oasis_texture_push(s->texture, s->img, s->iw, s->ih);
+      }
+    } else {
+      DmabufBuf* db =
+          static_cast<DmabufBuf*>(wl_resource_get_user_data(b));
+      if (db != nullptr && db->res == b) {
+        ensure_texture(s, 2);
+        s->dmabuf = db;
+        g_clear_pointer(&s->img, g_free);
+        s->iw = db->w;
+        s->ih = db->h;
+        if (s->gl_texture != nullptr) {
+          s->gl_texture->dmabuf = db;
+          s->gl_texture->w = static_cast<uint32_t>(db->w);
+          s->gl_texture->h = static_cast<uint32_t>(db->h);
+        }
+      }
+    }
   }
   finish_frames(s);
-  if (s->role == SURFACE_TOPLEVEL || s->role == SURFACE_POPUP) {
+  if (s->announced != SURFACE_NONE) {
     emit_size(s);
-    flatten_push(s);
-  } else if (s->role == SURFACE_SUBSURFACE && !s->sync &&
-             s->parent != nullptr) {
-    flatten_push(surface_root(s->parent));
+    FlTexture* tex = s->tex_kind == 1   ? FL_TEXTURE(s->texture)
+                     : s->tex_kind == 2 ? FL_TEXTURE(s->gl_texture)
+                                       : nullptr;
+    if (tex != nullptr) {
+      fl_texture_registrar_mark_texture_frame_available(
+          s->comp->texture_registrar, tex);
+    }
   }
 }
 
@@ -448,8 +610,12 @@ static const struct wl_surface_interface surface_impl = {
 };
 
 static void emit_closed(OasisCompositor* c, Surface* s) {
-  FlValue* m = new_event(s->announced == SURFACE_POPUP ? "popupClosed"
-                                                     : "toplevelClosed");
+  const char* name = s->announced == SURFACE_POPUP
+                         ? "popupClosed"
+                         : s->announced == SURFACE_SUBSURFACE
+                               ? "subsurfaceClosed"
+                               : "toplevelClosed";
+  FlValue* m = new_event(name);
   ev_id(m, s->public_id);
   send_event(c, m);
 }
@@ -466,10 +632,11 @@ static void free_surface(Surface* s) {
   }
   for (Surface* child : s->children) child->parent = nullptr;
   s->children.clear();
-  if (s->texture != nullptr) {
-    fl_texture_registrar_unregister_texture(c->texture_registrar,
-                                            FL_TEXTURE(s->texture));
-    g_object_unref(s->texture);
+  FlTexture* tex = s->tex_kind == 1 ? FL_TEXTURE(s->texture)
+                                    : FL_TEXTURE(s->gl_texture);
+  if (tex != nullptr) {
+    fl_texture_registrar_unregister_texture(c->texture_registrar, tex);
+    g_object_unref(tex);
   }
   c->by_id.erase(s->public_id);
   c->surfaces.erase(
@@ -563,6 +730,13 @@ static void subsurface_set_position(wl_client* client,
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   s->sx = x;
   s->sy = y;
+  if (s->announced == SURFACE_SUBSURFACE) {
+    FlValue* m = new_event("subsurfaceMoved");
+    ev_id(m, s->public_id);
+    fl_value_set_string_take(m, "x", fl_value_new_int(x));
+    fl_value_set_string_take(m, "y", fl_value_new_int(y));
+    send_event(s->comp, m);
+  }
 }
 
 static void subsurface_place_above(wl_client* client,
@@ -625,13 +799,22 @@ static void subcompositor_get_subsurface(wl_client* client,
     return;
   }
   s->role = SURFACE_SUBSURFACE;
+  s->announced = SURFACE_SUBSURFACE;
   s->parent = parent;
   parent->children.push_back(s);
+  s->public_id = s->comp->next_id++;
+  s->comp->by_id[s->public_id] = s;
   wl_resource* sub = wl_resource_create(client, &wl_subsurface_interface,
                                         wl_resource_get_version(res), id);
   s->role_res = sub;
   wl_resource_set_implementation(sub, &subsurface_impl, s,
                                  role_res_destroyed);
+  FlValue* m = new_event("subsurface");
+  ev_id(m, s->public_id);
+  fl_value_set_string_take(m, "parent", fl_value_new_int(parent->public_id));
+  fl_value_set_string_take(m, "x", fl_value_new_int(s->sx));
+  fl_value_set_string_take(m, "y", fl_value_new_int(s->sy));
+  send_event(s->comp, m);
 }
 
 static const struct wl_subcompositor_interface subcompositor_impl = {
@@ -1292,11 +1475,6 @@ static void toplevel_created(OasisCompositor* c,
   }
   s->role = SURFACE_TOPLEVEL;
   s->announced = SURFACE_TOPLEVEL;
-  s->texture = OASIS_TEXTURE(
-      g_object_new(oasis_texture_get_type(), nullptr));
-  fl_texture_registrar_register_texture(c->texture_registrar,
-                                        FL_TEXTURE(s->texture));
-  s->texture_id = fl_texture_get_id(FL_TEXTURE(s->texture));
   s->public_id = c->next_id++;
   c->by_id[s->public_id] = s;
   wl_resource* tl = wl_resource_create(client, &xdg_toplevel_interface,
@@ -1345,11 +1523,6 @@ static void popup_created(OasisCompositor* c,
     s->sx = px;
     s->sy = py;
   }
-  s->texture = OASIS_TEXTURE(
-      g_object_new(oasis_texture_get_type(), nullptr));
-  fl_texture_registrar_register_texture(c->texture_registrar,
-                                        FL_TEXTURE(s->texture));
-  s->texture_id = fl_texture_get_id(FL_TEXTURE(s->texture));
   s->public_id = c->next_id++;
   c->by_id[s->public_id] = s;
   wl_resource* pop = wl_resource_create(client, &xdg_popup_interface,
@@ -1733,6 +1906,284 @@ static void bind_deco_manager(wl_client* client,
   wl_resource_set_implementation(res, &deco_manager_impl, data, nullptr);
 }
 
+// zwp_linux_dmabuf_v1
+
+struct DmabufParams {
+  OasisCompositor* comp = nullptr;
+  wl_resource* res = nullptr;
+  DmabufBuf pending;
+};
+
+static void dmabuf_params_cleanup(DmabufParams* p) {
+  for (int i = 0; i < 4; i++) {
+    if (p->pending.fds[i] >= 0) close(p->pending.fds[i]);
+  }
+  delete p;
+}
+
+static void dmabuf_params_res_destroyed(wl_resource* res) {
+  dmabuf_params_cleanup(
+      static_cast<DmabufParams*>(wl_resource_get_user_data(res)));
+}
+
+static void dmabuf_buf_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static const struct wl_buffer_interface dmabuf_buf_impl = {
+    dmabuf_buf_destroy};
+
+static void dmabuf_buf_res_destroyed(wl_resource* res) {
+  DmabufBuf* b = static_cast<DmabufBuf*>(wl_resource_get_user_data(res));
+  for (int i = 0; i < 4; i++) {
+    if (b->fds[i] >= 0) close(b->fds[i]);
+  }
+  auto& v = b->comp->dmabufs;
+  v.erase(std::remove(v.begin(), v.end(), b), v.end());
+  delete b;
+}
+
+static wl_resource* dmabuf_make_buffer(DmabufParams* p,
+                                       uint32_t id,
+                                       int w,
+                                       int h,
+                                       uint32_t format,
+                                       uint32_t flags) {
+  DmabufBuf* b = new DmabufBuf();
+  b->comp = p->comp;
+  b->w = w;
+  b->h = h;
+  b->format = format;
+  b->nplanes = p->pending.nplanes;
+  for (int i = 0; i < 4; i++) {
+    b->fds[i] = p->pending.fds[i];
+    b->offsets[i] = p->pending.offsets[i];
+    b->strides[i] = p->pending.strides[i];
+    b->mods[i] = p->pending.mods[i];
+    p->pending.fds[i] = -1;
+  }
+  wl_resource* res = wl_resource_create(
+      wl_resource_get_client(p->res), &wl_buffer_interface, 1, id);
+  b->res = res;
+  wl_resource_set_implementation(res, &dmabuf_buf_impl, b,
+                                 dmabuf_buf_res_destroyed);
+  p->comp->dmabufs.push_back(b);
+  return res;
+}
+
+static void dmabuf_params_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void dmabuf_params_add(wl_client* client,
+                              wl_resource* res,
+                              int32_t fd,
+                              uint32_t plane,
+                              uint32_t offset,
+                              uint32_t stride,
+                              uint32_t mod_hi,
+                              uint32_t mod_lo) {
+  DmabufParams* p =
+      static_cast<DmabufParams*>(wl_resource_get_user_data(res));
+  if (plane >= 4 || p->pending.fds[plane] >= 0) {
+    wl_resource_post_error(res, ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_ALREADY_USED,
+                           "plane already added");
+    return;
+  }
+  int dupfd = fcntl(fd, F_DUPFD_CLOEXEC, 0);
+  if (dupfd < 0) {
+    wl_resource_post_error(res, ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT,
+                           "fd dup failed");
+    return;
+  }
+  p->pending.fds[plane] = dupfd;
+  p->pending.offsets[plane] = offset;
+  p->pending.strides[plane] = stride;
+  p->pending.mods[plane] =
+      (static_cast<uint64_t>(mod_hi) << 32) | mod_lo;
+  if (static_cast<int>(plane) >= p->pending.nplanes) {
+    p->pending.nplanes = plane + 1;
+  }
+}
+
+static bool dmabuf_params_ready(DmabufParams* p, int w, int h) {
+  return w > 0 && h > 0 && p->pending.nplanes > 0 &&
+         p->pending.fds[0] >= 0;
+}
+
+static void dmabuf_params_create(wl_client* client,
+                                 wl_resource* res,
+                                 int32_t w,
+                                 int32_t h,
+                                 uint32_t format,
+                                 uint32_t flags) {
+  DmabufParams* p =
+      static_cast<DmabufParams*>(wl_resource_get_user_data(res));
+  if (!dmabuf_params_ready(p, w, h)) {
+    zwp_linux_buffer_params_v1_send_failed(res);
+    return;
+  }
+  wl_resource* b = dmabuf_make_buffer(p, 0, w, h, format, flags);
+  zwp_linux_buffer_params_v1_send_created(res, b);
+}
+
+static void dmabuf_params_create_immed(wl_client* client,
+                                       wl_resource* res,
+                                       uint32_t buffer_id,
+                                       int32_t w,
+                                       int32_t h,
+                                       uint32_t format,
+                                       uint32_t flags) {
+  DmabufParams* p =
+      static_cast<DmabufParams*>(wl_resource_get_user_data(res));
+  if (!dmabuf_params_ready(p, w, h)) {
+    wl_resource_post_error(res, ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INCOMPLETE,
+                           "incomplete dmabuf params");
+    return;
+  }
+  dmabuf_make_buffer(p, buffer_id, w, h, format, flags);
+}
+
+static void dmabuf_params_set_sampling(wl_client* client,
+                                       wl_resource* res,
+                                       wl_array* device_fd) {}
+
+static const struct zwp_linux_buffer_params_v1_interface
+    dmabuf_params_impl = {
+        dmabuf_params_destroy,
+        dmabuf_params_add,
+        dmabuf_params_create,
+        dmabuf_params_create_immed,
+        dmabuf_params_set_sampling,
+};
+
+static void dmabuf_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static void dmabuf_create_params(wl_client* client,
+                                 wl_resource* res,
+                                 uint32_t params_id) {
+  DmabufParams* p = new DmabufParams();
+  p->comp = static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  wl_resource* pr = wl_resource_create(
+      client, &zwp_linux_buffer_params_v1_interface,
+      wl_resource_get_version(res), params_id);
+  p->res = pr;
+  wl_resource_set_implementation(pr, &dmabuf_params_impl, p,
+                                 dmabuf_params_res_destroyed);
+}
+
+static void dmabuf_feedback_destroy(wl_client* client, wl_resource* res) {
+  wl_resource_destroy(res);
+}
+
+static const struct zwp_linux_dmabuf_feedback_v1_interface
+    dmabuf_feedback_impl = {dmabuf_feedback_destroy};
+
+static const uint32_t dmabuf_fmts[] = {
+    DRM_FORMAT_ARGB8888, DRM_FORMAT_XRGB8888,
+    DRM_FORMAT_ABGR8888, DRM_FORMAT_XBGR8888,
+    DRM_FORMAT_RGB565,
+};
+
+static dev_t dmabuf_render_dev() {
+  for (int i = 128; i < 144; i++) {
+    char path[32];
+    snprintf(path, sizeof(path), "/dev/dri/renderD%d", i);
+    struct stat st;
+    if (stat(path, &st) == 0) return st.st_rdev;
+  }
+  for (int i = 0; i < 16; i++) {
+    char path[32];
+    snprintf(path, sizeof(path), "/dev/dri/card%d", i);
+    struct stat st;
+    if (stat(path, &st) == 0) return st.st_rdev;
+  }
+  return 0;
+}
+
+static void dmabuf_send_feedback(wl_resource* f) {
+  int fd = memfd_create("oasis-dmabuf",
+                        MFD_CLOEXEC | MFD_ALLOW_SEALING);
+  wl_array indices;
+  wl_array_init(&indices);
+  size_t count = sizeof(dmabuf_fmts) / sizeof(dmabuf_fmts[0]);
+  if (fd >= 0) {
+    for (size_t i = 0; i < count; i++) {
+      struct {
+        uint32_t format;
+        uint32_t pad;
+        uint64_t modifier;
+      } entry = {dmabuf_fmts[i], 0, 0};
+      if (write(fd, &entry, sizeof(entry)) ==
+          static_cast<ssize_t>(sizeof(entry))) {
+        uint32_t idx = static_cast<uint32_t>(i);
+        wl_array_add(&indices, sizeof(idx));
+        memcpy(static_cast<uint32_t*>(indices.data) +
+                   indices.size / sizeof(idx) - 1,
+               &idx, sizeof(idx));
+      }
+    }
+    zwp_linux_dmabuf_feedback_v1_send_format_table(
+        f, fd, static_cast<uint32_t>(indices.size * 4));
+    close(fd);
+  }
+  dev_t dev = dmabuf_render_dev();
+  wl_array da;
+  wl_array_init(&da);
+  wl_array_add(&da, sizeof(dev));
+  memcpy(da.data, &dev, sizeof(dev));
+  zwp_linux_dmabuf_feedback_v1_send_main_device(f, &da);
+  zwp_linux_dmabuf_feedback_v1_send_tranche_target_device(f, &da);
+  zwp_linux_dmabuf_feedback_v1_send_tranche_flags(f, 0);
+  zwp_linux_dmabuf_feedback_v1_send_tranche_formats(f, &indices);
+  zwp_linux_dmabuf_feedback_v1_send_tranche_done(f);
+  zwp_linux_dmabuf_feedback_v1_send_done(f);
+  wl_array_release(&da);
+  wl_array_release(&indices);
+}
+
+static void dmabuf_get_default_feedback(wl_client* client,
+                                        wl_resource* res,
+                                        uint32_t id) {
+  wl_resource* f =
+      wl_resource_create(client, &zwp_linux_dmabuf_feedback_v1_interface,
+                         wl_resource_get_version(res), id);
+  wl_resource_set_implementation(f, &dmabuf_feedback_impl, nullptr,
+                                 nullptr);
+  dmabuf_send_feedback(f);
+}
+
+static void dmabuf_get_surface_feedback(wl_client* client,
+                                        wl_resource* res,
+                                        uint32_t id,
+                                        wl_resource* surface) {
+  dmabuf_get_default_feedback(client, res, id);
+}
+
+static const struct zwp_linux_dmabuf_v1_interface dmabuf_impl = {
+    dmabuf_destroy, dmabuf_create_params, dmabuf_get_default_feedback,
+    dmabuf_get_surface_feedback};
+
+static void bind_dmabuf(wl_client* client,
+                        void* data,
+                        uint32_t ver,
+                        uint32_t id) {
+  OasisCompositor* c = static_cast<OasisCompositor*>(data);
+  wl_resource* res = wl_resource_create(
+      client, &zwp_linux_dmabuf_v1_interface, ver < 4 ? ver : 4, id);
+  wl_resource_set_implementation(res, &dmabuf_impl, c, nullptr);
+  if (ver < 4) {
+    for (uint32_t f : dmabuf_fmts) {
+      zwp_linux_dmabuf_v1_send_format(res, f);
+      if (ver >= 3) {
+        zwp_linux_dmabuf_v1_send_modifier(res, f, 0, 0);
+      }
+    }
+  }
+}
+
 // display lifecycle
 
 static gboolean display_fd_cb(GIOChannel* ch,
@@ -1789,6 +2240,8 @@ static bool display_start(OasisCompositor* c, GError** error) {
   wl_global_create(c->display, &xdg_wm_base_interface, 3, c, bind_wm_base);
   wl_global_create(c->display, &zxdg_decoration_manager_v1_interface, 1,
                    c, bind_deco_manager);
+  wl_global_create(c->display, &zwp_linux_dmabuf_v1_interface, 4, c,
+                   bind_dmabuf);
   const char* name = wl_display_add_socket_auto(c->display);
   if (name == nullptr) {
     wl_display_destroy(c->display);
@@ -1828,11 +2281,8 @@ static void launch_app(OasisCompositor* c, FlValue* args) {
   g_auto(GStrv) env = g_get_environ();
   env = g_environ_setenv(env, "WAYLAND_DISPLAY", c->socket_name, TRUE);
   env = g_environ_setenv(env, "GDK_BACKEND", "wayland", TRUE);
-  env = g_environ_setenv(env, "GSK_RENDERER", "cairo", TRUE);
   env = g_environ_setenv(env, "GTK_CSD", "0", TRUE);
   env = g_environ_setenv(env, "QT_QPA_PLATFORM", "wayland", TRUE);
-  env = g_environ_setenv(env, "QT_WAYLAND_CLIENT_BUFFER_INTEGRATION",
-                         "shm", TRUE);
   env = g_environ_setenv(env, "QT_WAYLAND_DISABLE_WINDOWDECORATION", "1",
                          TRUE);
   env = g_environ_setenv(env, "SDL_VIDEODRIVER", "wayland", TRUE);
@@ -2054,6 +2504,23 @@ static void replay_state(OasisCompositor* c) {
       fl_value_set_string_take(m, "x", fl_value_new_int(s->sx));
       fl_value_set_string_take(m, "y", fl_value_new_int(s->sy));
       send_event(c, m);
+    } else if (s->announced == SURFACE_SUBSURFACE) {
+      FlValue* m = new_event("subsurface");
+      ev_id(m, s->public_id);
+      fl_value_set_string_take(m, "parent",
+                               fl_value_new_int(s->parent != nullptr
+                                                    ? s->parent->public_id
+                                                    : -1));
+      fl_value_set_string_take(m, "x", fl_value_new_int(s->sx));
+      fl_value_set_string_take(m, "y", fl_value_new_int(s->sy));
+      send_event(c, m);
+    }
+    if (s->tex_kind != 0) {
+      FlValue* m = new_event("texture");
+      ev_id(m, s->public_id);
+      fl_value_set_string_take(m, "textureId",
+                               fl_value_new_int(s->texture_id));
+      send_event(c, m);
     }
     s->rep_w = 0;
     s->rep_h = -1;
@@ -2109,9 +2576,11 @@ void oasis_compositor_free(OasisCompositor* c) {
   }
   for (Surface* s : c->surfaces) {
     if (s->texture != nullptr) g_object_unref(s->texture);
+    if (s->gl_texture != nullptr) g_object_unref(s->gl_texture);
     g_free(s->img);
     delete s;
   }
+  for (DmabufBuf* b : c->dmabufs) delete b;
   for (DataSource* ds : c->sources) delete ds;
   for (DataOffer* o : c->offers) delete o;
   for (DataDevice* d : c->devices) delete d;

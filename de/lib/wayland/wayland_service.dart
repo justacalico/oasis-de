@@ -8,8 +8,9 @@ import 'wayland_host.dart';
 class WaylandSurface {
   WaylandSurface({
     required this.id,
-    required this.textureId,
+    this.textureId = -1,
     this.parentId,
+    this.isSub = false,
     this.title = '',
     this.appId = '',
     this.offset = Offset.zero,
@@ -17,14 +18,16 @@ class WaylandSurface {
   });
 
   final int id;
-  final int textureId;
+  int textureId;
   final int? parentId;
+  final bool isSub;
+  final List<int> children = [];
   String title;
   String appId;
   Offset offset;
   Size size;
 
-  bool get isPopup => parentId != null;
+  bool get isPopup => parentId != null && !isSub;
 }
 
 enum WaylandRequestType { move, resize, maximize, fullscreen, minimize }
@@ -73,7 +76,7 @@ class WaylandService extends ChangeNotifier {
   }
 
   List<WaylandSurface> get toplevels => surfaces.values
-      .where((s) => !s.isPopup)
+      .where((s) => !s.isPopup && !s.isSub)
       .toList(growable: false);
 
   List<WaylandSurface> get popups => surfaces.values
@@ -86,7 +89,7 @@ class WaylandService extends ChangeNotifier {
       case 'toplevel':
         surfaces[id] = WaylandSurface(
           id: id,
-          textureId: (e['textureId'] as num).toInt(),
+          textureId: (e['textureId'] as num?)?.toInt() ?? -1,
           title: e['title'] as String? ?? '',
           appId: e['appId'] as String? ?? '',
         );
@@ -105,12 +108,13 @@ class WaylandService extends ChangeNotifier {
       case 'popup':
         surfaces[id] = WaylandSurface(
           id: id,
-          textureId: (e['textureId'] as num).toInt(),
+          textureId: (e['textureId'] as num?)?.toInt() ?? -1,
           parentId: (e['parent'] as num).toInt(),
           offset: Offset((e['x'] as num).toDouble(),
               (e['y'] as num).toDouble()),
         );
       case 'popupMoved':
+      case 'subsurfaceMoved':
         final s = surfaces[id];
         if (s != null) {
           s.offset = Offset((e['x'] as num).toDouble(),
@@ -118,6 +122,24 @@ class WaylandService extends ChangeNotifier {
         }
       case 'popupClosed':
         surfaces.remove(id);
+      case 'subsurface':
+        final sub = WaylandSurface(
+          id: id,
+          parentId: (e['parent'] as num).toInt(),
+          isSub: true,
+          offset: Offset((e['x'] as num).toDouble(),
+              (e['y'] as num).toDouble()),
+        );
+        surfaces[id] = sub;
+        surfaces[sub.parentId]?.children.add(id);
+      case 'subsurfaceClosed':
+        final s = surfaces.remove(id);
+        if (s?.parentId != null) {
+          surfaces[s!.parentId]?.children.remove(id);
+        }
+      case 'texture':
+        surfaces[id]?.textureId =
+            (e['textureId'] as num?)?.toInt() ?? -1;
       case 'move':
         _requests.add(
             WaylandRequest(WaylandRequestType.move, id));

@@ -128,6 +128,51 @@ void main() {
     service.dispose();
   });
 
+  test('service tracks subsurface layers and textures', () async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    await service.start();
+
+    host.emit({'event': 'toplevel', 'id': 1});
+    host.emit({'event': 'texture', 'id': 1, 'textureId': 7});
+    host.emit({
+      'event': 'subsurface',
+      'id': 5,
+      'parent': 1,
+      'x': 10,
+      'y': 20,
+    });
+    host.emit({
+      'event': 'subsurface',
+      'id': 6,
+      'parent': 999,
+      'x': 0,
+      'y': 0,
+    });
+    host.emit(
+        {'event': 'subsurfaceMoved', 'id': 5, 'x': 1, 'y': 2});
+    host.emit({'event': 'texture', 'id': 5, 'textureId': 8});
+    await pumpEventQueue();
+
+    final top = service.surfaces[1]!;
+    expect(top.textureId, 7);
+    expect(top.children, [5]);
+    final sub = service.surfaces[5]!;
+    expect(sub.isSub, isTrue);
+    expect(sub.isPopup, isFalse);
+    expect(sub.offset, const Offset(1, 2));
+    expect(sub.textureId, 8);
+    expect(service.surfaces[6]!.isSub, isTrue);
+    expect(service.toplevels.single.id, 1);
+
+    host.emit({'event': 'subsurfaceClosed', 'id': 5});
+    host.emit({'event': 'subsurfaceClosed', 'id': 99});
+    await pumpEventQueue();
+    expect(top.children, isEmpty);
+    expect(service.surfaces.containsKey(5), isFalse);
+    service.dispose();
+  });
+
   test('service forwards window requests', () async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
