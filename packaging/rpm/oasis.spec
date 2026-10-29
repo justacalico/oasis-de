@@ -13,6 +13,7 @@ License:        AGPL-3.0
 URL:            https://gitlab.com/HttpAnimations/oasis-de
 ExclusiveArch:  x86_64 aarch64
 Requires:       dbus
+Requires:       cage
 BuildRequires:  patchelf
 
 %description

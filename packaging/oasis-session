@@ -12,7 +12,7 @@ run_oasis() {
   mkdir -p "$(dirname "$OASIS_CRASH_LOG")"
   crashes=0
   while true; do
-    /opt/oasis/oasis "$@"
+    cage -- /opt/oasis/oasis "$@"
     code=$?
     [ "$code" -eq 0 ] && exit 0
     crashes=$((crashes + 1))
