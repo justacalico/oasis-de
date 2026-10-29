@@ -1,4 +1,5 @@
 import 'package:clock/clock.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/oasis_theme.dart';
@@ -65,6 +66,7 @@ class _OasisWindowState extends State<OasisWindow> {
       onPointerDown: widget.onMaximize == null
           ? null
           : (e) {
+              if (e.buttons != kPrimaryButton) return;
               final now = clock.now();
               final last = _lastTitlebarTap;
               _lastTitlebarTap = now;
@@ -98,10 +100,15 @@ class _OasisWindowState extends State<OasisWindow> {
                 onMaximize: widget.onMaximize,
               ),
             ),
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: widget.focused ? p.textPrimary : p.textTertiary,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 72),
+              child: Text(
+                widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: widget.focused ? p.textPrimary : p.textTertiary,
+                ),
               ),
             ),
           ],
