@@ -13,10 +13,7 @@ on:
 
 jobs:
   build:
-    runs-permissions:
-  contents: write
-
-on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -69,10 +66,7 @@ on: ubuntu-latest
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-arm64:
-    runs-permissions:
-  contents: write
-
-on: ubuntu-24.04-arm
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - name: Install Linux desktop deps
