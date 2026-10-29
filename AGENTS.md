@@ -10,7 +10,7 @@ Monorepo layout:
 Rules:
 - Keep 100% line coverage. Run `flutter test --coverage` at the repo root and inspect `coverage/lcov.info` before finishing.
 - Goldens live in `test/goldens`. Regenerate with `flutter test test/goldens_test.dart --update-goldens`. Bundled fonts are loaded by `test/helpers/test_app.dart`.
-- All user-facing text goes through the ARB files in `packages/oasis_ui/l10n`. Never hardcode strings. Locales: en_GB base, zh_Hans, ru, ga.
+- All user-facing text goes through the ARB files in `packages/oasis_ui/l10n`. Never hardcode strings. Locales: en base, zh, ru, ga; regional variants like en_GB and zh_Hans fall back by language.
 - Refactor rather than duplicating code. Small focused files, no god files.
 - Aim for an A+ codebase. If something should be refactored, refactor it.
 - Commits use Conventional Commits (`feat:`, `fix:`, `chore:`...) so cocogitto can bump versions and write the changelog. Run `git config core.hooksPath .githooks` once.
