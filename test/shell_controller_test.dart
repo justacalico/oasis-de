@@ -484,4 +484,7 @@ class _RecordingBackend implements OasisSystemBackend {
   @override
   Future<OasisBattery> battery() async =>
       const OasisBattery(level: null, charging: false);
+
+  @override
+  void session(OasisSessionAction action) => calls.add('session');
 }

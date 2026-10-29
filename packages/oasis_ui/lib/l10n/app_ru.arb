@@ -125,5 +125,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "sessionLock": "Блокировать",
+  "sessionLogOut": "Выйти",
+  "sessionSleep": "Сон",
+  "sessionRestart": "Перезапуск",
+  "sessionShutDown": "Выключение"
 }

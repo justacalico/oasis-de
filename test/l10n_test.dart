@@ -24,6 +24,11 @@ void exerciseStrings(OasisLocalizations l) {
   l.launchPad;
   l.launcherHint;
   l.launcherNoResults;
+  l.sessionLock;
+  l.sessionLogOut;
+  l.sessionSleep;
+  l.sessionRestart;
+  l.sessionShutDown;
   l.ccWifi;
   l.ccBluetooth;
   l.ccFocus;

@@ -21,7 +21,12 @@ void main() {
       ..brightness(2.0)
       ..volume(0.4)
       ..nightLight(true)
-      ..nightLight(false);
+      ..nightLight(false)
+      ..session(OasisSessionAction.lock)
+      ..session(OasisSessionAction.logout)
+      ..session(OasisSessionAction.suspend)
+      ..session(OasisSessionAction.reboot)
+      ..session(OasisSessionAction.poweroff);
 
     expect(calls, [
       'nmcli radio wifi on',
@@ -33,6 +38,11 @@ void main() {
       'wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.4',
       'gammastep -O 3500',
       'gammastep -x',
+      'loginctl lock-session',
+      'loginctl terminate-user self',
+      'systemctl suspend',
+      'systemctl reboot',
+      'systemctl poweroff',
     ]);
   });
 
@@ -104,7 +114,8 @@ void main() {
       ..bluetooth(true)
       ..brightness(0.5)
       ..volume(0.5)
-      ..nightLight(true);
+      ..nightLight(true)
+      ..session(OasisSessionAction.lock);
     expect(
       (await NoopSystemBackend().read()).wifi,
       isNull,
@@ -154,4 +165,7 @@ class _RecordingBackend implements OasisSystemBackend {
   @override
   Future<OasisBattery> battery() async =>
       const OasisBattery(level: null, charging: false);
+
+  @override
+  void session(OasisSessionAction action) => calls.add('session');
 }

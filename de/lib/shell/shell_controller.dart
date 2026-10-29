@@ -787,6 +787,8 @@ class ShellController extends ChangeNotifier {
 
   final OasisSystemBackend backend;
 
+  void session(OasisSessionAction action) => backend.session(action);
+
   void _set(void Function() apply, [void Function()? after]) {
     apply();
     after?.call();

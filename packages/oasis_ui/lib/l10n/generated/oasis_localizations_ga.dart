@@ -59,6 +59,12 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get launcherNoResults => 'Torthaí ar bith';
 
   @override
+  String get sessionLock => 'Glasáil';
+  String get sessionLogOut => 'Logáil Amach';
+  String get sessionSleep => 'Codladh';
+  String get sessionRestart => 'Atosaigh';
+  String get sessionShutDown => 'Múch';
+
   String get ccWifi => 'Wi-Fi';
 
   @override

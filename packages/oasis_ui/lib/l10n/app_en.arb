@@ -125,5 +125,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "sessionLock": "Lock",
+  "sessionLogOut": "Log Out",
+  "sessionSleep": "Sleep",
+  "sessionRestart": "Restart",
+  "sessionShutDown": "Shut Down"
 }

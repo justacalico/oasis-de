@@ -92,6 +92,7 @@ class ShellMenuBar extends StatelessWidget {
               onTap: controller.toggleControlCenter,
               style: textStyle,
             ),
+            _SessionMenu(controller: controller, style: textStyle),
             const SizedBox(width: 6),
             _MenuClock(style: textStyle),
           ],
@@ -329,6 +330,49 @@ class _MenuEntryState extends State<_MenuEntry> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SessionMenu extends StatelessWidget {
+  const _SessionMenu({required this.controller, required this.style});
+
+  final ShellController controller;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
+    return PopupMenuButton<OasisSessionAction>(
+      tooltip: '',
+      icon: Icon(
+        Icons.power_settings_new,
+        size: 15,
+        color: style?.color,
+      ),
+      onSelected: controller.session,
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: OasisSessionAction.lock,
+          child: Text(l10n.sessionLock),
+        ),
+        PopupMenuItem(
+          value: OasisSessionAction.logout,
+          child: Text(l10n.sessionLogOut),
+        ),
+        PopupMenuItem(
+          value: OasisSessionAction.suspend,
+          child: Text(l10n.sessionSleep),
+        ),
+        PopupMenuItem(
+          value: OasisSessionAction.reboot,
+          child: Text(l10n.sessionRestart),
+        ),
+        PopupMenuItem(
+          value: OasisSessionAction.poweroff,
+          child: Text(l10n.sessionShutDown),
+        ),
+      ],
     );
   }
 }
