@@ -9,6 +9,8 @@ class OasisApp {
     required this.builder,
     this.exec,
     this.iconPath,
+    this.keywords = const [],
+    this.genericName,
   });
 
   final String id;
@@ -18,6 +20,8 @@ class OasisApp {
   final WidgetBuilder builder;
   final List<String>? exec;
   final String? iconPath;
+  final List<String> keywords;
+  final String? genericName;
 
   bool get isExternal => exec != null;
 }

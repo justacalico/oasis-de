@@ -126,10 +126,49 @@ class ShellController extends ChangeNotifier {
     return null;
   }
 
+  final Map<String, int> launchCounts = {};
+
   List<OasisApp> filterApps(String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return apps;
-    return apps.where((a) => a.name.toLowerCase().contains(q)).toList();
+    bool fuzzy(String field) {
+      var i = 0;
+      for (final ch in field.codeUnits) {
+        if (i < q.length && ch == q.codeUnitAt(i)) i++;
+      }
+      return i == q.length;
+    }
+
+    int score(OasisApp a) {
+      var best = 0;
+      for (final field in [a.name, ?a.genericName, ...a.keywords]) {
+        final f = field.toLowerCase();
+        final s = f.startsWith(q)
+            ? 3
+            : f.contains(q)
+            ? 2
+            : fuzzy(f)
+            ? 1
+            : 0;
+        if (s > best) best = s;
+      }
+      return best;
+    }
+
+    final scored = [
+      for (final a in apps)
+        if (score(a) > 0) (a, score(a)),
+    ];
+    scored.sort((x, y) {
+      final byScore = y.$2.compareTo(x.$2);
+      if (byScore != 0) return byScore;
+      final byRecency = (launchCounts[y.$1.id] ?? 0).compareTo(
+        launchCounts[x.$1.id] ?? 0,
+      );
+      if (byRecency != 0) return byRecency;
+      return x.$1.name.compareTo(y.$1.name);
+    });
+    return [for (final s in scored) s.$1];
   }
 
   void openApp(OasisApp app) {
@@ -150,6 +189,7 @@ class ShellController extends ChangeNotifier {
       }
       unawaited(service.launch(app.exec!));
     }
+    launchCounts[app.id] = (launchCounts[app.id] ?? 0) + 1;
     final window = ShellWindowData(
       id: _nextId++,
       app: app,
