@@ -19,7 +19,9 @@ void main() {
       ..bluetooth(false)
       ..brightness(0.5)
       ..brightness(2.0)
-      ..volume(0.4);
+      ..volume(0.4)
+      ..nightLight(true)
+      ..nightLight(false);
 
     expect(calls, [
       'nmcli radio wifi on',
@@ -29,15 +31,57 @@ void main() {
       'brightnessctl set 50%',
       'brightnessctl set 100%',
       'wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.4',
+      'gammastep -O 3500',
+      'gammastep -x',
     ]);
   });
 
-  test('noop backend accepts calls', () {
+  test('cli backend reads real system state', () async {
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async {
+      final out = switch (exe) {
+        'nmcli' => 'enabled',
+        'bluetoothctl' => 'Powered: yes\nName: host',
+        'brightnessctl' => 'dev,class,80,75%,100',
+        'wpctl' => 'Volume: 0.65',
+        'gammastep' => 'Period: Night\nColor temperature: 3500',
+        _ => '',
+      };
+      return ProcessResult(0, 0, out, '');
+    }
+
+    final s = await CliSystemBackend(run: fakeRun).read();
+    expect(s.wifi, isTrue);
+    expect(s.bluetooth, isTrue);
+    expect(s.brightness, 0.75);
+    expect(s.volume, 0.65);
+    expect(s.nightLight, isTrue);
+  });
+
+  test('cli backend read tolerates missing tools', () async {
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async {
+      if (exe == 'brightnessctl') {
+        throw const ProcessException('brightnessctl', []);
+      }
+      return ProcessResult(0, 1, '', '');
+    }
+
+    final s = await CliSystemBackend(run: fakeRun).read();
+    expect(s.wifi, isNull);
+    expect(s.brightness, isNull);
+    expect(s.volume, isNull);
+  });
+
+  test('noop backend accepts calls', () async {
     NoopSystemBackend()
       ..wifi(true)
       ..bluetooth(true)
       ..brightness(0.5)
-      ..volume(0.5);
+      ..volume(0.5)
+      ..nightLight(true);
+    expect(
+      (await NoopSystemBackend().read()).wifi,
+      isNull,
+    );
   });
 
   test('settings state writes shared keys and calls backend', () {
@@ -72,4 +116,10 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   void volume(double level) => calls.add('volume');
+
+  @override
+  void nightLight(bool enabled) => calls.add('nightLight');
+
+  @override
+  Future<OasisSystemState> read() async => const OasisSystemState();
 }

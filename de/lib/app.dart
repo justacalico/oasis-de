@@ -56,6 +56,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final ShellController _controller;
   late final WaylandService _wayland;
   List<OasisApp> _externalApps = const [];
+  late final String? _savedPins = widget.store?.read('shell.pinned');
   Locale? _locale;
   StreamSubscription<void>? _appDirWatch;
 
@@ -182,15 +183,11 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
               );
               final apps = [...builtins, ..._externalApps];
               final appsById = {for (final a in apps) a.id: a};
-              final savedPins = widget.store?.read('shell.pinned');
+              final savedPins = _savedPins;
               _controller.syncApps(
                 apps,
-                pinned: savedPins == null
-                    ? builtins
-                    : [
-                        for (final id in savedPins.split(','))
-                          if (appsById[id] != null) appsById[id]!,
-                      ],
+                pinnedIds: savedPins?.split(','),
+                fallback: builtins,
               );
               return OasisHost(
                 appearance: _appearance,
