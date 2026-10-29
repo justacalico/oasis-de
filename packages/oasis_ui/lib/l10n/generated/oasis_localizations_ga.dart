@@ -309,4 +309,7 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get wallpaperEmber => 'Smóidí';
+
+  @override
+  String get appCalculator => 'Áireamhán';
 }
