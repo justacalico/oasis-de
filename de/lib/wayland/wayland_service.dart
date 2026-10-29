@@ -20,6 +20,7 @@ class WaylandSurface {
   final int id;
   int textureId;
   final int? parentId;
+  int? transientParentId;
   final bool isSub;
   final List<int> children = [];
   String title;
@@ -33,15 +34,31 @@ class WaylandSurface {
   bool get isPopup => parentId != null && !isSub;
 }
 
-enum WaylandRequestType { move, resize, maximize, fullscreen, minimize }
+enum WaylandRequestType {
+  move,
+  resize,
+  maximize,
+  fullscreen,
+  minimize,
+  windowMenu,
+}
 
 class WaylandRequest {
-  const WaylandRequest(this.type, this.id, {this.on = false, this.edges = 0});
+  const WaylandRequest(
+    this.type,
+    this.id, {
+    this.on = false,
+    this.edges = 0,
+    this.x = 0,
+    this.y = 0,
+  });
 
   final WaylandRequestType type;
   final int id;
   final bool on;
   final int edges;
+  final double x;
+  final double y;
 }
 
 class WaylandService extends ChangeNotifier {
@@ -88,12 +105,16 @@ class WaylandService extends ChangeNotifier {
     final id = (e['id'] as num?)?.toInt() ?? -1;
     switch (e['event']) {
       case 'toplevel':
+        final parentId = (e['parent'] as num?)?.toInt() ?? -1;
         surfaces[id] = WaylandSurface(
           id: id,
           textureId: (e['textureId'] as num?)?.toInt() ?? -1,
           title: e['title'] as String? ?? '',
           appId: e['appId'] as String? ?? '',
-        );
+        )..transientParentId = parentId >= 0 ? parentId : null;
+      case 'toplevelParent':
+        final parentId = (e['parent'] as num?)?.toInt() ?? -1;
+        surfaces[id]?.transientParentId = parentId >= 0 ? parentId : null;
       case 'toplevelClosed':
         surfaces.remove(id);
       case 'title':
@@ -189,6 +210,15 @@ class WaylandService extends ChangeNotifier {
         );
       case 'minimize':
         _requests.add(WaylandRequest(WaylandRequestType.minimize, id));
+      case 'windowMenu':
+        _requests.add(
+          WaylandRequest(
+            WaylandRequestType.windowMenu,
+            id,
+            x: (e['x'] as num?)?.toDouble() ?? 0,
+            y: (e['y'] as num?)?.toDouble() ?? 0,
+          ),
+        );
     }
     notifyListeners();
   }

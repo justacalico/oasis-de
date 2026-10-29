@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -31,8 +33,42 @@ class DesktopShell extends StatefulWidget {
 
 class _DesktopShellState extends State<DesktopShell> {
   final List<GlobalKey> _menuLabelKeys = [];
+  StreamSubscription<WaylandRequest>? _requestSub;
 
   ShellController get controller => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestSub = controller.wayland?.requests.listen(_onWaylandRequest);
+  }
+
+  @override
+  void dispose() {
+    _requestSub?.cancel();
+    super.dispose();
+  }
+
+  void _onWaylandRequest(WaylandRequest request) {
+    if (request.type != WaylandRequestType.windowMenu || !mounted) return;
+    final w = controller.windowForSurface(request.id);
+    final s = w?.surface;
+    if (w == null || s == null) return;
+    final buf = s.bufferSize;
+    final sx = buf.width > 0 ? s.size.width / buf.width : 1.0;
+    final sy = buf.height > 0 ? s.size.height / buf.height : 1.0;
+    final base = w.zoomed
+        ? const Offset(0, kMenuBarHeight + 4)
+        : w.fullscreen
+        ? Offset.zero
+        : w.position;
+    final pos = base +
+        const Offset(0, kOasisWindowTitleBarHeight) +
+        Offset(request.x * sx, request.y * sy);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _windowMenu(context, pos, w);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
