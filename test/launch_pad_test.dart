@@ -20,6 +20,7 @@ Future<void> pumpDesktop(WidgetTester tester) async {
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     OasisDesktopApp(
+      backend: const NoopSystemBackend(),
       version: '1.0.0',
       appearance: OasisAppearance(themeMode: OasisThemeMode.light),
       updateChecker: _FakeChecker(),

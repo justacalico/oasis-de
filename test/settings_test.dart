@@ -55,7 +55,8 @@ void main() {
     expect(s.pane, SettingsPane.about);
     s.wifiEnabled = false;
     s.bluetoothEnabled = false;
-    expect(store.read('wifi'), 'off');
+    expect(store.read('shell.wifi'), '0');
+    expect(store.read('shell.bluetooth'), '0');
 
     final s2 = SettingsState(store: store);
     expect(s2.wifiOn, isFalse);

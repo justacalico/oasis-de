@@ -77,7 +77,11 @@ class ShellMenu {
 }
 
 class ShellController extends ChangeNotifier {
-  ShellController({required List<OasisApp> apps, this.wayland})
+  ShellController({
+    required List<OasisApp> apps,
+    this.wayland,
+    this.backend = const NoopSystemBackend(),
+  })
     : apps = List.of(apps) {
     wayland?.addListener(_syncSurfaces);
     _requestSub = wayland?.requests.listen(_onWaylandRequest);
@@ -641,15 +645,22 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  set wifiOnValue(bool v) => _set(() => wifiOn = v);
-  set bluetoothOnValue(bool v) => _set(() => bluetoothOn = v);
+  set wifiOnValue(bool v) =>
+      _set(() => wifiOn = v, () => backend.wifi(v));
+  set bluetoothOnValue(bool v) =>
+      _set(() => bluetoothOn = v, () => backend.bluetooth(v));
   set focusOnValue(bool v) => _set(() => focusOn = v);
   set nightLightOnValue(bool v) => _set(() => nightLightOn = v);
-  set brightnessValue(double v) => _set(() => brightness = v);
-  set volumeValue(double v) => _set(() => volume = v);
+  set brightnessValue(double v) =>
+      _set(() => brightness = v, () => backend.brightness(v));
+  set volumeValue(double v) =>
+      _set(() => volume = v, () => backend.volume(v));
 
-  void _set(void Function() apply) {
+  final OasisSystemBackend backend;
+
+  void _set(void Function() apply, [void Function()? after]) {
     apply();
+    after?.call();
     notifyListeners();
   }
 

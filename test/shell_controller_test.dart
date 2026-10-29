@@ -242,6 +242,20 @@ void main() {
     c.dispose();
   });
 
+  test('toggles notify the system backend', () {
+    final calls = <String>[];
+    final c = ShellController(
+      apps: const [],
+      backend: _RecordingBackend(calls),
+    );
+    c.wifiOnValue = false;
+    c.bluetoothOnValue = false;
+    c.brightnessValue = 0.5;
+    c.volumeValue = 0.5;
+    expect(calls, ['wifi', 'bluetooth', 'brightness', 'volume']);
+    c.dispose();
+  });
+
   test('cycleWindows focuses next visible window', () {
     final c = _controller();
     c.cycleWindows();
@@ -443,3 +457,21 @@ void main() {
 }
 
 class _Ctx extends Fake implements BuildContext {}
+
+class _RecordingBackend implements OasisSystemBackend {
+  _RecordingBackend(this.calls);
+
+  final List<String> calls;
+
+  @override
+  void wifi(bool enabled) => calls.add('wifi');
+
+  @override
+  void bluetooth(bool enabled) => calls.add('bluetooth');
+
+  @override
+  void brightness(double level) => calls.add('brightness');
+
+  @override
+  void volume(double level) => calls.add('volume');
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
+import 'state/settings_state.dart';
 import 'views/settings_home.dart';
 
 class OasisSettingsApp extends StatefulWidget {
@@ -12,6 +13,7 @@ class OasisSettingsApp extends StatefulWidget {
     this.openUrl,
     this.appearance,
     this.wallpaper,
+    this.state,
   });
 
   final String version;
@@ -19,6 +21,7 @@ class OasisSettingsApp extends StatefulWidget {
   final ValueChanged<String>? openUrl;
   final OasisAppearance? appearance;
   final OasisWallpaperService? wallpaper;
+  final SettingsState? state;
 
   @override
   State<OasisSettingsApp> createState() => _OasisSettingsAppState();
@@ -79,6 +82,7 @@ class _OasisSettingsAppState extends State<OasisSettingsApp> {
                 child: SettingsHome(
                   version: widget.version,
                   wallpaper: _wallpaper,
+                  state: widget.state,
                 ),
               ),
             ),

@@ -14,6 +14,7 @@ List<OasisApp> buildShellApps(
   Locale? locale,
   ValueChanged<String>? openUrl,
   OasisStore? store,
+  OasisSystemBackend? backend,
 }) =>
     [
       OasisApp(
@@ -27,7 +28,10 @@ List<OasisApp> buildShellApps(
           setLocale: setLocale,
           locale: locale,
           openUrl: openUrl,
-          child: SettingsHome(wallpaper: wallpaper),
+          child: SettingsHome(
+            wallpaper: wallpaper,
+            state: SettingsState(store: store, backend: backend),
+          ),
         ),
       ),
       OasisApp(
