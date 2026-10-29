@@ -480,6 +480,8 @@ class _DesktopShellState extends State<DesktopShell> {
     final idx = _menuIndex(menus);
     final box =
         _menuLabelKeys[idx].currentContext?.findRenderObject() as RenderBox?;
-    return box?.localToGlobal(Offset.zero).dx ?? 40;
+    final x = box?.localToGlobal(Offset.zero).dx ?? 40;
+    final max = MediaQuery.sizeOf(context).width - 218;
+    return x.clamp(0.0, max > 0 ? max : 0.0);
   }
 }
