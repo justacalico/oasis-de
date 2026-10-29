@@ -43,6 +43,7 @@ void _emitToplevel(
   int id = 1,
   String title = '',
   String appId = '',
+  int? parent,
 }) {
   host.emit({
     'event': 'toplevel',
@@ -50,6 +51,7 @@ void _emitToplevel(
     'textureId': 100 + id,
     'title': title,
     'appId': appId,
+    'parent': parent ?? -1,
   });
 }
 
@@ -958,6 +960,75 @@ void main() {
     await tester.pump();
     expect(c.windows, isEmpty);
     expect(c.launchError, isNotNull);
+  });
+
+  test('transient windows stay above and minimize with parent', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    addTearDown(c.dispose);
+    _emitToplevel(host, id: 1, appId: 'x');
+    _emitToplevel(host, id: 2, appId: 'x', parent: 1);
+    _emitToplevel(host, id: 3, appId: 'x');
+    await pumpEventQueue();
+    expect(c.windows.length, 3);
+    final parent = c.windows.firstWhere((w) => w.surface?.id == 1);
+    final child = c.windows.firstWhere((w) => w.surface?.id == 2);
+    final other = c.windows.firstWhere((w) => w.surface?.id == 3);
+    expect(child.surface?.transientParentId, 1);
+    c.focusWindow(parent.id);
+    expect(c.windows.indexOf(child), greaterThan(c.windows.indexOf(parent)));
+    c.minimizeWindow(parent.id);
+    expect(parent.minimized, isTrue);
+    expect(child.minimized, isTrue);
+    expect(other.minimized, isFalse);
+    c.restoreWindow(parent.id);
+    expect(parent.minimized, isFalse);
+    expect(child.minimized, isFalse);
+  });
+
+  test('toplevelParent event updates the transient link', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    addTearDown(c.dispose);
+    _emitToplevel(host, id: 1, appId: 'x');
+    _emitToplevel(host, id: 2, appId: 'x');
+    await pumpEventQueue();
+    expect(service.surfaces[2]?.transientParentId, isNull);
+    host.emit({'event': 'toplevelParent', 'id': 2, 'parent': 1});
+    await pumpEventQueue();
+    expect(service.surfaces[2]?.transientParentId, 1);
+    host.emit({'event': 'toplevelParent', 'id': 2, 'parent': -1});
+    await pumpEventQueue();
+    expect(service.surfaces[2]?.transientParentId, isNull);
+  });
+
+  testWidgets('windowMenu request opens the window menu', (tester) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      OasisDesktopApp(
+        backend: const NoopSystemBackend(),
+        version: '1.0.0',
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        wayland: service,
+        externalAppsLoader: () async => [_external('x')],
+      ),
+    );
+    await tester.pumpAndSettle();
+    _emitToplevel(host, id: 1, appId: 'x');
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    await tester.pumpAndSettle();
+    host.emit({'event': 'windowMenu', 'id': 999, 'x': 0, 'y': 0});
+    await tester.pump();
+    expect(find.text('Minimise'), findsNothing);
+    host.emit({'event': 'windowMenu', 'id': 1, 'x': 10, 'y': 5});
+    await tester.pumpAndSettle();
+    expect(find.text('Minimise'), findsOneWidget);
   });
 }
 

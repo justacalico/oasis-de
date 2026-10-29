@@ -53,6 +53,7 @@ struct Surface {
   SurfaceRole role = SURFACE_NONE;
   SurfaceRole announced = SURFACE_NONE;
   Surface* parent = nullptr;
+  Surface* tl_parent = nullptr;
   std::vector<Surface*> children;
   wl_client* client = nullptr;
 
@@ -1521,6 +1522,10 @@ static void emit_toplevel(OasisCompositor* c, Surface* s) {
                            fl_value_new_string(s->title.c_str()));
   fl_value_set_string_take(m, "appId",
                            fl_value_new_string(s->app_id.c_str()));
+  fl_value_set_string_take(
+      m, "parent",
+      fl_value_new_int(s->tl_parent != nullptr ? s->tl_parent->public_id
+                                               : -1));
   send_event(c, m);
 }
 
@@ -1664,7 +1669,20 @@ static void toplevel_destroy(wl_client* client, wl_resource* res) {
 
 static void toplevel_set_parent(wl_client* client,
                                 wl_resource* res,
-                                wl_resource* parent) {}
+                                wl_resource* parent) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->tl_parent =
+      parent != nullptr
+          ? static_cast<Surface*>(wl_resource_get_user_data(parent))
+          : nullptr;
+  FlValue* m = new_event("toplevelParent");
+  ev_id(m, s->public_id);
+  fl_value_set_string_take(
+      m, "parent",
+      fl_value_new_int(s->tl_parent != nullptr ? s->tl_parent->public_id
+                                               : -1));
+  send_event(s->comp, m);
+}
 
 static void toplevel_set_title(wl_client* client,
                                wl_resource* res,
@@ -1695,7 +1713,14 @@ static void toplevel_show_window_menu(wl_client* client,
                                       wl_resource* seat,
                                       uint32_t serial,
                                       int32_t x,
-                                      int32_t y) {}
+                                      int32_t y) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  FlValue* m = new_event("windowMenu");
+  ev_id(m, s->public_id);
+  fl_value_set_string_take(m, "x", fl_value_new_int(x));
+  fl_value_set_string_take(m, "y", fl_value_new_int(y));
+  send_event(s->comp, m);
+}
 
 static void emit_simple(Surface* s, const char* name) {
   FlValue* m = new_event(name);
@@ -2644,6 +2669,11 @@ static void replay_state(OasisCompositor* c) {
                                fl_value_new_string(s->title.c_str()));
       fl_value_set_string_take(
           m, "appId", fl_value_new_string(s->app_id.c_str()));
+      fl_value_set_string_take(
+          m, "parent",
+          fl_value_new_int(s->tl_parent != nullptr
+                               ? s->tl_parent->public_id
+                               : -1));
       send_event(c, m);
     } else if (s->announced == SURFACE_POPUP) {
       FlValue* m = new_event("popup");

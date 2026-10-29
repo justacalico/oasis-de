@@ -81,8 +81,7 @@ class ShellController extends ChangeNotifier {
     required List<OasisApp> apps,
     this.wayland,
     this.backend = const NoopSystemBackend(),
-  })
-    : apps = List.of(apps) {
+  }) : apps = List.of(apps) {
     wayland?.addListener(_syncSurfaces);
     _requestSub = wayland?.requests.listen(_onWaylandRequest);
   }
@@ -251,12 +250,51 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<ShellWindowData> transientFamily(ShellWindowData root) {
+    final out = <ShellWindowData>[];
+    void collect(ShellWindowData parent) {
+      final pid = parent.surface?.id;
+      if (pid == null) return;
+      for (final w in windows) {
+        if (w.surface?.transientParentId == pid && !out.contains(w)) {
+          out.add(w);
+          collect(w);
+        }
+      }
+    }
+
+    collect(root);
+    return out;
+  }
+
+  void _raiseTransients() {
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (final w in List.of(windows)) {
+        final pid = w.surface?.transientParentId;
+        if (pid == null) continue;
+        final parent = windowForSurface(pid);
+        if (parent == null) continue;
+        if (windows.indexOf(w) < windows.indexOf(parent)) {
+          windows
+            ..remove(w)
+            ..add(w);
+          moved = true;
+        }
+      }
+    }
+  }
+
   void minimizeWindow(int id) {
     final window = _byId(id);
     if (window == null || window.minimized) return;
-    window.minimized = true;
-    window.transition = ShellWindowTransition.minimizing;
-    if (_focusedId == id) _focusedId = null;
+    final family = [window, ...transientFamily(window)];
+    for (final w in family) {
+      w.minimized = true;
+      w.transition = ShellWindowTransition.minimizing;
+    }
+    if (family.any((w) => w.id == _focusedId)) _focusedId = null;
     _pushWaylandFocus();
     notifyListeners();
   }
@@ -264,8 +302,10 @@ class ShellController extends ChangeNotifier {
   void restoreWindow(int id) {
     final window = _byId(id);
     if (window == null || !window.minimized) return;
-    window.minimized = false;
-    window.transition = ShellWindowTransition.restoring;
+    for (final w in [window, ...transientFamily(window)]) {
+      w.minimized = false;
+      w.transition = ShellWindowTransition.restoring;
+    }
     _focus(id);
   }
 
@@ -305,6 +345,7 @@ class ShellController extends ChangeNotifier {
     _focusedId = id;
     windows.remove(window);
     windows.add(window);
+    _raiseTransients();
     _pushWaylandFocus();
     notifyListeners();
   }
@@ -510,6 +551,7 @@ class ShellController extends ChangeNotifier {
       w.size = fit;
       changed = true;
     }
+    _raiseTransients();
     if (changed) {
       _pushWaylandFocus();
       notifyListeners();
@@ -541,6 +583,7 @@ class ShellController extends ChangeNotifier {
         if (edge != null) {
           _surfaceResize = (id: w.id, edge: edge);
         }
+      case WaylandRequestType.windowMenu:
     }
   }
 
@@ -577,7 +620,10 @@ class ShellController extends ChangeNotifier {
     }
     activeWorkspace = i;
     _focusedId = null;
-    final visible = [for (final w in windows) if (w.workspace == i) w];
+    final visible = [
+      for (final w in windows)
+        if (w.workspace == i) w,
+    ];
     if (visible.isNotEmpty) _focus(visible.last.id);
     notifyListeners();
   }
@@ -596,8 +642,7 @@ class ShellController extends ChangeNotifier {
         if (w.workspace == activeWorkspace && !w.minimized) w,
     ];
     if (visible.isEmpty) return;
-    final idx =
-        visible.indexWhere((w) => w.id == _focusedId);
+    final idx = visible.indexWhere((w) => w.id == _focusedId);
     _focus(visible[(idx + 1) % visible.length].id);
   }
 
@@ -645,16 +690,14 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  set wifiOnValue(bool v) =>
-      _set(() => wifiOn = v, () => backend.wifi(v));
+  set wifiOnValue(bool v) => _set(() => wifiOn = v, () => backend.wifi(v));
   set bluetoothOnValue(bool v) =>
       _set(() => bluetoothOn = v, () => backend.bluetooth(v));
   set focusOnValue(bool v) => _set(() => focusOn = v);
   set nightLightOnValue(bool v) => _set(() => nightLightOn = v);
   set brightnessValue(double v) =>
       _set(() => brightness = v, () => backend.brightness(v));
-  set volumeValue(double v) =>
-      _set(() => volume = v, () => backend.volume(v));
+  set volumeValue(double v) => _set(() => volume = v, () => backend.volume(v));
 
   final OasisSystemBackend backend;
 
