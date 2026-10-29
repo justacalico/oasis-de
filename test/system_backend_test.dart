@@ -33,7 +33,7 @@ void main() {
   });
 
   test('noop backend accepts calls', () {
-    const NoopSystemBackend()
+    NoopSystemBackend()
       ..wifi(true)
       ..bluetooth(true)
       ..brightness(0.5)
