@@ -446,6 +446,11 @@ class WaylandLayerTree extends StatelessWidget {
   final WaylandService service;
   final WaylandSurface surface;
 
+  double _geoScale() {
+    final buf = logicalSurfaceSize(surface);
+    return buf.width > 0 ? surface.size.width / buf.width : 1.0;
+  }
+
   List<Widget> _layers(WaylandSurface root, Offset base) {
     final buf = logicalSurfaceSize(surface);
     final sx = buf.width > 0 ? surface.size.width / buf.width : 1.0;
@@ -481,7 +486,11 @@ class WaylandLayerTree extends StatelessWidget {
     return Stack(
       children: [
         if (surface.textureId >= 0)
-          Positioned.fill(
+          Positioned(
+            left: -surface.geoOffset.dx * _geoScale(),
+            top: -surface.geoOffset.dy * _geoScale(),
+            width: logicalSurfaceSize(surface).width * _geoScale(),
+            height: logicalSurfaceSize(surface).height * _geoScale(),
             child: applyBufferTransform(
               Texture(textureId: surface.textureId),
               surface.transform,
