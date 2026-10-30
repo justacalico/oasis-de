@@ -107,9 +107,9 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
     final l10n = OasisLocalizations.of(context);
     final p = OasisStyle.of(context).palette;
     final size = MediaQuery.sizeOf(context);
-    _columns = (size.width / _cellWidth).floor().clamp(3, 8);
+    _columns = (size.width / _cellWidth).floor().clamp(1, 8);
     _perPage = _columns *
-        ((size.height - 210) / _cellHeight).floor().clamp(2, 6);
+        ((size.height - 210) / _cellHeight).floor().clamp(1, 6);
     final results = _results;
     if (_selected >= results.length) _selected = -1;
     final pageCount = (results.length / _perPage).ceil();

@@ -78,7 +78,8 @@ class _ShellLauncherState extends State<ShellLauncher> {
           child: GestureDetector(
             onTap: () {},
             child: SizedBox(
-              width: 560,
+              width: (MediaQuery.sizeOf(context).width - 32)
+                  .clamp(0.0, 560.0),
               child: OasisGlass(
                 borderRadius: 18,
                 blur: 40,

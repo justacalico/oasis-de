@@ -431,8 +431,14 @@ class _DesktopShellState extends State<DesktopShell> {
   }
 
   Size _defaultWindowSize(Size screen) => Size(
-    (screen.width * 0.62).clamp(kMinWindowWidth, 940.0),
-    (screen.height * 0.62).clamp(kMinWindowHeight, 720.0),
+    math.min(
+      (screen.width * 0.62).clamp(kMinWindowWidth, 940.0),
+      screen.width,
+    ),
+    math.min(
+      (screen.height * 0.62).clamp(kMinWindowHeight, 720.0),
+      screen.height,
+    ),
   );
 
   Size _windowSize(ShellWindowData w, Size screen) =>
