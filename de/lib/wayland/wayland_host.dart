@@ -28,6 +28,9 @@ abstract class WaylandHost {
     int discrete = 0,
   });
   Future<void> pointerAxisStop();
+  Future<void> touchDown(int id, int tid, double x, double y);
+  Future<void> touchMotion(int tid, double x, double y);
+  Future<void> touchUp(int tid);
   Future<void> key(int code, bool pressed);
 }
 
@@ -109,6 +112,23 @@ class ChannelWaylandHost extends WaylandHost {
   @override
   Future<void> pointerAxisStop() =>
       _methods.invokeMethod('pointerAxisStop');
+
+  @override
+  Future<void> touchDown(int id, int tid, double x, double y) =>
+      _methods.invokeMethod('touchDown', {
+        'id': id,
+        'tid': tid,
+        'x': x,
+        'y': y,
+      });
+
+  @override
+  Future<void> touchMotion(int tid, double x, double y) =>
+      _methods.invokeMethod('touchMotion', {'tid': tid, 'x': x, 'y': y});
+
+  @override
+  Future<void> touchUp(int tid) =>
+      _methods.invokeMethod('touchUp', {'tid': tid});
 
   @override
   Future<void> key(int code, bool pressed) =>

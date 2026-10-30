@@ -407,6 +407,15 @@ class WaylandService extends ChangeNotifier {
   Future<void> pointerAxisStop() =>
       available ? _host.pointerAxisStop() : Future.value();
 
+  Future<void> touchDown(int id, int tid, double x, double y) =>
+      available ? _host.touchDown(id, tid, x, y) : Future.value();
+
+  Future<void> touchMotion(int tid, double x, double y) =>
+      available ? _host.touchMotion(tid, x, y) : Future.value();
+
+  Future<void> touchUp(int tid) =>
+      available ? _host.touchUp(tid) : Future.value();
+
   Future<void> key(int code, bool pressed) =>
       available ? _host.key(code, pressed) : Future.value();
 

@@ -188,6 +188,7 @@ struct SeatRes {
   wl_client* client;
   wl_resource* pointer = nullptr;
   wl_resource* keyboard = nullptr;
+  wl_resource* touch = nullptr;
 };
 
 struct DataSource {
@@ -281,6 +282,8 @@ struct _OasisCompositor {
   uint32_t last_button_serial = 0;
   Surface* ptr_entered = nullptr;
   wl_resource* ptr_entered_res = nullptr;
+  Surface* touch_focus = nullptr;
+  int touch_id = -1;
   double ptr_x = 0;
   double ptr_y = 0;
   std::vector<SeatRes> seats;
@@ -877,6 +880,7 @@ static void free_surface(Surface* s) {
   }
   if (c->activated == s) c->activated = nullptr;
   if (c->ptr_focus == s) c->ptr_focus = nullptr;
+  if (c->touch_focus == s) c->touch_focus = nullptr;
   if (c->grab_surface == s) {
     c->grab_surface = nullptr;
     c->grab_buttons = 0;
@@ -1482,12 +1486,21 @@ static void seat_get_keyboard(wl_client* client,
   }
 }
 
+static void touch_res_destroyed(wl_resource* res) {
+  SeatRes* st = static_cast<SeatRes*>(wl_resource_get_user_data(res));
+  if (st != nullptr) st->touch = nullptr;
+}
+
 static void seat_get_touch(wl_client* client,
                            wl_resource* res,
                            uint32_t id) {
+  OasisCompositor* c =
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
   wl_resource* t = wl_resource_create(client, &wl_touch_interface,
                                       wl_resource_get_version(res), id);
-  wl_resource_set_implementation(t, &touch_impl, nullptr, nullptr);
+  SeatRes* st = seat_for(c, client, true);
+  st->touch = t;
+  wl_resource_set_implementation(t, &touch_impl, st, touch_res_destroyed);
 }
 
 static void seat_release(wl_client* client, wl_resource* res) {
@@ -4191,6 +4204,57 @@ static void method_call_cb(FlMethodChannel* channel,
           wl_pointer_send_frame(st->pointer);
         }
       }
+    }
+    comp_flush(c);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(name, "touchDown") == 0) {
+    Surface* s = surface_by_id(c, args);
+    if (s != nullptr && s->wl_surface != nullptr) {
+      SeatRes* st = seat_for(c, s->client, true);
+      if (st != nullptr && st->touch != nullptr) {
+        c->touch_focus = s;
+        c->touch_id = (int)arg_int(args, "tid");
+        wl_touch_send_down(st->touch,
+                           wl_display_next_serial(c->display), now_ms(),
+                           s->wl_surface, (int32_t)c->touch_id,
+                           wl_fixed_from_double(arg_double(args, "x")),
+                           wl_fixed_from_double(arg_double(args, "y")));
+        if (wl_resource_get_version(st->touch) >=
+            WL_TOUCH_FRAME_SINCE_VERSION) {
+          wl_touch_send_frame(st->touch);
+        }
+      }
+    }
+    comp_flush(c);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(name, "touchMotion") == 0) {
+    if (c->touch_focus != nullptr) {
+      SeatRes* st = seat_for(c, c->touch_focus->client, false);
+      if (st != nullptr && st->touch != nullptr) {
+        wl_touch_send_motion(st->touch, now_ms(), (int32_t)c->touch_id,
+                             wl_fixed_from_double(arg_double(args, "x")),
+                             wl_fixed_from_double(arg_double(args, "y")));
+        if (wl_resource_get_version(st->touch) >=
+            WL_TOUCH_FRAME_SINCE_VERSION) {
+          wl_touch_send_frame(st->touch);
+        }
+      }
+    }
+    comp_flush(c);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(name, "touchUp") == 0) {
+    if (c->touch_focus != nullptr) {
+      SeatRes* st = seat_for(c, c->touch_focus->client, false);
+      if (st != nullptr && st->touch != nullptr) {
+        wl_touch_send_up(st->touch,
+                         wl_display_next_serial(c->display), now_ms(),
+                         (int32_t)c->touch_id);
+        if (wl_resource_get_version(st->touch) >=
+            WL_TOUCH_FRAME_SINCE_VERSION) {
+          wl_touch_send_frame(st->touch);
+        }
+      }
+      c->touch_focus = nullptr;
     }
     comp_flush(c);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));

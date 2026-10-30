@@ -87,6 +87,15 @@ class FakeWaylandHost extends WaylandHost {
   Future<void> pointerAxisStop() async {}
 
   @override
+  Future<void> touchDown(int id, int tid, double x, double y) async {}
+
+  @override
+  Future<void> touchMotion(int tid, double x, double y) async {}
+
+  @override
+  Future<void> touchUp(int tid) async {}
+
+  @override
   Future<void> key(int code, bool pressed) async {
     calls.add('key:$code:$pressed');
   }
