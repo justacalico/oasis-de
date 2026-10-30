@@ -273,7 +273,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
     if (code == null) return KeyEventResult.ignored;
     if (event is KeyUpEvent) {
       service.key(code, false);
-    } else if (event is KeyDownEvent || event is KeyRepeatEvent) {
+    } else if (event is KeyDownEvent) {
       service.key(code, true);
     }
     return KeyEventResult.handled;

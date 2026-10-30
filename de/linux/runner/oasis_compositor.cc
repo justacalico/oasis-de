@@ -844,7 +844,10 @@ static void emit_closed(OasisCompositor* c, Surface* s) {
 static void free_surface(Surface* s) {
   OasisCompositor* c = s->comp;
   if (s->announced != SURFACE_NONE) emit_closed(c, s);
-  if (c->kb_focus == s) c->kb_focus = nullptr;
+  if (c->kb_focus == s) {
+    c->kb_focus = nullptr;
+    c->pressed.clear();
+  }
   if (c->activated == s) c->activated = nullptr;
   if (c->ptr_focus == s) c->ptr_focus = nullptr;
   if (c->grab_surface == s) {
@@ -1179,7 +1182,8 @@ static void send_modifiers(OasisCompositor* c) {
   if (st == nullptr || st->keyboard == nullptr) return;
   uint32_t m = mods_mask(c);
   wl_keyboard_send_modifiers(st->keyboard,
-                             wl_display_next_serial(c->display), m, 0, 0, 0);
+                             wl_display_next_serial(c->display), m & ~2u, 0,
+                             c->pressed.count(58) ? 2u : 0u, 0);
 }
 
 static void offer_selection(OasisCompositor* c, wl_client* client);
@@ -1441,6 +1445,9 @@ static void seat_get_keyboard(wl_client* client,
     Surface* s = c->kb_focus;
     wl_array keys;
     wl_array_init(&keys);
+    for (uint32_t code : c->pressed) {
+      *static_cast<uint32_t*>(wl_array_add(&keys, sizeof(uint32_t))) = code;
+    }
     wl_keyboard_send_enter(k, wl_display_next_serial(c->display),
                            s->wl_surface, &keys);
     wl_array_release(&keys);
@@ -4115,6 +4122,11 @@ static void method_call_cb(FlMethodChannel* channel,
   } else if (g_strcmp0(name, "key") == 0) {
     uint32_t code = (uint32_t)arg_int(args, "code");
     uint32_t state = (uint32_t)arg_int(args, "state");
+    if (state > WL_KEYBOARD_KEY_STATE_RELEASED) {
+      response = FL_METHOD_RESPONSE(
+          fl_method_error_response_new("invalidArgs", "bad key state", nullptr));
+      break;
+    }
     uint32_t before = mods_mask(c);
     if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
       c->pressed.insert(code);
