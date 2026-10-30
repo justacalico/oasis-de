@@ -273,6 +273,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get landingReleasesFailed => 'Níorbh fhéidir eisiúintí a lódáil';
 
   @override
+  String get landingRetry => 'Atriail';
+
+  @override
   String get landingAllReleases => 'Gach eisiúint ar GitLab';
 
   @override

@@ -111,6 +111,7 @@
   "landingLoadingReleases": "Загрузка релизов…",
   "landingNoReleases": "Релизов пока нет",
   "landingReleasesFailed": "Не удалось загрузить релизы",
+  "landingRetry": "Повторить",
   "landingAllReleases": "Все релизы на GitLab",
   "landingSource": "Исходный код",
   "landingFooter": "Свободно и открыто навсегда.",

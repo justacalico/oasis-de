@@ -115,6 +115,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.landingLoadingReleases;
   l.landingNoReleases;
   l.landingReleasesFailed;
+  l.landingRetry;
   l.landingAllReleases;
   l.landingSource;
   l.landingFooter;

@@ -272,6 +272,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get landingReleasesFailed => 'Couldn\'t load releases';
 
   @override
+  String get landingRetry => 'Retry';
+
+  @override
   String get landingAllReleases => 'All releases on GitLab';
 
   @override

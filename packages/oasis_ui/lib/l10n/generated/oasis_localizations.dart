@@ -600,6 +600,12 @@ abstract class OasisLocalizations {
   /// **'Couldn\'t load releases'**
   String get landingReleasesFailed;
 
+  /// No description provided for @landingRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get landingRetry;
+
   /// No description provided for @landingAllReleases.
   ///
   /// In en, this message translates to:

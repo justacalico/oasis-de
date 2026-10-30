@@ -273,6 +273,9 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get landingReleasesFailed => 'Не удалось загрузить релизы';
 
   @override
+  String get landingRetry => 'Повторить';
+
+  @override
   String get landingAllReleases => 'Все релизы на GitLab';
 
   @override

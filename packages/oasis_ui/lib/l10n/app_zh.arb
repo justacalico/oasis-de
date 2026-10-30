@@ -111,6 +111,7 @@
   "landingLoadingReleases": "正在加载发布…",
   "landingNoReleases": "暂无发布",
   "landingReleasesFailed": "无法加载发布",
+  "landingRetry": "重试",
   "landingAllReleases": "GitLab 上的所有发布",
   "landingSource": "源代码",
   "landingFooter": "永远自由开源。",

@@ -26,6 +26,8 @@ class _DownloadsSectionState extends State<DownloadsSection> {
     _future = widget.client.latest();
   }
 
+  void _retry() => setState(() => _future = widget.client.latest());
+
   @override
   Widget build(BuildContext context) {
     final l10n = OasisLocalizations.of(context);
@@ -58,8 +60,18 @@ class _DownloadsSectionState extends State<DownloadsSection> {
               );
             }
             if (snap.hasError) {
-              return Text(l10n.landingReleasesFailed,
-                  style: text.bodySmall);
+              return Row(
+                children: [
+                  Text(l10n.landingReleasesFailed,
+                      style: text.bodySmall),
+                  const SizedBox(width: 10),
+                  OasisButton(
+                    label: l10n.landingRetry,
+                    variant: OasisButtonVariant.text,
+                    onPressed: _retry,
+                  ),
+                ],
+              );
             }
             final latest = snap.data;
             if (latest == null) {
@@ -82,23 +94,19 @@ class _DownloadsSectionState extends State<DownloadsSection> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    OasisButton(
-                      label: l10n.landingAllReleases,
-                      variant: OasisButtonVariant.text,
-                      onPressed: widget.onOpenUrl == null
-                          ? null
-                          : () => widget.onOpenUrl!(widget.client.releasesUrl),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(latest.tag, style: text.bodySmall),
-                  ],
-                ),
+                const SizedBox(height: 6),
+                Text(latest.tag, style: text.bodySmall),
               ],
             );
           },
+        ),
+        const SizedBox(height: 14),
+        OasisButton(
+          label: l10n.landingAllReleases,
+          variant: OasisButtonVariant.text,
+          onPressed: widget.onOpenUrl == null
+              ? null
+              : () => widget.onOpenUrl!(widget.client.releasesUrl),
         ),
       ],
     );
