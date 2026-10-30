@@ -175,6 +175,7 @@ class WaylandSurfaceView extends StatefulWidget {
     required this.maximized,
     this.fullscreen = false,
     this.resizing = false,
+    this.escReserved = false,
   });
 
   final WaylandSurface surface;
@@ -183,6 +184,7 @@ class WaylandSurfaceView extends StatefulWidget {
   final bool maximized;
   final bool fullscreen;
   final bool resizing;
+  final bool escReserved;
 
   @override
   State<WaylandSurfaceView> createState() => _WaylandSurfaceViewState();
@@ -260,6 +262,16 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    final hw = HardwareKeyboard.instance;
+    final shellChord = switch (event.logicalKey) {
+      LogicalKeyboardKey.tab => hw.isAltPressed,
+      LogicalKeyboardKey.keyD => hw.isMetaPressed,
+      LogicalKeyboardKey.arrowUp => hw.isMetaPressed,
+      LogicalKeyboardKey.space => hw.isMetaPressed || hw.isControlPressed,
+      LogicalKeyboardKey.escape => widget.escReserved,
+      _ => false,
+    };
+    if (shellChord) return KeyEventResult.ignored;
     final code = evdevCodeFor(event.physicalKey);
     if (code == null) return KeyEventResult.ignored;
     if (event is KeyUpEvent) {
