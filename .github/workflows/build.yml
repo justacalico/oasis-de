@@ -24,6 +24,15 @@ jobs:
       - run: for p in packages/oasis_ui de apps/settings landing; do (cd $p && flutter pub get); done
       - run: flutter analyze
       - run: flutter test --coverage
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            coverage/lcov.info
+            test/failures/
+          if-no-files-found: ignore
       - name: Coverage check
         run: |
           python3 - <<'PY'
