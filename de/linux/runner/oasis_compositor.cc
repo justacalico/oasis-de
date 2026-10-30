@@ -94,6 +94,12 @@ struct Surface {
   bool attach_requested = false;
   int pending_ox = 0;
   int pending_oy = 0;
+  int pending_px = 0;
+  int pending_py = 0;
+  bool pending_pos_set = false;
+  Surface* pending_place_sibling = nullptr;
+  bool pending_place_above = false;
+  bool pending_place_set = false;
   int pending_scale = 1;
   int pending_transform = 0;
   int pending_vp_w = -1;
@@ -522,6 +528,29 @@ static void set_pending_buffer(Surface* s, wl_resource* b) {
 }
 
 static void surface_commit(Surface* s) {
+  if (s->pending_pos_set) {
+    s->sx = s->pending_px;
+    s->sy = s->pending_py;
+    s->pending_pos_set = false;
+    if (s->announced == SURFACE_SUBSURFACE) {
+      FlValue* m = new_event("subsurfaceMoved");
+      ev_id(m, s->public_id);
+      fl_value_set_string_take(m, "x", fl_value_new_int(s->sx));
+      fl_value_set_string_take(m, "y", fl_value_new_int(s->sy));
+      send_event(s->comp, m);
+    }
+  }
+  if (s->pending_place_set && s->parent != nullptr) {
+    Surface* sib = s->pending_place_sibling;
+    auto& ch = s->parent->children;
+    ch.erase(std::remove(ch.begin(), ch.end(), s), ch.end());
+    auto it = std::find(ch.begin(), ch.end(), sib);
+    if (it != ch.end()) {
+      ch.insert(it + (s->pending_place_above ? 1 : 0), s);
+    }
+    s->pending_place_set = false;
+    s->pending_place_sibling = nullptr;
+  }
   if (s->pending_ox != 0 || s->pending_oy != 0) {
     s->sx -= s->pending_ox;
     s->sy -= s->pending_oy;
@@ -683,14 +712,19 @@ static void surface_set_input_region(wl_client* client,
   }
 }
 
+static void commit_children(Surface* s) {
+  for (Surface* child : s->children) {
+    if (child->commit_queued || child->sync) {
+      child->commit_queued = false;
+      surface_commit(child);
+    }
+    commit_children(child);
+  }
+}
+
 static void surface_commit_tree(Surface* s) {
   surface_commit(s);
-  for (Surface* child : s->children) {
-    if (child->commit_queued) {
-      child->commit_queued = false;
-      surface_commit_tree(child);
-    }
-  }
+  commit_children(s);
 }
 
 static void surface_commit_req(wl_client* client, wl_resource* res) {
@@ -967,15 +1001,9 @@ static void subsurface_set_position(wl_client* client,
                                     int32_t y) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   if (s == nullptr) return;
-  s->sx = x;
-  s->sy = y;
-  if (s->announced == SURFACE_SUBSURFACE) {
-    FlValue* m = new_event("subsurfaceMoved");
-    ev_id(m, s->public_id);
-    fl_value_set_string_take(m, "x", fl_value_new_int(x));
-    fl_value_set_string_take(m, "y", fl_value_new_int(y));
-    send_event(s->comp, m);
-  }
+  s->pending_px = x;
+  s->pending_py = y;
+  s->pending_pos_set = true;
 }
 
 static void subsurface_place_above(wl_client* client,
@@ -993,11 +1021,9 @@ static void subsurface_place_above(wl_client* client,
       s->parent != sibling->parent) {
     return;
   }
-  auto& ch = s->parent->children;
-  ch.erase(std::remove(ch.begin(), ch.end(), s), ch.end());
-  auto it = std::find(ch.begin(), ch.end(), sibling);
-  if (it == ch.end()) return;
-  ch.insert(it + 1, s);
+  s->pending_place_sibling = sibling;
+  s->pending_place_above = true;
+  s->pending_place_set = true;
 }
 
 static void subsurface_place_below(wl_client* client,
@@ -1015,11 +1041,9 @@ static void subsurface_place_below(wl_client* client,
       s->parent != sibling->parent) {
     return;
   }
-  auto& ch = s->parent->children;
-  ch.erase(std::remove(ch.begin(), ch.end(), s), ch.end());
-  auto it = std::find(ch.begin(), ch.end(), sibling);
-  if (it == ch.end()) return;
-  ch.insert(it, s);
+  s->pending_place_sibling = sibling;
+  s->pending_place_above = false;
+  s->pending_place_set = true;
 }
 
 static void subsurface_set_sync(wl_client* client, wl_resource* res) {
