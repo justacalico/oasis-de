@@ -15,13 +15,18 @@ class ShellLauncher extends StatefulWidget {
 
 class _ShellLauncherState extends State<ShellLauncher> {
   final _field = TextEditingController();
-  final _focus = FocusNode();
   var _selected = 0;
 
   @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
+  @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _field.dispose();
-    _focus.dispose();
     super.dispose();
   }
 
@@ -34,31 +39,31 @@ class _ShellLauncherState extends State<ShellLauncher> {
     setState(() => _selected = 0);
   }
 
-  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+  bool _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
     final results = _results;
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       setState(() => _selected =
           results.isEmpty ? 0 : (_selected + 1) % results.length);
-      return KeyEventResult.handled;
+      return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
       setState(() => _selected = results.isEmpty
           ? 0
           : (_selected - 1 + results.length) % results.length);
-      return KeyEventResult.handled;
+      return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.enter) {
       if (results.isNotEmpty) {
         _open(results[_selected.clamp(0, results.length - 1)]);
       }
-      return KeyEventResult.handled;
+      return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       widget.controller.closeOverlays();
-      return KeyEventResult.handled;
+      return true;
     }
-    return KeyEventResult.ignored;
+    return false;
   }
 
   @override
@@ -88,33 +93,32 @@ class _ShellLauncherState extends State<ShellLauncher> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Focus(
-                      focusNode: _focus,
-                      onKeyEvent: _onKey,
-                      child: TextField(
-                        controller: _field,
-                        autofocus: true,
-                        onChanged: (_) =>
-                            setState(() => _selected = 0),
-                        onSubmitted: (_) {
-                          if (results.isNotEmpty) _open(results.first);
-                        },
-                        style: Theme.of(context)
+                    TextField(
+                      controller: _field,
+                      autofocus: true,
+                      onChanged: (_) =>
+                          setState(() => _selected = 0),
+                      onSubmitted: (_) {
+                        if (results.isNotEmpty) {
+                          _open(results[
+                              _selected.clamp(0, results.length - 1)]);
+                        }
+                      },
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w400),
+                      cursorColor: p.accent,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        border: InputBorder.none,
+                        hintText: l10n.launcherHint,
+                        hintStyle: Theme.of(context)
                             .textTheme
                             .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w400),
-                        cursorColor: p.accent,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          border: InputBorder.none,
-                          hintText: l10n.launcherHint,
-                          hintStyle: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(color: p.textTertiary),
-                          icon: Icon(Icons.search,
-                              size: 22, color: p.textTertiary),
-                        ),
+                            ?.copyWith(color: p.textTertiary),
+                        icon: Icon(Icons.search,
+                            size: 22, color: p.textTertiary),
                       ),
                     ),
                     if (results.isEmpty)
@@ -126,7 +130,7 @@ class _ShellLauncherState extends State<ShellLauncher> {
                                 .textTheme
                                 .bodySmall),
                       )
-                    else if (_field.text.isNotEmpty)
+                    else
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: ConstrainedBox(

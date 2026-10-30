@@ -280,7 +280,13 @@ class ShellController extends ChangeNotifier {
 
   List<OasisApp> filterApps(String query) {
     final q = query.trim().toLowerCase();
-    if (q.isEmpty) return apps;
+    if (q.isEmpty) {
+      final sorted = [...apps]..sort(
+          (a, b) => (launchCounts[b.id] ?? 0)
+              .compareTo(launchCounts[a.id] ?? 0),
+        );
+      return sorted;
+    }
     bool fuzzy(String field) {
       var i = 0;
       for (final ch in field.codeUnits) {
