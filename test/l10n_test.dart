@@ -40,6 +40,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.lockUnlock;
   l.notifCenter;
   l.notifClearAll;
+  l.notifDismiss;
   l.notifEmpty;
   l.ccWifi;
   l.ccBluetooth;

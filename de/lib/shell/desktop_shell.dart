@@ -244,7 +244,7 @@ class _DesktopShellState extends State<DesktopShell> {
                 if (controller.notificationCenterOpen)
                   Positioned.fill(
                     child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
+                      behavior: HitTestBehavior.opaque,
                       onTap: controller.toggleNotificationCenter,
                       child: NotificationCenterPanel(controller: controller),
                     ),

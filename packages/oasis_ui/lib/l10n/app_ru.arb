@@ -147,6 +147,7 @@
   "notifCenter": "Уведомления",
   "notifClearAll": "Очистить всё",
   "notifEmpty": "Нет уведомлений",
+  "notifDismiss": "Скрыть",
   "sessionConfirmLogOut": "Выйти из сеанса?",
   "sessionConfirmSuspend": "Приостановить систему?",
   "sessionConfirmRestart": "Перезагрузить систему?",

@@ -362,6 +362,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get notifEmpty => 'No notifications';
 
   @override
+  String get notifDismiss => 'Dismiss';
+
+  @override
   String get sessionConfirmLogOut => 'Log out of this session?';
 
   @override

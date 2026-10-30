@@ -363,6 +363,9 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get notifEmpty => 'Нет уведомлений';
 
   @override
+  String get notifDismiss => 'Скрыть';
+
+  @override
   String get sessionConfirmLogOut => 'Выйти из сеанса?';
 
   @override

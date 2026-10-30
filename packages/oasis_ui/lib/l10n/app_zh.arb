@@ -147,6 +147,7 @@
   "notifCenter": "通知",
   "notifClearAll": "全部清除",
   "notifEmpty": "没有通知",
+  "notifDismiss": "忽略",
   "sessionConfirmLogOut": "注销当前会话？",
   "sessionConfirmSuspend": "挂起系统？",
   "sessionConfirmRestart": "重启系统？",

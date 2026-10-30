@@ -147,6 +147,7 @@
   "notifCenter": "Notifications",
   "notifClearAll": "Clear All",
   "notifEmpty": "No notifications",
+  "notifDismiss": "Dismiss",
   "sessionConfirmLogOut": "Log out of this session?",
   "sessionConfirmSuspend": "Suspend the system?",
   "sessionConfirmRestart": "Restart the system?",

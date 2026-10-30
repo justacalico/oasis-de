@@ -363,6 +363,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get notifEmpty => 'Gan fhógraí';
 
   @override
+  String get notifDismiss => 'Rua';
+
+  @override
   String get sessionConfirmLogOut => 'Logáil amach as an seisiún?';
 
   @override
