@@ -847,6 +847,9 @@ void main() {
     expect(find.text('Minimise'), findsOneWidget);
     await tester.tap(find.text('Move to desktop 2'));
     await tester.pumpAndSettle();
+    final dynamic st = tester.state(find.byType(OasisDesktopApp));
+    (st.controller as ShellController).setWorkspace(1);
+    await tester.pumpAndSettle();
     await winMenu();
     await tester.tap(find.text('Minimise'));
     await tester.pumpAndSettle();
