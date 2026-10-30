@@ -69,7 +69,7 @@ integration:
     - export PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:$PKG_CONFIG_PATH
     - git clone --depth 1 --branch 0.19.3 https://gitlab.freedesktop.org/wlroots/wlroots.git /tmp/wlroots
     - meson setup /tmp/wlroots/build /tmp/wlroots -Dxwayland=enabled -Dexamples=false -Drenderers=gles2 -Dallocators=gbm -Dsession=disabled -Dwerror=false
-    - ninja -C /tmp/wlroots/build && ninja -C /tmp/wlroots/build install
+    - ninja -C /tmp/wlroots/build && ninja -C /tmp/wlroots/build install && ldconfig
     - cp /tmp/wlroots/build/protocol/*-protocol.h /usr/local/include/wlroots-0.19/
     - cd de && flutter pub get && xvfb-run -a flutter test integration_test -d linux
 
@@ -95,7 +95,7 @@ native-build:
     - export PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:$PKG_CONFIG_PATH
     - git clone --depth 1 --branch 0.19.3 https://gitlab.freedesktop.org/wlroots/wlroots.git /tmp/wlroots
     - meson setup /tmp/wlroots/build /tmp/wlroots -Dxwayland=enabled -Dexamples=false -Drenderers=gles2 -Dallocators=gbm -Dsession=disabled -Dwerror=false
-    - ninja -C /tmp/wlroots/build && ninja -C /tmp/wlroots/build install
+    - ninja -C /tmp/wlroots/build && ninja -C /tmp/wlroots/build install && ldconfig
     - cp /tmp/wlroots/build/protocol/*-protocol.h /usr/local/include/wlroots-0.19/
     - cd de && flutter build linux --debug
 

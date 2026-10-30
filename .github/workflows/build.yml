@@ -65,7 +65,7 @@ jobs:
           git clone --depth 1 --branch 0.19.3 https://gitlab.freedesktop.org/wlroots/wlroots.git /tmp/wlroots
           meson setup /tmp/wlroots/build /tmp/wlroots -Dxwayland=enabled -Dexamples=false -Drenderers=gles2 -Dallocators=gbm -Dsession=disabled -Dwerror=false
           ninja -C /tmp/wlroots/build
-          sudo ninja -C /tmp/wlroots/build install
+          sudo ninja -C /tmp/wlroots/build install && sudo ldconfig
           sudo cp /tmp/wlroots/build/protocol/*-protocol.h /usr/local/include/wlroots-0.19/
       - run: cd de && flutter build linux --release
       - run: cd de && flutter build web --release
@@ -132,7 +132,7 @@ jobs:
           git clone --depth 1 --branch 0.19.3 https://gitlab.freedesktop.org/wlroots/wlroots.git /tmp/wlroots
           meson setup /tmp/wlroots/build /tmp/wlroots -Dxwayland=enabled -Dexamples=false -Drenderers=gles2 -Dallocators=gbm -Dsession=disabled -Dwerror=false
           ninja -C /tmp/wlroots/build
-          sudo ninja -C /tmp/wlroots/build install
+          sudo ninja -C /tmp/wlroots/build install && sudo ldconfig
           sudo cp /tmp/wlroots/build/protocol/*-protocol.h /usr/local/include/wlroots-0.19/
       - run: cd de && flutter build linux --release
       - name: Package Linux arm64
