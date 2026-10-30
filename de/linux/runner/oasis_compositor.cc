@@ -48,6 +48,7 @@
 struct Surface;
 extern const struct xdg_toplevel_interface toplevel_impl;
 static bool is_dmabuf_buffer(wl_resource* b);
+static void send_toplevel_configure(struct _OasisCompositor* c, Surface* s);
 static void emit_cursor(struct _OasisCompositor* c);
 static void emit_toplevel(struct _OasisCompositor* c, Surface* s);
 static void send_presented(struct Surface* s);
@@ -168,6 +169,7 @@ struct Surface {
   bool cfg_resizing = false;
   bool cfg_active = false;
   bool cfg_pending = false;
+  bool cfg_sent = false;
   std::unordered_set<uint32_t> pending_serials;
   uint32_t acked_serial = 0;
   uint32_t grab_serial = 0;
@@ -686,6 +688,11 @@ static void surface_commit(Surface* s) {
     surface_set_dmabuf(s, nullptr);
   }
   s->attach_requested = false;
+  if (s->role == SURFACE_TOPLEVEL && !s->cfg_sent &&
+      s->role_res != nullptr && s->xdg_surface != nullptr) {
+    s->cfg_sent = true;
+    send_toplevel_configure(s->comp, s);
+  }
   if (s->announced == SURFACE_NONE && s->role == SURFACE_TOPLEVEL &&
       (s->iw > 0 || s->ih > 0 || s->dmabuf != nullptr)) {
     s->announced = SURFACE_TOPLEVEL;
@@ -2248,6 +2255,7 @@ static void toplevel_created(OasisCompositor* c,
   if (s == nullptr) return;
   s->role_res = tl;
   s->role = SURFACE_TOPLEVEL;
+  s->cfg_sent = false;
   s->public_id = c->next_id++;
   c->by_id[s->public_id] = s;
 }
@@ -3043,16 +3051,12 @@ static void activation_token_commit(wl_client* client,
                                     wl_resource* res) {
   ActivationToken* t =
       static_cast<ActivationToken*>(wl_resource_get_user_data(res));
-  if (!t->has_serial && t->surface == nullptr) {
-    wl_resource_destroy(res);
-    return;
-  }
+  if (!t->has_serial && t->surface == nullptr) return;
   char token[17];
   snprintf(token, sizeof(token), "%08x%08x", (unsigned)rand(),
            (unsigned)now_ms());
   t->c->activation_tokens.insert(token);
   xdg_activation_token_v1_send_done(res, token);
-  wl_resource_destroy(res);
 }
 
 static const struct xdg_activation_token_v1_interface
