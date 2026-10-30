@@ -1,5 +1,12 @@
 import 'package:flutter/widgets.dart';
 
+class OasisAppAction {
+  const OasisAppAction({required this.name, required this.exec});
+
+  final String name;
+  final List<String> exec;
+}
+
 class OasisApp {
   const OasisApp({
     required this.id,
@@ -11,6 +18,7 @@ class OasisApp {
     this.iconPath,
     this.keywords = const [],
     this.genericName,
+    this.actions = const [],
   });
 
   final String id;
@@ -22,6 +30,7 @@ class OasisApp {
   final String? iconPath;
   final List<String> keywords;
   final String? genericName;
+  final List<OasisAppAction> actions;
 
   bool get isExternal => exec != null;
 }

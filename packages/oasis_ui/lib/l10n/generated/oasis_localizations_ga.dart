@@ -319,6 +319,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get dockUnpin => 'Díghreamaigh';
 
   @override
+  String get dockQuit => 'Scoir';
+
+  @override
   String get wallpaperPeaks => 'Sléibhte';
 
   @override
