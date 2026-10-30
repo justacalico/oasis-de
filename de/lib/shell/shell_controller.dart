@@ -227,6 +227,7 @@ class ShellController extends ChangeNotifier {
   ({int id, OasisResizeEdge edge})? get surfaceResize => _surfaceResize;
 
   var _pinsLoaded = false;
+  final List<String> _pendingPinIds = [];
 
   void syncApps(
     List<OasisApp> fresh, {
@@ -239,14 +240,25 @@ class ShellController extends ChangeNotifier {
     final byId = {for (final a in fresh) a.id: a};
     if (!_pinsLoaded) {
       _pinsLoaded = true;
-      pinned.addAll(
-        pinnedIds == null
-            ? fallback ?? fresh
-            : [
-                for (final id in pinnedIds)
-                  if (byId[id] != null) byId[id]!,
-              ],
-      );
+      if (pinnedIds == null) {
+        pinned.addAll(fallback ?? fresh);
+      } else {
+        for (final id in pinnedIds) {
+          final a = byId[id];
+          if (a != null) {
+            pinned.add(a);
+          } else {
+            _pendingPinIds.add(id);
+          }
+        }
+      }
+    }
+    for (var i = _pendingPinIds.length - 1; i >= 0; i--) {
+      final a = byId[_pendingPinIds[i]];
+      if (a != null) {
+        pinned.add(a);
+        _pendingPinIds.removeAt(i);
+      }
     }
     for (final w in windows) {
       final updated = byId[w.app.id];
@@ -713,6 +725,21 @@ class ShellController extends ChangeNotifier {
       changed = true;
     }
     _raiseTransients();
+    final orphanIds = <int>[];
+    for (final p in service.popups) {
+      var parent = service.surfaces[p.parentId];
+      while (parent != null && parent.isPopup) {
+        parent = service.surfaces[parent.parentId];
+      }
+      if (parent == null) orphanIds.add(p.id);
+    }
+    if (orphanIds.isNotEmpty) {
+      scheduleMicrotask(() {
+        for (final id in orphanIds) {
+          service.close(id);
+        }
+      });
+    }
     if (changed) {
       _pushWaylandFocus();
       notifyListeners();

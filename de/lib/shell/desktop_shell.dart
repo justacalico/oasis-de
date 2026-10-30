@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -405,13 +406,28 @@ class _DesktopShellState extends State<DesktopShell> {
     if (parent == null) return null;
     final w = controller.windowForSurface(parent.id);
     if (w == null) return null;
+    if (w.minimized || w.workspace != controller.activeWorkspace) {
+      return null;
+    }
     final buf = logicalSurfaceSize(parent);
     final sx = buf.width > 0 ? parent.size.width / buf.width : 1.0;
     final sy = buf.height > 0 ? parent.size.height / buf.height : 1.0;
-    final base = w.zoomed ? const Offset(0, kMenuBarHeight + 4) : w.position;
-    return base +
-        const Offset(0, kOasisWindowTitleBarHeight) +
+    final base = w.fullscreen
+        ? Offset.zero
+        : w.zoomed
+            ? const Offset(0, kMenuBarHeight + 4)
+            : w.position;
+    var pos = base +
+        (w.fullscreen
+            ? Offset.zero
+            : const Offset(0, kOasisWindowTitleBarHeight)) +
         Offset(offset.dx * sx, offset.dy * sy);
+    final screen = MediaQuery.sizeOf(context);
+    pos = Offset(
+      pos.dx.clamp(0, math.max(0, screen.width - popup.size.width)),
+      pos.dy.clamp(0, math.max(0, screen.height - popup.size.height)),
+    );
+    return pos;
   }
 
   Size _defaultWindowSize(Size screen) => Size(
