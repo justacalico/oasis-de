@@ -151,6 +151,11 @@ void main() {
     CliSystemBackend(run: fakeRun, sessionId: () => '')
         .session(OasisSessionAction.logout);
     expect(calls, ['loginctl terminate-user self']);
+
+    calls.clear();
+    CliSystemBackend(run: fakeRun, sessionId: () => '42')
+        .session(OasisSessionAction.logout);
+    expect(calls, ['loginctl terminate-session 42']);
   });
 
   test('cli backend reads system info', () async {

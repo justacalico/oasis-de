@@ -87,8 +87,8 @@ const _iconSizes = [
 
 const _iconExts = ['png', 'svg'];
 
-String? _systemIconTheme() {
-  final home = Platform.environment['HOME'];
+String? _systemIconTheme({Map<String, String>? environment}) {
+  final home = (environment ?? Platform.environment)['HOME'];
   if (home == null) return null;
   for (final p in [
     '$home/.config/gtk-3.0/settings.ini',
@@ -213,12 +213,13 @@ String? findIconPath(
   List<String>? roots,
   String? theme,
   int size = 48,
+  Map<String, String>? environment,
 }) {
   if (icon.isEmpty) return null;
   if (icon.startsWith('/')) {
     return File(icon).existsSync() ? icon : null;
   }
-  theme ??= _systemIconTheme() ?? 'hicolor';
+  theme ??= _systemIconTheme(environment: environment) ?? 'hicolor';
   final searchRoots = roots ?? _iconSearchRoots();
   final visited = <String>{};
   String? result;

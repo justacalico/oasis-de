@@ -31,11 +31,14 @@ class IoFilesBackend implements FilesBackend {
   IoFilesBackend({
     String? home,
     FilesProcessRunner? runProcess,
+    List<String>? mountRoots,
   })  : _home = home ?? Platform.environment['HOME'] ?? '/',
-        _runProcess = runProcess ?? Process.run;
+        _runProcess = runProcess ?? Process.run,
+        _mountRoots = mountRoots;
 
   final String _home;
   final FilesProcessRunner _runProcess;
+  final List<String>? _mountRoots;
 
   @override
   Future<List<FileItem>> list(String dir, {bool showHidden = false}) async {
@@ -99,7 +102,8 @@ class IoFilesBackend implements FilesBackend {
     add(BookmarkKind.music, '$_home/Music');
     add(BookmarkKind.videos, '$_home/Videos');
     add(BookmarkKind.trash, '$_home/.local/share/Trash/files');
-    for (final base in ['/media', '/run/media/$_user', '/mnt']) {
+    for (final base
+        in _mountRoots ?? ['/media', '/run/media/$_user', '/mnt']) {
       final dir = Directory(base);
       if (!dir.existsSync()) continue;
       for (final e in dir.listSync()) {

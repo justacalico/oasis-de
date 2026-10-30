@@ -300,6 +300,19 @@ void main() {
     expect(marks.any((m) => m.kind == BookmarkKind.root), isTrue);
   });
 
+  test('IoFilesBackend bookmarks lists mounted volumes', () async {
+    final mounts = Directory.systemTemp.createTempSync('oasis-mounts');
+    addTearDown(() => mounts.deleteSync(recursive: true));
+    Directory('${mounts.path}/usb').createSync();
+    final b = IoFilesBackend(
+      home: '/nonexistent-home',
+      mountRoots: [mounts.path, '${mounts.path}/missing'],
+    );
+    final marks = await b.bookmarks();
+    final mounts2 = marks.where((m) => m.kind == BookmarkKind.mount);
+    expect(mounts2.single.label, 'usb');
+  });
+
   test('IoFilesBackend trash propagates failure', () async {
     final b = IoFilesBackend(
       runProcess: (exe, args) async => ProcessResult(0, 1, '', 'denied'),

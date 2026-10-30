@@ -556,6 +556,10 @@ Exec=firefox --x
     );
     expect(de!.name, 'BrowserDE');
 
+    final oa = desktopAppToOasis(e);
+    expect(oa.actions.single.name, 'New Private Window');
+    expect(oa.actions.single.exec, ['firefox', '--private-window']);
+
     expect(
       parseDesktopEntry('ff', '$full\n', executableExists: (_) => false),
       isNull,
@@ -726,6 +730,25 @@ TryExec=/bin/sh
     final pix = File('${dir.path}/pix.png')..writeAsBytesSync(const [0x89]);
     expect(findIconPath('pix', roots: [dir.path]), pix.path);
     expect(findIconPath('pix.png', roots: [dir.path]), pix.path);
+  });
+
+  test('findIconPath honours gtk icon theme from settings', () {
+    final home = _tmpDir('home');
+    File('${home.path}/.config/gtk-3.0/settings.ini')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('[Settings]\ngtk-icon-theme-name=Custom\n');
+    final dir = _tmpDir('icons2');
+    final themed = File('${dir.path}/Custom/48x48/apps/x.png')
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(const [0x89]);
+    expect(
+      findIconPath(
+        'x',
+        roots: [dir.path],
+        environment: {'HOME': home.path},
+      ),
+      themed.path,
+    );
   });
 
   test('findIconPath honours index.theme', () {
