@@ -47,6 +47,7 @@
 
 static bool is_dmabuf_buffer(wl_resource* b);
 static void emit_cursor(struct _OasisCompositor* c);
+static void emit_toplevel(struct _OasisCompositor* c, Surface* s);
 static void send_presented(struct Surface* s);
 static void sync_text_input_focus(struct _OasisCompositor* c);
 static void send_primary_selection(struct _OasisCompositor* c,
@@ -647,6 +648,11 @@ static void surface_commit(Surface* s) {
     surface_set_dmabuf(s, nullptr);
   }
   s->attach_requested = false;
+  if (s->announced == SURFACE_NONE && s->role == SURFACE_TOPLEVEL &&
+      (s->iw > 0 || s->ih > 0 || s->dmabuf != nullptr)) {
+    s->announced = SURFACE_TOPLEVEL;
+    emit_toplevel(s->comp, s);
+  }
   if (s->announced != SURFACE_NONE) {
     emit_size(s);
   }
@@ -2166,10 +2172,8 @@ static void toplevel_created(OasisCompositor* c,
   if (s == nullptr) return;
   s->role_res = tl;
   s->role = SURFACE_TOPLEVEL;
-  s->announced = SURFACE_TOPLEVEL;
   s->public_id = c->next_id++;
   c->by_id[s->public_id] = s;
-  emit_toplevel(c, s);
   wl_array states;
   wl_array_init(&states);
   xdg_toplevel_send_configure(tl, 0, 0, &states);
