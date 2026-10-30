@@ -356,15 +356,17 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                           e.scrollDelta.dy,
                           discrete: (e.scrollDelta.dy / 20).round(),
                         );
-                      } else if (e is PointerPanZoomUpdateEvent) {
-                        service.pointerAxis(
-                          e.panDelta.dx,
-                          e.panDelta.dy,
-                          source: 1,
-                        );
-                      } else if (e is PointerPanZoomEndEvent) {
-                        service.pointerAxisStop();
                       }
+                    },
+                    onPointerPanZoomUpdate: (e) {
+                      service.pointerAxis(
+                        e.panDelta.dx,
+                        e.panDelta.dy,
+                        source: 1,
+                      );
+                    },
+                    onPointerPanZoomEnd: (_) {
+                      service.pointerAxisStop();
                     },
                     child: ColoredBox(
                       color: const Color(0xFF000000),
