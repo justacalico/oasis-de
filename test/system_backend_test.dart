@@ -148,6 +148,22 @@ void main() {
     expect(i.osName, isNotEmpty);
   });
 
+  test('cli backend reads gpu from drm uevent', () async {
+    final root = Directory.systemTemp.createTempSync('drm');
+    addTearDown(() => root.delete(recursive: true));
+    Directory('${root.path}/version').createSync();
+    Directory('${root.path}/card0/device')
+      ..createSync(recursive: true)
+      ..resolveSymbolicLinksSync();
+    File('${root.path}/card0/device/uevent')
+        .writeAsStringSync('DRIVER=i915\nPCI_CLASS=300\n');
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async =>
+        ProcessResult(0, 0, '/dev/sda1  512G  120G  392G  24% /\n', '');
+    final i = await CliSystemBackend(run: fakeRun, drmDir: root).systemInfo();
+    expect(i.gpu, 'i915');
+    expect(i.disk, '512G (120G used)');
+  });
+
   test('cli backend system info tolerates df failure', () async {
     Future<ProcessResult> fakeRun(String exe, List<String> args) async {
       throw ProcessException('df', args);

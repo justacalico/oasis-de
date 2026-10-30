@@ -10,12 +10,14 @@ class CliSystemBackend implements OasisSystemBackend {
     this.powerSupplyDir,
     this.startProcess,
     this.userName,
+    this.drmDir,
   });
 
   final Future<ProcessResult> Function(String, List<String>)? run;
   final Directory? powerSupplyDir;
   final Future<Process> Function(String, List<String>)? startProcess;
   final String Function()? userName;
+  final Directory? drmDir;
 
   Future<void> _exec(String exe, List<String> args) async {
     if (kIsWeb) return;
@@ -186,12 +188,23 @@ class CliSystemBackend implements OasisSystemBackend {
     try {
       final r = await (run ?? Process.run)('df', ['-h', '/']);
       if (r.exitCode == 0) {
-        final parts = '${r.stdout}'
+        final line = '${r.stdout}'
             .split('\n')
-            .last
-            .trim()
-            .split(RegExp(r'\s+'));
+            .lastWhere((l) => l.trim().isNotEmpty, orElse: () => '');
+        final parts = line.trim().split(RegExp(r'\s+'));
         if (parts.length >= 4) disk = '${parts[1]} (${parts[2]} used)';
+      }
+    } catch (_) {}
+    String gpu = '';
+    final drm = drmDir ?? Directory('/sys/class/drm');
+    try {
+      for (final e in drm.listSync()) {
+        final uevent = File('${e.path}/device/uevent');
+        if (!uevent.existsSync()) continue;
+        for (final l in read(uevent.path).split('\n')) {
+          if (l.startsWith('DRIVER=')) gpu = l.substring(7);
+        }
+        if (gpu.isNotEmpty) break;
       }
     } catch (_) {}
     String osName = '';
@@ -209,7 +222,7 @@ class CliSystemBackend implements OasisSystemBackend {
           ? ''
           : '${(int.parse(memKb) / 1048576).toStringAsFixed(1)} GB',
       disk: disk,
-      gpu: '',
+      gpu: gpu,
     );
   }
 }
