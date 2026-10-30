@@ -46,8 +46,7 @@ integration:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
   script:
-    - cd de && flutter pub get
-    - cd de && flutter test integration_test -d linux
+    - cd de && flutter pub get && flutter test integration_test -d linux
 
 native-build:
   stage: test
