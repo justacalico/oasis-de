@@ -77,8 +77,8 @@ void main() {
     c.toggleZoom(w.id);
     expect(w.zoomed, isTrue);
     c.dragWindow(w.id, const Offset(5, 5), const Size(1280, 800));
-    expect(w.position, const Offset(66, 72));
-    c.toggleZoom(w.id);
+    expect(w.zoomed, isFalse);
+    expect(w.position, const Offset(400, 34));
     c.minimizeWindow(w.id);
     expect(c.focusedWindow, isNull);
     c.restoreWindow(w.id);

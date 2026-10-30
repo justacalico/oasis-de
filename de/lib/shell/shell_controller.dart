@@ -43,6 +43,7 @@ class ShellWindowData {
   var minimized = false;
   var zoomed = false;
   var fullscreen = false;
+  Rect? preSnapRect;
   var workspace = 0;
   var transition = ShellWindowTransition.none;
   WaylandSurface? surface;
@@ -551,14 +552,30 @@ class ShellController extends ChangeNotifier {
   void dragWindow(int id, Offset delta, Size screen) {
     final window = _byId(id);
     if (window == null ||
-        window.zoomed ||
+        window.fullscreen ||
         window.transition != ShellWindowTransition.none) {
       return;
+    }
+    if (window.zoomed) {
+      window.zoomed = false;
+      window.position = Offset(
+        (screen.width - (window.size?.width ?? 480)) / 2,
+        kMenuBarHeight + 4,
+      );
+      _dragWindowId = id;
+      notifyListeners();
+      return;
+    }
+    if (window.preSnapRect != null) {
+      window.size = window.preSnapRect!.size;
+      window.position = window.preSnapRect!.topLeft;
+      window.preSnapRect = null;
     }
     final w = window.size?.width ?? 480;
     window.position = Offset(
       (window.position.dx + delta.dx).clamp(-w + 64, screen.width - 64),
-      (window.position.dy + delta.dy).clamp(0.0, screen.height - 24),
+      (window.position.dy + delta.dy)
+          .clamp(kMenuBarHeight + 4, screen.height - 24),
     );
     _dragWindowId = id;
     notifyListeners();
@@ -568,6 +585,7 @@ class ShellController extends ChangeNotifier {
     final window = _byId(id);
     if (window == null ||
         window.zoomed ||
+        window.fullscreen ||
         window.transition != ShellWindowTransition.none) {
       return;
     }
@@ -622,8 +640,16 @@ class ShellController extends ChangeNotifier {
       }
     } else if (pointer.dx <= 8 || pointer.dx >= screen.width - 8) {
       final left = pointer.dx <= 8;
+      final cur = w.size ?? w.adoptedSize ?? const Size(480, 360);
       w
+        ..preSnapRect = Rect.fromLTWH(
+          w.position.dx,
+          w.position.dy,
+          cur.width,
+          cur.height,
+        )
         ..zoomed = false
+        ..fullscreen = false
         ..size = Size(screen.width / 2, screen.height - kMenuBarHeight - 8)
         ..position = Offset(left ? 0 : screen.width / 2, kMenuBarHeight + 4)
         ..adoptedSize = w.surface?.size;
