@@ -513,17 +513,35 @@ Stream<void> watchDesktopDirs({
   final controller = StreamController<void>();
   final subs = <StreamSubscription<FileSystemEvent>>[];
   Timer? pending;
+  void emit() {
+    pending?.cancel();
+    pending = Timer(debounce, () {
+      if (!controller.isClosed) controller.add(null);
+    });
+  }
+
+  void watchDir(String path) {
+    final dir = Directory(path);
+    if (!dir.existsSync()) {
+      final parent = Directory(File(path).parent.path);
+      if (!parent.existsSync()) return;
+      late StreamSubscription<FileSystemEvent> parentSub;
+      parentSub = parent.watch().listen((_) {
+        emit();
+        if (dir.existsSync()) {
+          subs.remove(parentSub);
+          parentSub.cancel();
+          watchDir(path);
+        }
+      });
+      subs.add(parentSub);
+      return;
+    }
+    subs.add(dir.watch().listen((_) => emit()));
+  }
+
   for (final dirPath in dirs ?? desktopSearchDirs()) {
-    final dir = Directory(dirPath);
-    if (!dir.existsSync()) continue;
-    subs.add(
-      dir.watch().listen((_) {
-        pending?.cancel();
-        pending = Timer(debounce, () {
-          if (!controller.isClosed) controller.add(null);
-        });
-      }),
-    );
+    watchDir(dirPath);
   }
   controller.onCancel = () {
     pending?.cancel();
