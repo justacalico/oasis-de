@@ -50,8 +50,7 @@ Then:
 
 ```sh
 flutter pub get
-(cd packages/oasis_ui && flutter pub get)
-(cd de && flutter pub get && flutter run -d linux)
+(cd de && flutter run -d linux)
 ```
 
 Tests, goldens and coverage run from the repo root:
