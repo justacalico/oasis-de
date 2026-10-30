@@ -91,6 +91,7 @@ struct Surface {
   wl_resource* pending_buffer = nullptr;
   wl_listener pending_buffer_destroy = {};
   DmabufBuf* pending_dmabuf = nullptr;
+  bool attach_requested = false;
   int pending_ox = 0;
   int pending_oy = 0;
   int pending_scale = 1;
@@ -554,7 +555,13 @@ static void surface_commit(Surface* s) {
       }
       wl_buffer_send_release(b);
     }
+  } else if (s->attach_requested) {
+    g_clear_pointer(&s->img, g_free);
+    s->iw = s->ih = 0;
+    s->pending_damage.clear();
+    surface_set_dmabuf(s, nullptr);
   }
+  s->attach_requested = false;
   finish_frames(s);
   if (s->announced != SURFACE_NONE) {
     emit_size(s);
@@ -585,6 +592,7 @@ static void surface_attach(wl_client* client,
                            int32_t x,
                            int32_t y) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  s->attach_requested = true;
   set_pending_buffer(s, buffer);
   oasis_dmabuf_unref(s->pending_dmabuf);
   s->pending_dmabuf = nullptr;
