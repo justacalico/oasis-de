@@ -305,8 +305,9 @@ class _DesktopShellState extends State<DesktopShell> {
                     child: ValueListenableBuilder<Offset>(
                       valueListenable: _pointerPos,
                       builder: (context, pos, _) {
-                        final cursor = controller.wayland?.cursor;
-                        if (cursor == null) {
+                        final wl = controller.wayland;
+                        final cursor = wl?.cursor;
+                        if (cursor == null || !wl!.pointerOverClient) {
                           return const SizedBox.shrink();
                         }
                         return Transform.translate(
