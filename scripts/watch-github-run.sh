@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SHA="${CI_COMMIT_SHA:-$(git rev-parse HEAD)}"
-REPO="justacalico/oasis-de"
+REPO="${GITHUB_REPO:-justacalico/oasis-de}"
+AUTH=()
+if [ -n "${GH_TOKEN:-}" ]; then
+  AUTH=(-H "Authorization: token $GH_TOKEN")
+fi
 for i in $(seq 1 120); do
-  RESP=$(curl -fsS -H "Authorization: token ${GH_TOKEN:-}" \
+  RESP=$(curl -fsS "${AUTH[@]}" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" 2>/dev/null || echo '{}')
   STATUS=$(echo "$RESP" | python3 -c "
@@ -14,7 +18,6 @@ except Exception:
     runs = []
 runs = [r for r in runs if (r.get('app') or {}).get('slug') == 'github-actions']
 runs.sort(key=lambda r: r.get('started_at') or '', reverse=True)
-runs = runs[:2]
 if not runs:
     print('')
 elif any(r.get('status') != 'completed' for r in runs):
