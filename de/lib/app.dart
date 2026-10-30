@@ -187,8 +187,8 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
           ) ??
           Future.value(),
     );
-    await _wayland.start();
-    if (!mounted || !_wayland.available) return;
+    unawaited(_wayland.start());
+    if (!mounted) return;
     Future<void> reload() async {
       final apps = await widget.externalAppsLoader();
       if (mounted) setState(() => _externalApps = apps);
