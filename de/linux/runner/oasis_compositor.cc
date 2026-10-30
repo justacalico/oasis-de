@@ -4058,17 +4058,52 @@ static void method_call_cb(FlMethodChannel* channel,
       if (st != nullptr && st->pointer != nullptr) {
         double dx = arg_double(args, "dx");
         double dy = arg_double(args, "dy");
+        uint32_t src = (uint32_t)arg_int(args, "src");
+        uint32_t discrete = (uint32_t)arg_int(args, "discrete");
         uint32_t t = now_ms();
+        bool v5 = wl_resource_get_version(st->pointer) >=
+                  WL_POINTER_AXIS_SOURCE_SINCE_VERSION;
+        if (v5) {
+          wl_pointer_send_axis_source(
+              st->pointer, static_cast<wl_pointer_axis_source>(src));
+        }
         if (dx != 0) {
           wl_pointer_send_axis(st->pointer, t,
                                WL_POINTER_AXIS_HORIZONTAL_SCROLL,
                                wl_fixed_from_double(dx));
+          if (v5 && discrete != 0) {
+            wl_pointer_send_axis_discrete(
+                st->pointer, WL_POINTER_AXIS_HORIZONTAL_SCROLL, discrete);
+          }
         }
         if (dy != 0) {
           wl_pointer_send_axis(st->pointer, t,
                                WL_POINTER_AXIS_VERTICAL_SCROLL,
                                wl_fixed_from_double(dy));
+          if (v5 && discrete != 0) {
+            wl_pointer_send_axis_discrete(
+                st->pointer, WL_POINTER_AXIS_VERTICAL_SCROLL, discrete);
+          }
         }
+        if (wl_resource_get_version(st->pointer) >=
+            WL_POINTER_FRAME_SINCE_VERSION) {
+          wl_pointer_send_frame(st->pointer);
+        }
+      }
+    }
+    comp_flush(c);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(name, "pointerAxisStop") == 0) {
+    if (c->ptr_focus != nullptr) {
+      SeatRes* st = seat_for(c, c->ptr_focus->client, false);
+      if (st != nullptr && st->pointer != nullptr &&
+          wl_resource_get_version(st->pointer) >=
+              WL_POINTER_AXIS_SOURCE_SINCE_VERSION) {
+        uint32_t t = now_ms();
+        wl_pointer_send_axis_stop(st->pointer, t,
+                                  WL_POINTER_AXIS_HORIZONTAL_SCROLL);
+        wl_pointer_send_axis_stop(st->pointer, t,
+                                  WL_POINTER_AXIS_VERTICAL_SCROLL);
         if (wl_resource_get_version(st->pointer) >=
             WL_POINTER_FRAME_SINCE_VERSION) {
           wl_pointer_send_frame(st->pointer);

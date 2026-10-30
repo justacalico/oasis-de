@@ -21,7 +21,13 @@ abstract class WaylandHost {
   Future<void> pointerMotion(int id, double x, double y);
   Future<void> pointerExit(int id);
   Future<void> pointerButton(int button, bool pressed);
-  Future<void> pointerAxis(double dx, double dy);
+  Future<void> pointerAxis(
+    double dx,
+    double dy, {
+    int source = 0,
+    int discrete = 0,
+  });
+  Future<void> pointerAxisStop();
   Future<void> key(int code, bool pressed);
 }
 
@@ -88,8 +94,21 @@ class ChannelWaylandHost extends WaylandHost {
   );
 
   @override
-  Future<void> pointerAxis(double dx, double dy) =>
-      _methods.invokeMethod('pointerAxis', {'dx': dx, 'dy': dy});
+  Future<void> pointerAxis(
+    double dx,
+    double dy, {
+    int source = 0,
+    int discrete = 0,
+  }) => _methods.invokeMethod('pointerAxis', {
+    'dx': dx,
+    'dy': dy,
+    'src': source,
+    'discrete': discrete,
+  });
+
+  @override
+  Future<void> pointerAxisStop() =>
+      _methods.invokeMethod('pointerAxisStop');
 
   @override
   Future<void> key(int code, bool pressed) =>

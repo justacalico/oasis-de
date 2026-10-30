@@ -74,9 +74,17 @@ class FakeWaylandHost extends WaylandHost {
   }
 
   @override
-  Future<void> pointerAxis(double dx, double dy) async {
+  Future<void> pointerAxis(
+    double dx,
+    double dy, {
+    int source = 0,
+    int discrete = 0,
+  }) async {
     calls.add('axis:$dx:$dy');
   }
+
+  @override
+  Future<void> pointerAxisStop() async {}
 
   @override
   Future<void> key(int code, bool pressed) async {
