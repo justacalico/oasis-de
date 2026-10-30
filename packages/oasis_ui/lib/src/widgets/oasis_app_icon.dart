@@ -72,6 +72,11 @@ class OasisAppIcon extends StatelessWidget {
                 child: Image.file(
                   File(iconPath!),
                   fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(
+                    icon,
+                    size: size * 0.55,
+                    color: const Color(0xFFFFFFFF),
+                  ),
                 ),
               ),
             )

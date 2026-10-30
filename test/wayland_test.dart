@@ -696,7 +696,7 @@ Size=32
     );
     expect(
       findIconPath('scaled', roots: [dir.path], theme: 'adwaita'),
-      endsWith('scalable/apps/scaled.svg'),
+      isNull,
     );
     expect(
       findIconPath('near', roots: [dir.path], theme: 'adwaita'),
@@ -708,15 +708,15 @@ Size=32
     );
     expect(
       findIconPath('second', roots: [dir.path], theme: 'adwaita'),
-      endsWith('scalable/apps/second.svg'),
+      endsWith('64x64/apps/second.png'),
     );
     expect(
       findIconPath('scaled', roots: [dir.path], theme: 'adwaita', size: 16),
-      endsWith('scalable/apps/scaled.svg'),
+      isNull,
     );
     expect(
       findIconPath('scaled', roots: [dir.path], theme: 'adwaita', size: 300),
-      endsWith('scalable/apps/scaled.svg'),
+      isNull,
     );
     expect(
       findIconPath('near', roots: [dir.path], theme: 'adwaita', size: 62),
