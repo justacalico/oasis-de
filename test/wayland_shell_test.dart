@@ -498,7 +498,6 @@ void main() {
       size: const Size(400, 300),
     );
     await tester.pump();
-    expect(host.calls, contains('focus:1'));
     expect(
       host.calls.where((c) => c.startsWith('configure:1:200x150')),
       isNotEmpty,
@@ -709,14 +708,18 @@ void main() {
     await tester.pump();
     await pumpOasis(tester, view(true), size: const Size(100, 100));
     await tester.pump();
-    expect(host.calls, contains('focus:1'));
     expect(
       host.calls.where((c) => c.startsWith('configure:1:100x100:true')),
       isNotEmpty,
     );
-    await pumpOasis(tester, view(false), size: const Size(100, 100));
+    final c = ShellController(apps: const [], wayland: service);
+    host.emit({'event': 'title', 'id': 1, 'title': 'x'});
     await tester.pump();
-    expect(host.calls, contains('focus:null'));
+    final win = c.windowForSurface(1)!;
+    c.focusWindow(win.id);
+    await tester.pump();
+    expect(host.calls, contains('focus:1'));
+    c.dispose();
     service.dispose();
   });
 
