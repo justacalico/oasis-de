@@ -29,7 +29,7 @@ Each external toplevel maps to a `WaylandSurface` in Dart and gets an `OasisWind
 
 | Global / interface | Status | Notes |
 |---|---|---|
-| `wl_compositor`, `wl_surface`, `wl_region`, `wl_callback` | supported | frame callbacks driven by Flutter vsync |
+| `wl_compositor`, `wl_surface`, `wl_region`, `wl_callback` | supported | frame callbacks sent at commit |
 | `wl_subcompositor`, `wl_subsurface` | supported | |
 | `wl_shm` | supported | client buffers swizzled to GL textures |
 | `zwp_linux_dmabuf_v1` | supported | EGLImage import, zero-copy path |
@@ -38,10 +38,11 @@ Each external toplevel maps to a `WaylandSurface` in Dart and gets an `OasisWind
 | `wl_output` | supported | single output advertized to clients |
 | `xdg_wm_base`, `xdg_surface`, `xdg_toplevel`, `xdg_popup`, `xdg_positioner` | supported | |
 | `zxdg_decoration_manager_v1` | supported | always server-side |
+| `wp_viewporter`, `wp_fractional_scale_manager_v1` | supported | |
+| `zwp_idle_inhibit_manager_v1`, `wp_cursor_shape_manager_v1`, `wp_presentation` | supported | |
+| `xdg_activation_v1`, `zwp_text_input_manager_v3`, `zwp_primary_selection_device_manager_v1` | supported | |
 | `zwlr_layer_shell_v1` | not implemented | shell chrome is Flutter, not a client |
-| `xdg_activation_v1` | not implemented | focus follows shell focus |
-| `wp_viewporter`, `xdg_foreign`, `zwp_pointer_constraints`, `relative-pointer` | not implemented | |
-| `zxdg_idle_inhibit`, `wp_fractional_scale`, `ext-session-lock` | not implemented | |
+| `xdg_foreign`, `zwp_pointer_constraints`, `relative-pointer`, `ext-session-lock` | not implemented | |
 
 X11 clients are unsupported until the compositor embeds Xwayland: `DISPLAY` and `XAUTHORITY` are stripped from spawned apps so they cannot escape to the host X server. Apps must run as Wayland clients.
 
