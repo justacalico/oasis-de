@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
@@ -781,6 +782,42 @@ void iconCoverage() {
         colors: const [Color(0xFF000000), Color(0xFF111111)],
         iconPath: f.path,
         image: _FailImg(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.broken_image), findsWidgets);
+  });
+
+  testWidgets('app icon renders svg files', (tester) async {
+    final f = File('${Directory.systemTemp.path}/goodicon.svg')
+      ..writeAsStringSync(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48">'
+        '<rect width="48" height="48" fill="#ffffff"/></svg>',
+      );
+    addTearDown(() => f.delete());
+    await pumpOasis(
+      tester,
+      OasisAppIcon(
+        icon: Icons.broken_image,
+        colors: const [Color(0xFF000000), Color(0xFF111111)],
+        iconPath: f.path,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(SvgPicture), findsOneWidget);
+    expect(find.byIcon(Icons.broken_image), findsNothing);
+  });
+
+  testWidgets('app icon falls back when the svg fails', (tester) async {
+    final f = File('${Directory.systemTemp.path}/badicon.svg')
+      ..writeAsStringSync('junk');
+    addTearDown(() => f.delete());
+    await pumpOasis(
+      tester,
+      OasisAppIcon(
+        icon: Icons.broken_image,
+        colors: const [Color(0xFF000000), Color(0xFF111111)],
+        iconPath: f.path,
       ),
     );
     await tester.pumpAndSettle();
