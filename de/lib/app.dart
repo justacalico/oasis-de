@@ -251,11 +251,14 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
               final apps = [...builtins, ..._externalApps];
               final appsById = {for (final a in apps) a.id: a};
               final savedPins = _savedPins;
-              _controller.syncApps(
-                apps,
-                pinnedIds: savedPins?.split(','),
-                fallback: builtins,
-              );
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                _controller.syncApps(
+                  apps,
+                  pinnedIds: savedPins?.split(','),
+                  fallback: builtins,
+                );
+              });
               return OasisHost(
                 appearance: _appearance,
                 updates: _updates,

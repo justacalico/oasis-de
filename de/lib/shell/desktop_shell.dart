@@ -36,7 +36,7 @@ class DesktopShell extends StatefulWidget {
 }
 
 class _DesktopShellState extends State<DesktopShell> {
-  final List<GlobalKey> _menuLabelKeys = [];
+  final Map<String, GlobalKey> _menuLabelKeys = {};
   StreamSubscription<WaylandRequest>? _requestSub;
   final _pointerPos = ValueNotifier<Offset>(Offset.zero);
 
@@ -96,12 +96,6 @@ class _DesktopShellState extends State<DesktopShell> {
       animation: controller,
       builder: (context, _) {
         final menus = widget.menusBuilder();
-        while (_menuLabelKeys.length < menus.length) {
-          _menuLabelKeys.add(
-            GlobalKey(debugLabel: menus[_menuLabelKeys.length].label),
-          );
-        }
-        _menuLabelKeys.length = menus.length;
         return CallbackShortcuts(
           bindings: {
             const SingleActivator(LogicalKeyboardKey.tab, alt: true): () =>
@@ -220,7 +214,13 @@ class _DesktopShellState extends State<DesktopShell> {
                     child: ShellMenuBar(
                       controller: controller,
                       menus: menus,
-                      labelKeys: _menuLabelKeys,
+                      labelKeys: [
+                        for (final m in menus)
+                          _menuLabelKeys.putIfAbsent(
+                            m.label,
+                            () => GlobalKey(debugLabel: m.label),
+                          ),
+                      ],
                     ),
                   ),
                 if (controller.openMenu != null)
@@ -525,7 +525,8 @@ class _DesktopShellState extends State<DesktopShell> {
   double _menuLeft(BuildContext context, List<ShellMenu> menus) {
     final idx = _menuIndex(menus);
     final box =
-        _menuLabelKeys[idx].currentContext?.findRenderObject() as RenderBox?;
+        _menuLabelKeys[menus[idx].label]!.currentContext?.findRenderObject()
+            as RenderBox?;
     final x = box?.localToGlobal(Offset.zero).dx ?? 40;
     final max = MediaQuery.sizeOf(context).width - 218;
     return x.clamp(0.0, max > 0 ? max : 0.0);

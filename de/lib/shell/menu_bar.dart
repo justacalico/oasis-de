@@ -9,7 +9,6 @@ import 'package:oasis_ui/oasis_ui.dart';
 import 'context_menu.dart';
 import 'shell_controller.dart';
 
-const kMenuBarHeight = 30.0;
 
 class ShellMenuBar extends StatelessWidget {
   const ShellMenuBar({

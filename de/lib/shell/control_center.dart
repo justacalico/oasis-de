@@ -221,7 +221,6 @@ class ShellControlCenter extends StatelessWidget {
   }
 }
 
-const kCcTopOffset = 34.0;
 
 class _CcToggle extends StatelessWidget {
   const _CcToggle({

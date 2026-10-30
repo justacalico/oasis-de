@@ -2,7 +2,6 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 
-import 'dock.dart';
 import 'shell_controller.dart';
 
 class GenieWindow extends StatefulWidget {

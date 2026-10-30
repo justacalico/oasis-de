@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import '../services/notifications.dart';
-import 'control_center.dart';
 import 'shell_controller.dart';
 
 class NotificationCenterPanel extends StatelessWidget {
