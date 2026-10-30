@@ -148,7 +148,7 @@ struct Surface {
   bool cfg_max = false;
   bool cfg_fs = false;
   bool cfg_resizing = false;
-  uint32_t pending_serial = 0;
+  std::unordered_set<uint32_t> pending_serials;
   uint32_t acked_serial = 0;
   uint32_t grab_serial = 0;
   int rep_w = 0;
@@ -2053,10 +2053,12 @@ static void toplevel_configure(OasisCompositor* c,
     *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
         XDG_TOPLEVEL_STATE_RESIZING;
   }
-  xdg_toplevel_send_configure(s->role_res, w, h, &states);
+  xdg_toplevel_send_configure(s->role_res, std::max(w, 0), std::max(h, 0),
+                              &states);
   wl_array_release(&states);
-  s->pending_serial = wl_display_next_serial(c->display);
-  xdg_surface_send_configure(s->xdg_surface, s->pending_serial);
+  uint32_t ser = wl_display_next_serial(c->display);
+  s->pending_serials.insert(ser);
+  xdg_surface_send_configure(s->xdg_surface, ser);
   comp_flush(c);
 }
 
@@ -2210,9 +2212,8 @@ static void xdg_surface_ack_configure(wl_client* client,
                                       wl_resource* res,
                                       uint32_t serial) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
-  if (s == nullptr || serial != s->pending_serial) return;
+  if (s == nullptr || s->pending_serials.erase(serial) == 0) return;
   s->acked_serial = serial;
-  s->pending_serial = 0;
   FlValue* m = new_event("configureAcked");
   ev_id(m, s->public_id);
   send_event(s->comp, m);
