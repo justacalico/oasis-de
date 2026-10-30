@@ -63,28 +63,36 @@ class ShellMenuBar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                for (var i = 0; i < menus.length; i++) ...[
-                  _MenuLabel(
-                    key: labelKeys[i],
-                    label: menus[i].label,
-                    bold: i == 0,
-                    open: controller.openMenu == menus[i].label,
-                    style: textStyle,
-                    onTap: () => controller.selectMenu(
-                      controller.openMenu == menus[i].label
-                          ? null
-                          : menus[i].label,
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < menus.length; i++) ...[
+                          _MenuLabel(
+                            key: labelKeys[i],
+                            label: menus[i].label,
+                            bold: i == 0,
+                            open: controller.openMenu == menus[i].label,
+                            style: textStyle,
+                            onTap: () => controller.selectMenu(
+                              controller.openMenu == menus[i].label
+                                  ? null
+                                  : menus[i].label,
+                            ),
+                            onHover: () {
+                              if (controller.openMenu != null &&
+                                  controller.openMenu != menus[i].label) {
+                                controller.selectMenu(menus[i].label);
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 2),
+                        ],
+                      ],
                     ),
-                    onHover: () {
-                      if (controller.openMenu != null &&
-                          controller.openMenu != menus[i].label) {
-                        controller.selectMenu(menus[i].label);
-                      }
-                    },
                   ),
-                  const SizedBox(width: 2),
-                ],
-                const Spacer(),
+                ),
                 _StatusIcon(
                   icon: Icons.search,
                   onTap: controller.toggleLauncher,
