@@ -3188,6 +3188,7 @@ static void text_input_manager_get(wl_client* client,
   c->text_inputs.push_back(ti_res);
   wl_resource_set_implementation(ti_res, &text_input_impl, ti,
                                  text_input_res_destroyed);
+  sync_text_input_focus(c);
 }
 
 static const struct zwp_text_input_manager_v3_interface
@@ -3205,19 +3206,20 @@ static void bind_text_input_manager(wl_client* client,
 }
 
 static void sync_text_input_focus(OasisCompositor* c) {
+  wl_client* focus_client =
+      c->kb_focus != nullptr ? c->kb_focus->client : nullptr;
   for (wl_resource* res : c->text_inputs) {
     TextInput* ti =
         static_cast<TextInput*>(wl_resource_get_user_data(res));
-    if (ti->client == (c->kb_focus != nullptr ? c->kb_focus->client
-                                             : nullptr) &&
-        ti->entered != c->kb_focus && c->kb_focus != nullptr) {
-      zwp_text_input_v3_send_enter(res, c->kb_focus->wl_surface);
-      ti->entered = c->kb_focus;
-    } else if (ti->entered != nullptr &&
-               (c->kb_focus == nullptr ||
-                ti->client != c->kb_focus->client)) {
+    Surface* want = ti->client == focus_client ? c->kb_focus : nullptr;
+    if (ti->entered == want) continue;
+    if (ti->entered != nullptr && ti->entered->wl_surface != nullptr) {
       zwp_text_input_v3_send_leave(res, ti->entered->wl_surface);
-      ti->entered = nullptr;
+    }
+    ti->entered = nullptr;
+    if (want != nullptr && want->wl_surface != nullptr) {
+      zwp_text_input_v3_send_enter(res, want->wl_surface);
+      ti->entered = want;
     }
   }
 }
