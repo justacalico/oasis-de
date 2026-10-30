@@ -161,6 +161,59 @@
   "wallpaperAurora": "Сияние",
   "wallpaperEmber": "Угли",
   "appCalculator": "Калькулятор",
+  "appFiles": "Файлы",
+  "filesBookmarkHome": "Домашняя папка",
+  "filesBookmarkDocuments": "Документы",
+  "filesBookmarkDownloads": "Загрузки",
+  "filesBookmarkPictures": "Изображения",
+  "filesBookmarkMusic": "Музыка",
+  "filesBookmarkVideos": "Видео",
+  "filesBookmarkTrash": "Корзина",
+  "filesBookmarkRoot": "Файловая система",
+  "filesUp": "Вверх",
+  "filesLocation": "Расположение",
+  "filesSearch": "Поиск в папке",
+  "filesShowHidden": "Показать скрытые файлы",
+  "filesListView": "Список",
+  "filesGridView": "Сетка",
+  "filesItems": "Объектов: {count}",
+  "@filesItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesSelected": "Выбрано: {count}",
+  "@filesSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesFolder": "Папка",
+  "filesClearSearch": "Очистить поиск",
+  "filesNewFolder": "Новая папка",
+  "filesPaste": "Вставить",
+  "filesCopy": "Копировать",
+  "filesCut": "Вырезать",
+  "filesDelete": "В корзину",
+  "filesRename": "Переименовать",
+  "filesOpen": "Открыть",
+  "filesName": "Имя",
+  "filesCancel": "Отмена",
+  "filesCreate": "Создать",
+  "filesEmpty": "Папка пуста",
+  "filesNoResults": "Ничего не найдено",
+  "filesError": "Не удалось открыть {path}",
+  "@filesError": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "ctxMoveToDesktop": "Переместить на стол {n}",
   "@ctxMoveToDesktop": {
     "placeholders": {

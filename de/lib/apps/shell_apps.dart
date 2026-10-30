@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:oasis_files/oasis_files.dart';
 import 'package:oasis_settings/oasis_settings.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
@@ -46,6 +47,20 @@ List<OasisApp> buildShellApps(
       icon: Icons.water_drop,
       iconColors: const [Color(0xFF4FC3F7), Color(0xFF0078C8)],
       builder: (context) => AboutWindow(version: version),
+    ),
+    OasisApp(
+      id: 'files',
+      name: l10n.appFiles,
+      icon: Icons.folder,
+      iconColors: const [Color(0xFF64B5F6), Color(0xFF1565C0)],
+      builder: (context) => OasisHost(
+        appearance: appearance,
+        updates: updates,
+        setLocale: setLocale,
+        locale: locale,
+        openUrl: openUrl,
+        child: const FilesHome(),
+      ),
     ),
     OasisApp(
       id: 'notes',

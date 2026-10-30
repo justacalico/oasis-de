@@ -161,6 +161,59 @@
   "wallpaperAurora": "极光",
   "wallpaperEmber": "余烬",
   "appCalculator": "计算器",
+  "appFiles": "文件",
+  "filesBookmarkHome": "主目录",
+  "filesBookmarkDocuments": "文档",
+  "filesBookmarkDownloads": "下载",
+  "filesBookmarkPictures": "图片",
+  "filesBookmarkMusic": "音乐",
+  "filesBookmarkVideos": "视频",
+  "filesBookmarkTrash": "回收站",
+  "filesBookmarkRoot": "文件系统",
+  "filesUp": "上一级",
+  "filesLocation": "位置",
+  "filesSearch": "搜索此文件夹",
+  "filesShowHidden": "显示隐藏文件",
+  "filesListView": "列表视图",
+  "filesGridView": "网格视图",
+  "filesItems": "{count} 个项目",
+  "@filesItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesSelected": "已选择 {count} 项",
+  "@filesSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesFolder": "文件夹",
+  "filesClearSearch": "清除搜索",
+  "filesNewFolder": "新建文件夹",
+  "filesPaste": "粘贴",
+  "filesCopy": "复制",
+  "filesCut": "剪切",
+  "filesDelete": "移到回收站",
+  "filesRename": "重命名",
+  "filesOpen": "打开",
+  "filesName": "名称",
+  "filesCancel": "取消",
+  "filesCreate": "创建",
+  "filesEmpty": "此文件夹为空",
+  "filesNoResults": "没有匹配的文件",
+  "filesError": "无法打开 {path}",
+  "@filesError": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "ctxMoveToDesktop": "移到桌面 {n}",
   "@ctxMoveToDesktop": {
     "placeholders": {

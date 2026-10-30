@@ -161,6 +161,59 @@
   "wallpaperAurora": "Na Saobhrí",
   "wallpaperEmber": "Smóidí",
   "appCalculator": "Áireamhán",
+  "appFiles": "Comhaid",
+  "filesBookmarkHome": "Baile",
+  "filesBookmarkDocuments": "Doiciméid",
+  "filesBookmarkDownloads": "Íoslódálacha",
+  "filesBookmarkPictures": "Pictiúir",
+  "filesBookmarkMusic": "Ceol",
+  "filesBookmarkVideos": "Físeáin",
+  "filesBookmarkTrash": "Bruscar",
+  "filesBookmarkRoot": "Córas Comhad",
+  "filesUp": "Suas",
+  "filesLocation": "Suíomh",
+  "filesSearch": "Cuardaigh san fhillteán seo",
+  "filesShowHidden": "Taispeáin comhaid i bhfolach",
+  "filesListView": "Amharc liosta",
+  "filesGridView": "Amharc greille",
+  "filesItems": "{count} mír",
+  "@filesItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesSelected": "{count} roghnaithe",
+  "@filesSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesFolder": "Fillteán",
+  "filesClearSearch": "Glan an cuardach",
+  "filesNewFolder": "Fillteán nua",
+  "filesPaste": "Greamaigh",
+  "filesCopy": "Cóipeáil",
+  "filesCut": "Gearr",
+  "filesDelete": "Bog chun an bhruscair",
+  "filesRename": "Athainmnigh",
+  "filesOpen": "Oscail",
+  "filesName": "Ainm",
+  "filesCancel": "Cealaigh",
+  "filesCreate": "Cruthaigh",
+  "filesEmpty": "Tá an fillteán seo folamh",
+  "filesNoResults": "Níor aimsíodh comhad ar bith",
+  "filesError": "Ní féidir {path} a oscailt",
+  "@filesError": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "ctxMoveToDesktop": "Bog go deasc {n}",
   "@ctxMoveToDesktop": {
     "placeholders": {

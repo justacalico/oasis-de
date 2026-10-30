@@ -19,6 +19,8 @@ dependencies:
     path: ../packages/oasis_ui
   oasis_settings:
     path: ../apps/settings
+  oasis_files:
+    path: ../apps/files
   shared_preferences: ^2.3.0
   window_manager: ^0.5.1
   package_info_plus: ^9.0.0

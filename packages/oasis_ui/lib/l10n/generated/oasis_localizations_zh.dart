@@ -416,6 +416,108 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get appCalculator => '计算器';
 
   @override
+  String get appFiles => '文件';
+
+  @override
+  String get filesBookmarkHome => '主目录';
+
+  @override
+  String get filesBookmarkDocuments => '文档';
+
+  @override
+  String get filesBookmarkDownloads => '下载';
+
+  @override
+  String get filesBookmarkPictures => '图片';
+
+  @override
+  String get filesBookmarkMusic => '音乐';
+
+  @override
+  String get filesBookmarkVideos => '视频';
+
+  @override
+  String get filesBookmarkTrash => '回收站';
+
+  @override
+  String get filesBookmarkRoot => '文件系统';
+
+  @override
+  String get filesUp => '上一级';
+
+  @override
+  String get filesLocation => '位置';
+
+  @override
+  String get filesSearch => '搜索此文件夹';
+
+  @override
+  String get filesShowHidden => '显示隐藏文件';
+
+  @override
+  String get filesListView => '列表视图';
+
+  @override
+  String get filesGridView => '网格视图';
+
+  @override
+  String filesItems(int count) {
+    return '$count 个项目';
+  }
+
+  @override
+  String filesSelected(int count) {
+    return '已选择 $count 项';
+  }
+
+  @override
+  String get filesFolder => '文件夹';
+
+  @override
+  String get filesClearSearch => '清除搜索';
+
+  @override
+  String get filesNewFolder => '新建文件夹';
+
+  @override
+  String get filesPaste => '粘贴';
+
+  @override
+  String get filesCopy => '复制';
+
+  @override
+  String get filesCut => '剪切';
+
+  @override
+  String get filesDelete => '移到回收站';
+
+  @override
+  String get filesRename => '重命名';
+
+  @override
+  String get filesOpen => '打开';
+
+  @override
+  String get filesName => '名称';
+
+  @override
+  String get filesCancel => '取消';
+
+  @override
+  String get filesCreate => '创建';
+
+  @override
+  String get filesEmpty => '此文件夹为空';
+
+  @override
+  String get filesNoResults => '没有匹配的文件';
+
+  @override
+  String filesError(String path) {
+    return '无法打开 $path';
+  }
+
+  @override
   String ctxMoveToDesktop(int n) {
     return '移到桌面 $n';
   }

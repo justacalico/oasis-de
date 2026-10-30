@@ -424,6 +424,108 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get appCalculator => 'Áireamhán';
 
   @override
+  String get appFiles => 'Comhaid';
+
+  @override
+  String get filesBookmarkHome => 'Baile';
+
+  @override
+  String get filesBookmarkDocuments => 'Doiciméid';
+
+  @override
+  String get filesBookmarkDownloads => 'Íoslódálacha';
+
+  @override
+  String get filesBookmarkPictures => 'Pictiúir';
+
+  @override
+  String get filesBookmarkMusic => 'Ceol';
+
+  @override
+  String get filesBookmarkVideos => 'Físeáin';
+
+  @override
+  String get filesBookmarkTrash => 'Bruscar';
+
+  @override
+  String get filesBookmarkRoot => 'Córas Comhad';
+
+  @override
+  String get filesUp => 'Suas';
+
+  @override
+  String get filesLocation => 'Suíomh';
+
+  @override
+  String get filesSearch => 'Cuardaigh san fhillteán seo';
+
+  @override
+  String get filesShowHidden => 'Taispeáin comhaid i bhfolach';
+
+  @override
+  String get filesListView => 'Amharc liosta';
+
+  @override
+  String get filesGridView => 'Amharc greille';
+
+  @override
+  String filesItems(int count) {
+    return '$count mír';
+  }
+
+  @override
+  String filesSelected(int count) {
+    return '$count roghnaithe';
+  }
+
+  @override
+  String get filesFolder => 'Fillteán';
+
+  @override
+  String get filesClearSearch => 'Glan an cuardach';
+
+  @override
+  String get filesNewFolder => 'Fillteán nua';
+
+  @override
+  String get filesPaste => 'Greamaigh';
+
+  @override
+  String get filesCopy => 'Cóipeáil';
+
+  @override
+  String get filesCut => 'Gearr';
+
+  @override
+  String get filesDelete => 'Bog chun an bhruscair';
+
+  @override
+  String get filesRename => 'Athainmnigh';
+
+  @override
+  String get filesOpen => 'Oscail';
+
+  @override
+  String get filesName => 'Ainm';
+
+  @override
+  String get filesCancel => 'Cealaigh';
+
+  @override
+  String get filesCreate => 'Cruthaigh';
+
+  @override
+  String get filesEmpty => 'Tá an fillteán seo folamh';
+
+  @override
+  String get filesNoResults => 'Níor aimsíodh comhad ar bith';
+
+  @override
+  String filesError(String path) {
+    return 'Ní féidir $path a oscailt';
+  }
+
+  @override
   String ctxMoveToDesktop(int n) {
     return 'Bog go deasc $n';
   }

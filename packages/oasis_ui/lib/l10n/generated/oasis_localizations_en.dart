@@ -423,6 +423,108 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get appCalculator => 'Calculator';
 
   @override
+  String get appFiles => 'Files';
+
+  @override
+  String get filesBookmarkHome => 'Home';
+
+  @override
+  String get filesBookmarkDocuments => 'Documents';
+
+  @override
+  String get filesBookmarkDownloads => 'Downloads';
+
+  @override
+  String get filesBookmarkPictures => 'Pictures';
+
+  @override
+  String get filesBookmarkMusic => 'Music';
+
+  @override
+  String get filesBookmarkVideos => 'Videos';
+
+  @override
+  String get filesBookmarkTrash => 'Trash';
+
+  @override
+  String get filesBookmarkRoot => 'File System';
+
+  @override
+  String get filesUp => 'Up';
+
+  @override
+  String get filesLocation => 'Location';
+
+  @override
+  String get filesSearch => 'Search this folder';
+
+  @override
+  String get filesShowHidden => 'Show hidden files';
+
+  @override
+  String get filesListView => 'List view';
+
+  @override
+  String get filesGridView => 'Grid view';
+
+  @override
+  String filesItems(int count) {
+    return '$count items';
+  }
+
+  @override
+  String filesSelected(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get filesFolder => 'Folder';
+
+  @override
+  String get filesClearSearch => 'Clear search';
+
+  @override
+  String get filesNewFolder => 'New folder';
+
+  @override
+  String get filesPaste => 'Paste';
+
+  @override
+  String get filesCopy => 'Copy';
+
+  @override
+  String get filesCut => 'Cut';
+
+  @override
+  String get filesDelete => 'Move to trash';
+
+  @override
+  String get filesRename => 'Rename';
+
+  @override
+  String get filesOpen => 'Open';
+
+  @override
+  String get filesName => 'Name';
+
+  @override
+  String get filesCancel => 'Cancel';
+
+  @override
+  String get filesCreate => 'Create';
+
+  @override
+  String get filesEmpty => 'This folder is empty';
+
+  @override
+  String get filesNoResults => 'No matching files';
+
+  @override
+  String filesError(String path) {
+    return 'Can\'t open $path';
+  }
+
+  @override
   String ctxMoveToDesktop(int n) {
     return 'Move to desktop $n';
   }
