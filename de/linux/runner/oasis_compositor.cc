@@ -143,6 +143,11 @@ struct Surface {
   int geo_y = 0;
   int geo_w = 0;
   int geo_h = 0;
+  int pending_geo_x = 0;
+  int pending_geo_y = 0;
+  int pending_geo_w = 0;
+  int pending_geo_h = 0;
+  bool pending_geo_set = false;
   int cfg_w = 0;
   int cfg_h = 0;
   bool cfg_max = false;
@@ -553,6 +558,13 @@ static void surface_commit(Surface* s) {
     }
     s->pending_place_set = false;
     s->pending_place_sibling = nullptr;
+  }
+  if (s->pending_geo_set) {
+    s->geo_x = s->pending_geo_x;
+    s->geo_y = s->pending_geo_y;
+    s->geo_w = s->pending_geo_w;
+    s->geo_h = s->pending_geo_h;
+    s->pending_geo_set = false;
   }
   if (s->pending_ox != 0 || s->pending_oy != 0) {
     s->sx -= s->pending_ox;
@@ -2063,6 +2075,12 @@ static void toplevel_configure(OasisCompositor* c,
 }
 
 static void xdg_surface_destroy_req(wl_client* client, wl_resource* res) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s != nullptr && s->role != SURFACE_NONE) {
+    wl_resource_post_error(res, XDG_SURFACE_ERROR_DEFUNCT_ROLE_OBJECT,
+                           "xdg_surface destroyed with a live role object");
+    return;
+  }
   wl_resource_destroy(res);
 }
 
@@ -2201,11 +2219,11 @@ static void xdg_surface_set_window_geometry(wl_client* client,
                                             int32_t h) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   if (s == nullptr) return;
-  s->geo_x = x;
-  s->geo_y = y;
-  s->geo_w = w;
-  s->geo_h = h;
-  if (s->announced != SURFACE_NONE) emit_size(s);
+  s->pending_geo_x = x;
+  s->pending_geo_y = y;
+  s->pending_geo_w = w;
+  s->pending_geo_h = h;
+  s->pending_geo_set = true;
 }
 
 static void xdg_surface_ack_configure(wl_client* client,
@@ -2233,7 +2251,14 @@ static Surface* xdg_surface_of(wl_resource* r) {
 
 static void toplevel_destroy(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
-  if (s != nullptr) s->role = SURFACE_NONE;
+  if (s != nullptr) {
+    s->role = SURFACE_NONE;
+    if (s->role_res == res) s->role_res = nullptr;
+    if (s->announced == SURFACE_TOPLEVEL) {
+      emit_closed(s->comp, s);
+      s->announced = SURFACE_NONE;
+    }
+  }
   wl_resource_destroy(res);
 }
 
@@ -2412,7 +2437,14 @@ const struct xdg_toplevel_interface toplevel_impl = {
 
 static void popup_destroy(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
-  if (s != nullptr) s->role = SURFACE_NONE;
+  if (s != nullptr) {
+    s->role = SURFACE_NONE;
+    if (s->role_res == res) s->role_res = nullptr;
+    if (s->announced == SURFACE_POPUP) {
+      emit_closed(s->comp, s);
+      s->announced = SURFACE_NONE;
+    }
+  }
   wl_resource_destroy(res);
 }
 
