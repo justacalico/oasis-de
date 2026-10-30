@@ -112,6 +112,8 @@ struct Surface {
   int buf_scale = 1;
   int transform = 0;
   std::vector<std::array<int32_t, 4>> input_region;
+  bool input_null = false;
+  bool pending_input_null = false;
   std::vector<std::array<int32_t, 4>> opaque_region;
   bool commit_queued = false;
   uint8_t* img = nullptr;
@@ -419,14 +421,18 @@ static void emit_size(Surface* s) {
 static void emit_input_region(Surface* s) {
   FlValue* m = new_event("inputRegion");
   ev_id(m, s->public_id);
-  FlValue* rects = fl_value_new_list();
-  for (const auto& r : s->input_region) {
-    fl_value_append_take(rects, fl_value_new_int(r[0]));
-    fl_value_append_take(rects, fl_value_new_int(r[1]));
-    fl_value_append_take(rects, fl_value_new_int(r[2]));
-    fl_value_append_take(rects, fl_value_new_int(r[3]));
+  if (s->input_null) {
+    fl_value_set_string_take(m, "rects", fl_value_new_null());
+  } else {
+    FlValue* rects = fl_value_new_list();
+    for (const auto& r : s->input_region) {
+      fl_value_append_take(rects, fl_value_new_int(r[0]));
+      fl_value_append_take(rects, fl_value_new_int(r[1]));
+      fl_value_append_take(rects, fl_value_new_int(r[2]));
+      fl_value_append_take(rects, fl_value_new_int(r[3]));
+    }
+    fl_value_set_string_take(m, "rects", rects);
   }
-  fl_value_set_string_take(m, "rects", rects);
   send_event(s->comp, m);
 }
 
@@ -529,6 +535,7 @@ static void surface_commit(Surface* s) {
   s->vp_h = s->pending_vp_h;
   if (s->pending_input_set) {
     s->input_region = s->pending_input;
+    s->input_null = s->pending_input_null;
     s->pending_input.clear();
     s->pending_input_set = false;
     if (s->announced != SURFACE_NONE) emit_input_region(s);
@@ -656,6 +663,7 @@ static void surface_set_input_region(wl_client* client,
                                      wl_resource* region) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   s->pending_input_set = true;
+  s->pending_input_null = region == nullptr;
   s->pending_input.clear();
   if (region != nullptr) {
     auto* r = static_cast<std::vector<std::array<int32_t, 4>>*>(

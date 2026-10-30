@@ -175,16 +175,18 @@ class WaylandService extends ChangeNotifier {
       case 'inputRegion':
         final s = surfaces[id];
         final rects = e['rects'] as List<Object?>?;
-        if (s != null && rects != null) {
-          s.inputRegion = [
-            for (var i = 0; i + 3 < rects.length; i += 4)
-              Rect.fromLTWH(
-                (rects[i] as num).toDouble(),
-                (rects[i + 1] as num).toDouble(),
-                (rects[i + 2] as num).toDouble(),
-                (rects[i + 3] as num).toDouble(),
-              ),
-          ];
+        if (s != null) {
+          s.inputRegion = rects == null
+              ? null
+              : [
+                  for (var i = 0; i + 3 < rects.length; i += 4)
+                    Rect.fromLTWH(
+                      (rects[i] as num).toDouble(),
+                      (rects[i + 1] as num).toDouble(),
+                      (rects[i + 2] as num).toDouble(),
+                      (rects[i + 3] as num).toDouble(),
+                    ),
+                ];
         }
       case 'minSize':
         final s = surfaces[id];
