@@ -32,5 +32,19 @@ const Map<int, int> _hidToEvdev = {
   0xE5: 54, 0xE6: 100, 0xE7: 126,
 };
 
-int? evdevCodeFor(PhysicalKeyboardKey key) =>
-    _hidToEvdev[key.usbHidUsage & 0xFFFF];
+const Map<int, int> _consumerToEvdev = {
+  0x30: 116,
+  0xB5: 163, 0xB6: 165, 0xB7: 166, 0xCD: 164,
+  0xE2: 113, 0xE9: 115, 0xEA: 114,
+  0x18A: 155, 0x192: 140, 0x194: 158, 0x196: 151,
+  0x221: 217, 0x223: 172, 0x224: 158, 0x225: 159,
+  0x226: 128, 0x227: 173, 0x22A: 156,
+};
+
+int? evdevCodeFor(PhysicalKeyboardKey key) {
+  final usage = key.usbHidUsage;
+  final page = (usage >> 16) & 0xFFFF;
+  final id = usage & 0xFFFF;
+  if (page == 0x0C) return _consumerToEvdev[id];
+  return _hidToEvdev[id];
+}
