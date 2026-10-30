@@ -18,8 +18,9 @@ class OasisSlider extends StatelessWidget {
   final double min;
   final double max;
 
-  double get _fraction =>
-      ((value - min) / (max - min)).clamp(0.0, 1.0);
+  double get _fraction => max <= min
+      ? 0.0
+      : ((value - min) / (max - min)).clamp(0.0, 1.0);
 
   void _update(Offset local, double width) {
     if (onChanged == null || width <= 0) return;
@@ -30,7 +31,7 @@ class OasisSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = OasisStyle.of(context).palette;
-    return LayoutBuilder(
+    final slider = LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         return GestureDetector(
@@ -90,5 +91,8 @@ class OasisSlider extends StatelessWidget {
         );
       },
     );
+    return onChanged == null
+        ? Opacity(opacity: 0.4, child: slider)
+        : slider;
   }
 }
