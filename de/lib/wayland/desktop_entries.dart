@@ -509,28 +509,49 @@ const _terminalProbes = {
 
 List<String>? _terminalArgv;
 
-List<String> _terminalPrefix() {
-  if (_terminalArgv != null) return _terminalArgv!;
-  final envTerm = Platform.environment['TERMINAL'];
-  if (envTerm != null && envTerm.isNotEmpty) {
-    return _terminalArgv = [envTerm, '-e'];
+List<String> _terminalPrefix({
+  Map<String, String>? environment,
+  String? Function(String)? which,
+}) {
+  if (environment == null && which == null) {
+    return _terminalArgv ??= _findTerminal(
+      Platform.environment,
+      _which,
+    );
   }
-  for (final probe in _terminalProbes.entries) {
-    if (_which(probe.key) != null) {
-      return _terminalArgv = [probe.key, ...probe.value];
-    }
-  }
-  return _terminalArgv = ['x-terminal-emulator', '-e'];
+  return _findTerminal(
+    environment ?? Platform.environment,
+    which ?? _which,
+  );
 }
 
-OasisApp desktopAppToOasis(DesktopAppEntry entry) => OasisApp(
+List<String> _findTerminal(
+  Map<String, String> environment,
+  String? Function(String) which,
+) {
+  final envTerm = environment['TERMINAL'];
+  if (envTerm != null && envTerm.isNotEmpty) return [envTerm, '-e'];
+  for (final probe in _terminalProbes.entries) {
+    if (which(probe.key) != null) return [probe.key, ...probe.value];
+  }
+  return const ['x-terminal-emulator', '-e'];
+}
+
+OasisApp desktopAppToOasis(
+  DesktopAppEntry entry, {
+  Map<String, String>? environment,
+  String? Function(String)? which,
+}) => OasisApp(
   id: 'desktop:${entry.id}',
   name: entry.name,
   icon: Icons.apps,
   iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
   iconPath: entry.iconPath,
   exec: entry.terminal
-      ? [..._terminalPrefix(), ...entry.argv]
+      ? [
+          ..._terminalPrefix(environment: environment, which: which),
+          ...entry.argv,
+        ]
       : entry.argv,
   builder: (_) => const SizedBox.shrink(),
   actions: [

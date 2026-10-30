@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -227,6 +228,53 @@ void main() {
     service.dispose();
   });
 
+  test('service adopts pending subsurfaces and stops', () async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    await service.start();
+
+    host.emit({'event': 'subsurface', 'id': 8, 'parent': 7, 'x': 0, 'y': 0});
+    host.emit({'event': 'subsurface', 'id': 7, 'parent': 9, 'x': 0, 'y': 0});
+    host.emit({'event': 'subsurface', 'id': 5, 'parent': 1, 'x': 0, 'y': 0});
+    host.emit({'event': 'toplevel', 'id': 1});
+    host.emit({
+      'event': 'popup',
+      'id': 9,
+      'parent': 1,
+      'x': 0,
+      'y': 0,
+    });
+    host.emit({
+      'event': 'childrenReordered',
+      'id': 1,
+      'children': [9, 5],
+    });
+    host.emit({
+      'event': 'size',
+      'id': 1,
+      'w': 100,
+      'h': 100,
+      'vsx': 1,
+      'vsy': 2,
+      'vsw': 50,
+      'vsh': 40,
+    });
+    host.emit({'event': 'configureAcked', 'id': 1, 'serial': 7});
+    await pumpEventQueue();
+
+    expect(service.surfaces[7]!.children, [8]);
+    expect(service.surfaces[1]!.children, [9, 5]);
+    expect(service.surfaces[9]!.children, [7]);
+    expect(service.surfaces[1]!.vpSrc, const Rect.fromLTWH(1, 2, 50, 40));
+    expect(service.surfaces[1]!.ackedSerial, 7);
+
+    await service.pointerAxisStop();
+    await service.stop();
+    expect(service.available, isFalse);
+    expect(service.started, isFalse);
+    service.dispose();
+  });
+
   test('service wraps host calls', () async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
@@ -299,7 +347,12 @@ void main() {
     await host.pointerExit(1);
     await host.pointerButton(272, false);
     await host.pointerAxis(0, 1);
+    await host.pointerAxisStop();
+    await host.touchDown(1, 2, 3, 4);
+    await host.touchMotion(2, 5, 6);
+    await host.touchUp(2);
     await host.key(30, true);
+    await host.stop();
     host.events;
     expect(calls.map((c) => c.method), [
       'start',
@@ -312,7 +365,12 @@ void main() {
       'pointerExit',
       'pointerButton',
       'pointerAxis',
+      'pointerAxisStop',
+      'touchDown',
+      'touchMotion',
+      'touchUp',
       'key',
+      'stop',
     ]);
     expect(calls[2].arguments['maximized'], 1);
     expect(calls[5].arguments['id'], -1);
@@ -562,10 +620,29 @@ Exec=t
       't',
       '$base\nTerminal=true',
       resolveIcon: (_) => null,
-    );
-    final app = desktopAppToOasis(term!);
+    )!;
+    final app = desktopAppToOasis(term);
     expect(app.exec, contains('-e'));
     expect(app.exec!.last, 't');
+
+    expect(
+      desktopAppToOasis(
+        term,
+        environment: const {'TERMINAL': 'foot'},
+      ).exec,
+      ['foot', '-e', 't'],
+    );
+    expect(
+      desktopAppToOasis(
+        term,
+        which: (name) => name == 'alacritty' ? name : null,
+      ).exec,
+      ['alacritty', '-e', 't'],
+    );
+    expect(
+      desktopAppToOasis(term, which: (_) => null).exec,
+      ['x-terminal-emulator', '-e', 't'],
+    );
   });
 
   test('parseExecLine unescapes sequences', () {
@@ -752,11 +829,23 @@ Size=32
     ).first;
     File('${dir.path}/x.desktop').writeAsStringSync('x');
     await events.timeout(const Duration(seconds: 5));
-    final missing = watchDesktopDirs(
-      dirs: ['${dir.path}/nope'],
+
+    final child = '${dir.path}/nope';
+    var fired = 0;
+    final sub = watchDesktopDirs(
+      dirs: [child],
+      debounce: const Duration(milliseconds: 10),
+    ).listen((_) => fired++);
+    Directory(child).createSync();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(fired, greaterThan(0));
+    await sub.cancel();
+
+    final gone = watchDesktopDirs(
+      dirs: ['${dir.path}/missing/nested'],
       debounce: const Duration(milliseconds: 10),
     ).listen((_) {});
-    await missing.cancel();
+    await gone.cancel();
   });
 
   test('loadDesktopEntries scans directories', () async {
@@ -821,6 +910,102 @@ void surfaceViewCoverage() {
     other.requestFocus();
     await tester.pump();
     expect(host.calls, contains('key:29:false'));
+  });
+
+  testWidgets('surface view handles cancel and trackpad gestures',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    addTearDown(service.dispose);
+    await service.start();
+    host.emit({'event': 'toplevel', 'id': 1});
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    await tester.pump();
+    await pumpOasis(
+      tester,
+      Center(
+        child: SizedBox(
+          width: 200,
+          height: 150,
+          child: WaylandSurfaceView(
+            surface: service.surfaces[1]!,
+            service: service,
+            focused: false,
+            maximized: false,
+          ),
+        ),
+      ),
+      size: const Size(400, 300),
+    );
+    final center = tester.getCenter(find.byType(WaylandSurfaceView));
+
+    final touch = await tester.startGesture(
+      center,
+      kind: PointerDeviceKind.touch,
+    );
+    await touch.cancel();
+    await tester.pump();
+
+    final mouse = await tester.startGesture(
+      center,
+      kind: PointerDeviceKind.mouse,
+    );
+    await mouse.cancel();
+    await tester.pump();
+
+    final pad = await tester.createGesture(
+      kind: PointerDeviceKind.trackpad,
+    );
+    await pad.panZoomStart(center);
+    await pad.panZoomUpdate(center, pan: const Offset(4, 5));
+    await pad.panZoomEnd();
+    await tester.pump();
+    expect(host.calls, contains('axis:4.0:5.0'));
+  });
+
+  testWidgets('popup view hits subsurfaces and handles cancel',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    addTearDown(service.dispose);
+    await service.start();
+    final popup = WaylandSurface(
+      id: 9,
+      parentId: 1,
+      textureId: 100,
+      size: const Size(100, 100),
+    );
+    final sub = WaylandSurface(
+      id: 7,
+      parentId: 9,
+      isSub: true,
+      offset: const Offset(10, 10),
+      size: const Size(30, 30),
+    );
+    popup.children.addAll([7, 8]);
+    service.surfaces[7] = sub;
+    await pumpOasis(
+      tester,
+      Align(
+        alignment: Alignment.topLeft,
+        child: WaylandPopupView(surface: popup, service: service),
+      ),
+      size: const Size(400, 300),
+    );
+    final gesture = await tester.startGesture(const Offset(15, 15));
+    await gesture.up();
+    await tester.pump();
+    expect(host.calls, contains('motion:7:5.0:5.0'));
+
+    sub.inputRegion = [const Rect.fromLTWH(0, 0, 5, 5)];
+    final second = await tester.startGesture(const Offset(25, 25));
+    await second.up();
+    await tester.pump();
+    expect(host.calls, contains('motion:9:25.0:25.0'));
+
+    final third = await tester.startGesture(const Offset(15, 15));
+    await third.cancel();
+    await tester.pump();
   });
 }
 

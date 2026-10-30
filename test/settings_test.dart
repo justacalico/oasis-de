@@ -124,9 +124,9 @@ void main() {
     await tester.tap(find.text('Light'));
     await tester.pumpAndSettle();
 
-    final swatches = find.byType(GestureDetector);
-    await tester.tap(swatches.at(10));
+    await tester.tap(find.text('A'));
     await tester.pumpAndSettle();
+    expect(appearance.accent, isNull);
   });
 
   testWidgets('language picker updates host locale', (tester) async {

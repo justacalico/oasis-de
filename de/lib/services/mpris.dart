@@ -4,8 +4,10 @@ import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 
 class MprisService extends ChangeNotifier {
-  MprisService({DBusClient Function()? connect, this.signalStream})
-    : _connect = connect ?? DBusClient.session;
+  MprisService({
+    DBusClient Function()? connect,
+    this.signalStream = platformSignalStream,
+  }) : _connect = connect ?? DBusClient.session;
 
   final DBusClient Function() _connect;
   final Stream<DBusSignal> Function(
@@ -14,8 +16,22 @@ class MprisService extends ChangeNotifier {
     String? interface,
     String? name,
     DBusObjectPath? path,
-  })?
+  })
   signalStream;
+
+  static Stream<DBusSignal> platformSignalStream(
+    DBusClient bus, {
+    String? sender,
+    String? interface,
+    String? name,
+    DBusObjectPath? path,
+  }) => DBusSignalStream(
+    bus,
+    sender: sender,
+    interface: interface,
+    name: name,
+    path: path,
+  );
 
   DBusClient? _bus;
   DBusRemoteObject? _player;
@@ -35,16 +51,13 @@ class MprisService extends ChangeNotifier {
     String? interface,
     String? name,
     DBusObjectPath? path,
-  }) =>
-      (signalStream ??
-              (DBusClient b, {sender, interface, name, path}) =>
-                  DBusSignalStream(
-                    b,
-                    sender: sender,
-                    interface: interface,
-                    name: name,
-                    path: path,
-                  ))(bus, sender: sender, interface: interface, name: name, path: path);
+  }) => signalStream(
+    bus,
+    sender: sender,
+    interface: interface,
+    name: name,
+    path: path,
+  );
 
   Future<void> start() async {
     final bus = _connect();

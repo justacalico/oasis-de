@@ -27,6 +27,7 @@ final _releases = jsonEncode([
       'links': [
         {'name': 'oasis-amd64.deb', 'direct_asset_url': 'https://dl/deb'},
         {'name': 'oasis.tar.gz', 'direct_asset_url': 'https://dl/tgz'},
+        {'name': 'oasis-arm64.zip', 'direct_asset_url': 'https://dl/zip'},
       ],
     },
   },
@@ -47,6 +48,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('DEB · x86_64'), findsOneWidget);
+    expect(find.text('ZIP · ARM64'), findsOneWidget);
     await tester.tap(find.text('DEB · x86_64'));
     expect(opened, contains('https://dl/deb'));
     await tester.tap(find.text('All releases on GitLab'));
@@ -76,6 +78,9 @@ void main() {
       ),
       size: const Size(1100, 2400),
     );
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't load releases"), findsOneWidget);
+    await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
     expect(find.text("Couldn't load releases"), findsOneWidget);
   });

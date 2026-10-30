@@ -123,6 +123,27 @@ void main() {
     expect(find.byType(ShellLaunchPad), findsNothing);
   });
 
+  testWidgets('horizontal arrows move the selection after unfocus', (
+    tester,
+  ) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.rocket_launch));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.byType(ShellLaunchPad), findsNothing);
+  });
+
   testWidgets('tapping the backdrop closes the pad', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.rocket_launch));

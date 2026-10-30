@@ -8,6 +8,7 @@ import 'package:oasis_de/services/notifications.dart';
 import 'package:oasis_de/shell/notification_center.dart';
 import 'package:oasis_de/apps/shell_apps.dart';
 import 'package:oasis_de/shell/dock.dart';
+import 'package:oasis_de/shell/menu_bar.dart';
 import 'package:oasis_de/shell/genie_window.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_de/wayland/wayland_service.dart';
@@ -889,6 +890,216 @@ void main() {
     await tester.tap(find.text('Close Window'));
     await tester.pumpAndSettle();
   });
+
+  testWidgets('logo toggles the app menu', (tester) async {
+    await pumpDesktop(tester);
+    final logo = find.descendant(
+      of: find.byType(ShellMenuBar),
+      matching: find.byIcon(Icons.water_drop),
+    );
+    await tester.tap(logo);
+    await tester.pumpAndSettle();
+    expect(find.text('About Oasis'), findsWidgets);
+    await tester.tap(logo);
+    await tester.pumpAndSettle();
+    expect(find.text('About Oasis'), findsNothing);
+  });
+
+  testWidgets('lock screen clock ticks and backdrop absorbs taps', (
+    tester,
+  ) async {
+    await pumpDesktop(tester, backend: _LockBackend());
+    await tester.tap(find.byIcon(Icons.power_settings_new));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lock'));
+    await tester.pumpAndSettle();
+    expect(find.text('Unlock'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pump(const Duration(minutes: 1, seconds: 5));
+    await tester.pump();
+    expect(find.text('Unlock'), findsOneWidget);
+  });
+
+  testWidgets('releasing alt commits the window switcher', (tester) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.edit_note).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.calculate).first);
+    await tester.pumpAndSettle();
+    final dynamic st = tester.state(find.byType(OasisDesktopApp));
+    final c = st.controller as ShellController;
+    c.cycleWindows();
+    await tester.pump();
+    expect(c.switcherIndex, isNotNull);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    await tester.pumpAndSettle();
+    expect(c.switcherIndex, isNull);
+  });
+
+  testWidgets('dock menu focuses windows, runs actions and quits', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final wayland = WaylandService(host: host);
+    addTearDown(wayland.dispose);
+    await wayland.start();
+    final app = OasisApp(
+      id: 'a',
+      name: 'App a',
+      icon: Icons.circle,
+      iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+      builder: (_) => const SizedBox(),
+      actions: const [
+        OasisAppAction(name: 'New Window', exec: ['a', '--new']),
+      ],
+    );
+    final c = ShellController(
+      batteryPollInterval: null,
+      apps: [app],
+      wayland: wayland,
+    );
+    addTearDown(c.dispose);
+    c.pinned.add(app);
+    c.openApp(app);
+    final w = c.windows.single;
+    await pumpOasis(
+      tester,
+      Scaffold(body: Center(child: ShellDock(controller: c))),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> openMenu() async {
+      await tester.tap(
+        find.byType(OasisAppIcon).last,
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await openMenu();
+    await tester.tap(find.text('New Window'));
+    await tester.pumpAndSettle();
+    expect(host.calls, contains('launch:a --new'));
+
+    await openMenu();
+    await tester.tap(find.text('App a'));
+    await tester.pumpAndSettle();
+
+    c.minimizeWindow(w.id);
+    c.finishTransition(w.id);
+    await tester.pumpAndSettle();
+    await openMenu();
+    await tester.tap(find.text('App a'));
+    await tester.pumpAndSettle();
+    expect(w.minimized, isFalse);
+
+    await openMenu();
+    await tester.tap(find.text('Quit'));
+    await tester.pumpAndSettle();
+    expect(c.windows, isEmpty);
+  });
+
+  testWidgets('notification actions, banner hover and close', (
+    tester,
+  ) async {
+    final daemon = _FakeDaemon();
+    await pumpDesktop(tester, notificationDaemon: daemon);
+    daemon.push!(
+      OasisNotification(
+        id: 7,
+        appName: 'app',
+        summary: 'Ping',
+        body: 'low urgency',
+        timestamp: nullTimestamp,
+        urgency: 0,
+        actions: const [
+          'default',
+          'Open',
+          'reply',
+          'Reply',
+          'cancel',
+          'Dismiss',
+        ],
+      ),
+    );
+    await tester.pump();
+
+    final m = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await m.addPointer(location: Offset.zero);
+    addTearDown(m.removePointer);
+    await m.moveTo(tester.getCenter(find.byType(NotificationBanner)));
+    await tester.pump();
+    await m.moveTo(const Offset(1, 1));
+    await tester.pump();
+
+    daemon.push!(
+      OasisNotification(
+        id: 8,
+        appName: 'app',
+        summary: 'Close me',
+        body: '',
+        timestamp: nullTimestamp,
+      ),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NotificationBanner),
+        matching: find.byIcon(Icons.close),
+      ),
+    );
+    await tester.pump();
+
+    daemon.push!(
+      OasisNotification(
+        id: 9,
+        appName: 'app',
+        summary: 'Ping again',
+        body: '',
+        timestamp: nullTimestamp,
+      ),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NotificationBanner),
+        matching: find.text('Ping again'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(NotificationCenterPanel), findsOneWidget);
+    expect(find.text('Reply'), findsOneWidget);
+    expect(find.text('Dismiss'), findsNothing);
+    await tester.tap(find.text('Reply'));
+    await tester.pumpAndSettle();
+    expect(daemon.invoked, ['7:reply']);
+
+    daemon.close!(9);
+    await tester.pump();
+  });
+
+  testWidgets('launch counts and handlers survive a null daemon', (
+    tester,
+  ) async {
+    final store = MemoryOasisStore();
+    await store.write('shell.launchCounts', 'notes:3,settings:1,bad,x:y');
+    await pumpDesktop(tester, store: store);
+    final dynamic st = tester.state(find.byType(OasisDesktopApp));
+    final c = st.controller as ShellController;
+    expect(c.launchCounts['notes'], 3);
+    expect(c.launchCounts['settings'], 1);
+    c.pushNotification(
+      OasisNotification(
+        id: 9,
+        appName: 'app',
+        summary: 's',
+        body: 'b',
+        timestamp: DateTime(2024),
+      ),
+    );
+    c.invokeNotificationAction(c.notifications.single, 'reply');
+    c.dismissNotification(9);
+  });
 }
 
 class _BatteryBackend extends NoopSystemBackend {
@@ -942,6 +1153,8 @@ final nullTimestamp = DateTime(2024);
 
 class _FakeDaemon extends NotificationDaemon {
   void Function(OasisNotification)? push;
+  void Function(int)? close;
+  final invoked = <String>[];
   var startedFake = false;
   var stopped = false;
 
@@ -951,7 +1164,13 @@ class _FakeDaemon extends NotificationDaemon {
     required void Function(int) onClose,
   }) async {
     push = onNotify;
+    close = onClose;
     startedFake = true;
+  }
+
+  @override
+  Future<void> invokeAction(int id, String action) async {
+    invoked.add('$id:$action');
   }
 
   @override

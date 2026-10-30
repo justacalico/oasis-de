@@ -18,9 +18,9 @@ echo "$INFO" | grep -q 'Package: oasis'
 echo "$INFO" | grep -q 'Version: 0.0.0-test'
 ! echo "$INFO" | grep -q 'PKG_'
 CONTENTS="$(dpkg-deb --contents "$DEB")"
-grep -q 'usr/bin/oasis' <<<"$CONTENTS"
-grep -q 'wayland-sessions/oasis.desktop' <<<"$CONTENTS"
-grep -q 'applications/gitlab.httpanimations.oasisde.desktop' <<<"$CONTENTS"
+echo "$CONTENTS" | grep -q 'usr/bin/oasis'
+echo "$CONTENTS" | grep -q 'wayland-sessions/oasis.desktop'
+echo "$CONTENTS" | grep -q 'applications/gitlab.httpanimations.oasisde.desktop'
 
 grep -q '^Name:.*oasis' "$ROOT/packaging/rpm/oasis.spec"
 grep -q '^Requires:' "$ROOT/packaging/rpm/oasis.spec"

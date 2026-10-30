@@ -7,6 +7,8 @@ import 'package:oasis_de/services/mpris.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 
+import 'package:oasis_de/shell/control_center.dart';
+
 import 'helpers/test_app.dart';
 
 class _FakeBus extends Fake implements DBusClient {
@@ -57,6 +59,12 @@ DBusDict _metadata(String title, List<String> artists, String album) {
     'xesam:album': DBusString(album),
   });
 }
+
+DBusDict _plainMetadata(String title) => DBusDict(
+  DBusSignature('s'),
+  DBusSignature('s'),
+  {DBusString('xesam:title'): DBusString(title)},
+);
 
 MprisService _service(
   _FakeBus bus,
@@ -126,6 +134,13 @@ void main() {
     expect(s.title, 'Next song');
     expect(s.artist, isEmpty);
 
+    signals.add(
+      _propsChanged({'Metadata': _plainMetadata('Plain')}),
+    );
+    signals.addError(StateError('stream hiccup'));
+    await Future<void>.delayed(Duration.zero);
+    expect(s.title, 'Plain');
+
     await s.playPause();
     await s.next();
     await s.previous();
@@ -189,6 +204,17 @@ void main() {
     s.dispose();
   });
 
+  test('platform signal stream wraps DBusSignalStream', () {
+    final stream = MprisService.platformSignalStream(
+      _FakeBus(),
+      sender: 'org.mpris.MediaPlayer2.spotify',
+      interface: 'org.freedesktop.DBus.Properties',
+      name: 'PropertiesChanged',
+      path: DBusObjectPath('/mpris/MediaPlayer2'),
+    );
+    expect(stream, isA<Stream<DBusSignal>>());
+  });
+
   testWidgets('media card shows track and controls', (tester) async {
     final bus = _FakeBus(
       names: const ['org.mpris.MediaPlayer2.spotify'],
@@ -221,5 +247,55 @@ void main() {
       ),
     );
     expect(find.text('Band - Tune'), findsOneWidget);
+  });
+
+  testWidgets('control center media card drives playback', (tester) async {
+    final bus = _FakeBus(
+      names: const ['org.mpris.MediaPlayer2.spotify'],
+      props: {
+        'PlaybackStatus': DBusString('Playing'),
+        'Metadata': _metadata('Tune', ['Band'], 'Record'),
+      },
+    );
+    final signals = StreamController<DBusSignal>.broadcast();
+    addTearDown(signals.close);
+    final mpris = _service(bus, signals);
+    await mpris.start();
+    addTearDown(mpris.dispose);
+    final c = ShellController(
+      apps: const [],
+      mpris: mpris,
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    await pumpOasis(
+      tester,
+      Scaffold(
+        body: ListenableBuilder(
+          listenable: c,
+          builder: (context, _) => ShellControlCenter(controller: c),
+        ),
+      ),
+    );
+    expect(find.text('Band - Tune'), findsOneWidget);
+    expect(find.byIcon(Icons.pause), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.skip_previous));
+    await tester.tap(find.byIcon(Icons.pause));
+    await tester.tap(find.byIcon(Icons.skip_next));
+    expect(
+      bus.calls.where((c) => c.contains('Player.')),
+      containsAll([
+        'org.mpris.MediaPlayer2.Player.PlayPause',
+        'org.mpris.MediaPlayer2.Player.Next',
+        'org.mpris.MediaPlayer2.Player.Previous',
+      ]),
+    );
+
+    mpris.playing = false;
+    mpris.title = mpris.artist = '';
+    c.notifyListeners();
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+    expect(find.text('Nothing playing'), findsOneWidget);
   });
 }

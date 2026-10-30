@@ -472,14 +472,12 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
     final size = widget.surface.size;
     final src = widget.surface.vpSrc;
     final logical = src != null ? src.size : logicalSurfaceSize(widget.surface);
-    final p = size.width > 0 && size.height > 0
-        ? Offset(
-            (src?.left ?? 0) +
-                e.localPosition.dx * logical.width / size.width,
-            (src?.top ?? 0) +
-                e.localPosition.dy * logical.height / size.height,
-          )
-        : e.localPosition;
+    final p = Offset(
+      (src?.left ?? 0) +
+          e.localPosition.dx * logical.width / size.width,
+      (src?.top ?? 0) +
+          e.localPosition.dy * logical.height / size.height,
+    );
     final hit = _subHit(widget.surface, p);
     if (hit != null) {
       widget.service.pointerMotion(hit.$1.id, hit.$2.dx, hit.$2.dy);

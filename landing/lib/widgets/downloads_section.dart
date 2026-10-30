@@ -22,13 +22,21 @@ class DownloadsSection extends StatefulWidget {
 class _DownloadsSectionState extends State<DownloadsSection> {
   late Future<ReleaseInfo?> _future;
 
+  Future<ReleaseInfo?> _latest() {
+    final future = widget.client.latest();
+    future.catchError((_) => null);
+    return future;
+  }
+
   @override
   void initState() {
     super.initState();
-    _future = widget.client.latest();
+    _future = _latest();
   }
 
-  void _retry() => setState(() => _future = widget.client.latest());
+  void _retry() => setState(() {
+    _future = _latest();
+  });
 
   String _archOf(String name) {
     final n = name.toLowerCase();
