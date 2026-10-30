@@ -1012,10 +1012,18 @@ static void subcompositor_get_subsurface(wl_client* client,
       static_cast<Surface*>(wl_resource_get_user_data(surface_res));
   Surface* parent =
       static_cast<Surface*>(wl_resource_get_user_data(parent_res));
-  if (s->role != SURFACE_NONE || s == parent) {
+  if (s->role != SURFACE_NONE) {
     wl_resource_post_error(res, WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE,
                            "surface already has a role");
     return;
+  }
+  for (Surface* a = parent; a != nullptr; a = a->parent) {
+    if (a == s) {
+      wl_resource_post_error(
+          res, WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE,
+          "surface cannot be a subsurface of itself or a descendant");
+      return;
+    }
   }
   s->role = SURFACE_SUBSURFACE;
   s->announced = SURFACE_SUBSURFACE;
