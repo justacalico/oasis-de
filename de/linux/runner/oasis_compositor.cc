@@ -3589,32 +3589,36 @@ static dev_t dmabuf_render_dev() {
 static void dmabuf_send_feedback(wl_resource* f) {
   int fd = memfd_create("oasis-dmabuf",
                         MFD_CLOEXEC | MFD_ALLOW_SEALING);
+  if (fd < 0) return;
   wl_array indices;
   wl_array_init(&indices);
   size_t count = sizeof(dmabuf_fmts) / sizeof(dmabuf_fmts[0]);
-  if (fd >= 0) {
-    for (size_t i = 0; i < count; i++) {
-      struct {
-        uint32_t format;
-        uint32_t pad;
-        uint64_t modifier;
-      } entry = {dmabuf_fmts[i], 0, 0};
-      if (write(fd, &entry, sizeof(entry)) ==
-          static_cast<ssize_t>(sizeof(entry))) {
-        uint32_t idx = static_cast<uint32_t>(i);
-        uint32_t* slot =
-            static_cast<uint32_t*>(wl_array_add(&indices, sizeof(idx)));
-        if (slot != nullptr) *slot = idx;
-      }
+  for (size_t i = 0; i < count; i++) {
+    struct {
+      uint32_t format;
+      uint32_t pad;
+      uint64_t modifier;
+    } entry = {dmabuf_fmts[i], 0, 0};
+    if (write(fd, &entry, sizeof(entry)) ==
+        static_cast<ssize_t>(sizeof(entry))) {
+      uint32_t idx = static_cast<uint32_t>(i);
+      uint32_t* slot =
+          static_cast<uint32_t*>(wl_array_add(&indices, sizeof(idx)));
+      if (slot != nullptr) *slot = idx;
     }
-    zwp_linux_dmabuf_feedback_v1_send_format_table(
-        f, fd, static_cast<uint32_t>(indices.size * 4));
-    close(fd);
   }
+  zwp_linux_dmabuf_feedback_v1_send_format_table(
+      f, fd, static_cast<uint32_t>(indices.size * 4));
+  close(fd);
   dev_t dev = dmabuf_render_dev();
   wl_array da;
   wl_array_init(&da);
-  wl_array_add(&da, sizeof(dev));
+  void* slot = wl_array_add(&da, sizeof(dev));
+  if (slot == nullptr) {
+    wl_array_release(&da);
+    wl_array_release(&indices);
+    return;
+  }
   memcpy(da.data, &dev, sizeof(dev));
   zwp_linux_dmabuf_feedback_v1_send_main_device(f, &da);
   zwp_linux_dmabuf_feedback_v1_send_tranche_target_device(f, &da);
