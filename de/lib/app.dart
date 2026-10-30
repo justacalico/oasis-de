@@ -131,6 +131,15 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       c.volume = v;
       backend.volume(v);
     }
+    final counts = s.read('shell.launchCounts');
+    if (counts != null) {
+      for (final part in counts.split(',')) {
+        final sep = part.lastIndexOf(':');
+        if (sep <= 0) continue;
+        final n = int.tryParse(part.substring(sep + 1));
+        if (n != null) c.launchCounts[part.substring(0, sep)] = n;
+      }
+    }
   }
 
   final Map<String, String> _persisted = {};
@@ -150,6 +159,9 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       'shell.brightness': '${c.brightness}',
       'shell.volume': '${c.volume}',
       'shell.pinned': [for (final a in c.pinned) a.id].join(','),
+      'shell.launchCounts': [
+        for (final e in c.launchCounts.entries) '${e.key}:${e.value}',
+      ].join(','),
     };
     for (final e in next.entries) {
       if (_persisted[e.key] != e.value) {

@@ -108,6 +108,8 @@ class _DesktopShellState extends State<DesktopShell> {
                 controller.toggleZoomFocused,
             const SingleActivator(LogicalKeyboardKey.space, meta: true):
                 controller.toggleLaunchPad,
+            const SingleActivator(LogicalKeyboardKey.space, control: true):
+                controller.toggleLauncher,
           },
           child: Listener(
             onPointerDown: _onShellPointerDown,
