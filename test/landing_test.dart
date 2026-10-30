@@ -46,8 +46,8 @@ void main() {
       size: const Size(1100, 2400),
     );
     await tester.pumpAndSettle();
-    expect(find.text('oasis-amd64.deb'), findsOneWidget);
-    await tester.tap(find.text('oasis-amd64.deb'));
+    expect(find.text('DEB · x86_64'), findsOneWidget);
+    await tester.tap(find.text('DEB · x86_64'));
     expect(opened, contains('https://dl/deb'));
     await tester.tap(find.text('All releases on GitLab'));
     expect(opened, contains('https://gitlab.test/x/y/-/releases'));
