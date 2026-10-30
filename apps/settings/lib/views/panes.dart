@@ -311,11 +311,25 @@ class NetworkPane extends StatelessWidget {
   }
 }
 
-class AboutPane extends StatelessWidget {
+class AboutPane extends StatefulWidget {
   const AboutPane({super.key, required this.version, this.backend});
 
   final String version;
   final OasisSystemBackend? backend;
+
+  @override
+  State<AboutPane> createState() => _AboutPaneState();
+}
+
+class _AboutPaneState extends State<AboutPane> {
+  late final Future<OasisSystemInfo> _info;
+
+  @override
+  void initState() {
+    super.initState();
+    _info = widget.backend?.systemInfo() ??
+        Future<OasisSystemInfo>.value(const OasisSystemInfo());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +355,7 @@ class AboutPane extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(l10n.appName, style: text.titleLarge),
-                Text(l10n.versionLabel(version), style: text.bodySmall),
+                Text(l10n.versionLabel(widget.version), style: text.bodySmall),
               ],
             ),
           ],
@@ -360,8 +374,7 @@ class AboutPane extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         FutureBuilder<OasisSystemInfo>(
-          future: backend?.systemInfo() ??
-              Future<OasisSystemInfo>.value(const OasisSystemInfo()),
+          future: _info,
           builder: (context, snap) {
             final i = snap.data;
             if (i == null) return const SizedBox.shrink();
