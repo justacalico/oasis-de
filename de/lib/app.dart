@@ -104,14 +104,33 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     if (locale != null) {
       _locale = locale.isEmpty ? null : _localeFromTag(locale);
     }
-    c.wifiOn = s.read('shell.wifi') != '0';
-    c.bluetoothOn = s.read('shell.bluetooth') != '0';
+    final backend = c.backend;
+    final wifi = s.read('shell.wifi');
+    if (wifi != null) {
+      c.wifiOn = wifi != '0';
+      backend.wifi(c.wifiOn);
+    }
+    final bluetooth = s.read('shell.bluetooth');
+    if (bluetooth != null) {
+      c.bluetoothOn = bluetooth != '0';
+      backend.bluetooth(c.bluetoothOn);
+    }
     c.focusOn = s.read('shell.focus') == '1';
-    c.nightLightOn = s.read('shell.nightLight') == '1';
+    final nightLight = s.read('shell.nightLight');
+    if (nightLight != null) {
+      c.nightLightOn = nightLight == '1';
+      backend.nightLight(c.nightLightOn);
+    }
     final b = double.tryParse(s.read('shell.brightness') ?? '');
-    if (b != null) c.brightness = b;
+    if (b != null) {
+      c.brightness = b;
+      backend.brightness(b);
+    }
     final v = double.tryParse(s.read('shell.volume') ?? '');
-    if (v != null) c.volume = v;
+    if (v != null) {
+      c.volume = v;
+      backend.volume(v);
+    }
   }
 
   final Map<String, String> _persisted = {};
