@@ -7,7 +7,7 @@ export OASIS_SESSION=1
 
 OASIS_CRASH_LOG="${XDG_STATE_HOME:-$HOME/.local/state}/oasis/crashes.log"
 OASIS_MAX_CRASHES=5
-OASIS_BIN="${OASIS_BIN:-/opt/oasis/oasis}"
+export OASIS_BIN="${OASIS_BIN:-/opt/oasis/oasis}"
 
 if ! command -v cage >/dev/null 2>&1; then
   echo "oasis-session: cage not found" >&2
@@ -18,7 +18,11 @@ run_oasis() {
   mkdir -p "$(dirname "$OASIS_CRASH_LOG")"
   crashes=0
   while true; do
-    cage -- "$OASIS_BIN" "$@"
+    cage -- sh -c '
+      dbus-update-activation-environment --all 2>/dev/null || true
+      systemctl --user import-environment 2>/dev/null || true
+      exec "$OASIS_BIN" "$@"
+    ' oasis-session-inner "$@"
     code=$?
     [ "$code" -eq 0 ] && exit 0
     crashes=$((crashes + 1))

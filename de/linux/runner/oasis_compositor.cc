@@ -3537,6 +3537,24 @@ static void launch_app(OasisCompositor* c, FlValue* args) {
   env = g_environ_setenv(env, "CLUTTER_BACKEND", "wayland", TRUE);
   env = g_environ_setenv(env, "ECORE_EVAS_ENGINE", "wayland_shm", TRUE);
   env = g_environ_setenv(env, "ELM_ENGINE", "wayland_shm", TRUE);
+  if (g_find_program_in_path("systemd-run") != nullptr) {
+    g_autoptr(GPtrArray) scoped = g_ptr_array_new();
+    g_ptr_array_add(scoped, const_cast<char*>("systemd-run"));
+    g_ptr_array_add(scoped, const_cast<char*>("--user"));
+    g_ptr_array_add(scoped, const_cast<char*>("--scope"));
+    g_ptr_array_add(scoped, const_cast<char*>("--quiet"));
+    g_ptr_array_add(scoped, const_cast<char*>("--collect"));
+    g_ptr_array_add(scoped, const_cast<char*>("--"));
+    for (guint i = 0; i + 1 < argv->len; i++) {
+      g_ptr_array_add(scoped, argv->pdata[i]);
+    }
+    g_ptr_array_add(scoped, nullptr);
+    g_spawn_async(nullptr,
+                  reinterpret_cast<gchar**>(scoped->pdata), env,
+                  static_cast<GSpawnFlags>(G_SPAWN_SEARCH_PATH),
+                  nullptr, nullptr, nullptr, nullptr);
+    return;
+  }
   g_spawn_async(nullptr,
                 reinterpret_cast<gchar**>(argv->pdata), env,
                 static_cast<GSpawnFlags>(G_SPAWN_SEARCH_PATH),
