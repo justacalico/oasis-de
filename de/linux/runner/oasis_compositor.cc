@@ -251,6 +251,7 @@ struct _OasisCompositor {
   std::unordered_map<int64_t, Surface*> by_id;
   int64_t next_id = 1;
   Surface* kb_focus = nullptr;
+  uint32_t kb_enter_serial = 0;
   Surface* activated = nullptr;
   Surface* ptr_focus = nullptr;
   Surface* grab_surface = nullptr;
@@ -1165,9 +1166,9 @@ static void set_kb_focus(OasisCompositor* c, Surface* s) {
         *static_cast<uint32_t*>(wl_array_add(&keys, sizeof(uint32_t))) =
             code;
       }
-      wl_keyboard_send_enter(st->keyboard,
-                             wl_display_next_serial(c->display),
-                             s->wl_surface, &keys);
+      uint32_t ser = wl_display_next_serial(c->display);
+      wl_keyboard_send_enter(st->keyboard, ser, s->wl_surface, &keys);
+      c->kb_enter_serial = ser;
       wl_array_release(&keys);
     }
     send_modifiers(c);
@@ -1702,7 +1703,13 @@ static gboolean source_read_cb(GIOChannel* ch,
     gchar buf[4096];
     gsize n = 0;
     GIOStatus st = g_io_channel_read_chars(ch, buf, sizeof(buf), &n, nullptr);
-    if (n > 0) g_string_append_len(ctx->text, buf, n);
+    if (n > 0) {
+      if (ctx->text->len + n > (1 << 20)) {
+        cond = G_IO_HUP;
+      } else {
+        g_string_append_len(ctx->text, buf, n);
+      }
+    }
     if (st == G_IO_STATUS_ERROR) cond = G_IO_HUP;
   }
   if (cond & (G_IO_HUP | G_IO_ERR)) {
@@ -1790,6 +1797,7 @@ static void device_set_selection(wl_client* client,
                                  uint32_t serial) {
   OasisCompositor* c =
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  if (serial != c->kb_enter_serial) return;
   c->selection_source = nullptr;
   if (source == nullptr) return;
   for (auto* ds : c->sources) {
@@ -3117,6 +3125,7 @@ static void primary_device_set_selection(wl_client* client,
                                          uint32_t serial) {
   OasisCompositor* c =
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  if (serial != c->kb_enter_serial) return;
   c->primary_source = source;
   c->primary_mimes.clear();
   if (source != nullptr) {
