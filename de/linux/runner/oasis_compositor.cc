@@ -788,7 +788,12 @@ static void free_surface(Surface* s) {
     wl_resource_set_user_data(s->role_res, nullptr);
   }
   for (Surface* x : c->surfaces) {
-    if (x->parent == s) x->parent = nullptr;
+    if (x->parent == s) {
+      if (x->role == SURFACE_POPUP && x->role_res != nullptr) {
+        xdg_popup_send_popup_done(x->role_res);
+      }
+      x->parent = nullptr;
+    }
     if (x->tl_parent == s) x->tl_parent = nullptr;
   }
   set_pending_buffer(s, nullptr);
