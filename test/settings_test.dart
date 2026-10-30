@@ -282,6 +282,51 @@ void main() {
     service.dispose();
   });
 
+  testWidgets('update tile shows installing and failed states', (
+    tester,
+  ) async {
+    final bytes = utf8.encode('pkg');
+    final hex = sha256.convert(bytes).toString();
+    final gate = Completer<bool>();
+    const update = AppUpdate(
+      latestVersion: '2.0.0',
+      updateAvailable: true,
+      releaseUrl: 'https://r',
+      asset: UpdateAsset(
+        name: 'oasis.deb',
+        url: 'https://x/oasis.deb',
+        checksumUrl: 'https://x/sums',
+      ),
+    );
+    final service = UpdateService(
+      checker: _FakeChecker(update),
+      currentVersion: () async => '1.0.0',
+      downloader: (uri) async =>
+          uri.path.endsWith('sums') ? utf8.encode(hex) : bytes,
+      writeFile: (file, bytes) async {},
+      installer: (_) => gate.future,
+    );
+    await pumpOasis(
+      tester,
+      OasisHost(
+        appearance: OasisAppearance(),
+        updates: service,
+        setLocale: (_) {},
+        child: UpdateCheckTile(service: service),
+      ),
+    );
+    await service.check();
+    await tester.pump();
+    await tester.tap(find.text('Install'));
+    await tester.pump();
+    expect(find.text('Downloading and installing…'), findsOneWidget);
+    gate.complete(false);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Couldn\'t install the update'), findsOneWidget);
+    service.dispose();
+  });
+
   testWidgets('standalone settings check and openUrl', (tester) async {
     tester.view.physicalSize = const Size(1000, 700);
     tester.view.devicePixelRatio = 1;

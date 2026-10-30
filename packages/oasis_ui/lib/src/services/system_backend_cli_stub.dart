@@ -7,6 +7,7 @@ class CliSystemBackend extends NoopSystemBackend {
     this.startProcess,
     this.userName,
     this.drmDir,
+    this.sessionId,
   });
 
   final Object? run;
@@ -14,4 +15,5 @@ class CliSystemBackend extends NoopSystemBackend {
   final Object? startProcess;
   final Object? userName;
   final Object? drmDir;
+  final Object? sessionId;
 }

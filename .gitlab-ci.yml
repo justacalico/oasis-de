@@ -46,6 +46,8 @@ integration:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
   script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev libwayland-dev wayland-protocols libxkbcommon-dev libegl1-mesa-dev libgl1-mesa-dev libgles2-mesa-dev libseat-dev libxcb1-dev libdrm-dev
     - cd de && flutter pub get && flutter test integration_test -d linux
 
 native-build:

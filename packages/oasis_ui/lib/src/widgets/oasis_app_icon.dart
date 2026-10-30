@@ -10,12 +10,14 @@ class OasisAppIcon extends StatelessWidget {
     required this.colors,
     this.size = 48,
     this.iconPath,
+    this.image,
   });
 
   final IconData icon;
   final List<Color> colors;
   final double size;
   final String? iconPath;
+  final ImageProvider? image;
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +71,8 @@ class OasisAppIcon extends StatelessWidget {
               padding: EdgeInsets.all(size * 0.12),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(size * 0.16),
-                child: Image.file(
-                  File(iconPath!),
+                child: Image(
+                  image: image ?? FileImage(File(iconPath!)),
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stack) => Icon(
                     icon,

@@ -11,6 +11,7 @@ class CliSystemBackend implements OasisSystemBackend {
     this.startProcess,
     this.userName,
     this.drmDir,
+    this.sessionId,
   });
 
   final Future<ProcessResult> Function(String, List<String>)? run;
@@ -18,6 +19,7 @@ class CliSystemBackend implements OasisSystemBackend {
   final Future<Process> Function(String, List<String>)? startProcess;
   final String Function()? userName;
   final Directory? drmDir;
+  final String Function()? sessionId;
 
   Future<void> _exec(String exe, List<String> args) async {
     if (kIsWeb) return;
@@ -134,7 +136,8 @@ class CliSystemBackend implements OasisSystemBackend {
       case OasisSessionAction.lock:
         _exec('loginctl', ['lock-session']);
       case OasisSessionAction.logout:
-        final sid = Platform.environment['XDG_SESSION_ID'];
+        final sid = sessionId?.call() ??
+            Platform.environment['XDG_SESSION_ID'];
         if (sid != null && sid.isNotEmpty) {
           _exec('loginctl', ['terminate-session', sid]);
         } else {

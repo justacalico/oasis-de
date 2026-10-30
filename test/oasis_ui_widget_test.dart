@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 import 'helpers/test_app.dart';
 
 void main() {
+  iconCoverage();
   testWidgets('OasisButton variants, states and callbacks', (tester) async {
     var taps = 0;
     await pumpOasis(
@@ -754,5 +756,34 @@ void main() {
     await tester.tap(find.text('c'));
     await tester.pumpAndSettle();
     expect(find.text('tap me'), findsOneWidget);
+  });
+}
+
+
+class _FailImg extends ImageProvider<_FailImg> {
+  @override
+  Future<_FailImg> obtainKey(_) async => this;
+
+  @override
+  ImageStreamCompleter loadImage(a, b) =>
+      OneFrameImageStreamCompleter(Future.error('bad'));
+}
+
+void iconCoverage() {
+  testWidgets('app icon falls back when the image fails', (tester) async {
+    final f = File('${Directory.systemTemp.path}/badicon.png')
+      ..writeAsStringSync('junk');
+    addTearDown(() => f.delete());
+    await pumpOasis(
+      tester,
+      OasisAppIcon(
+        icon: Icons.broken_image,
+        colors: const [Color(0xFF000000), Color(0xFF111111)],
+        iconPath: f.path,
+        image: _FailImg(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.broken_image), findsWidgets);
   });
 }

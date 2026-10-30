@@ -130,6 +130,29 @@ void main() {
     );
   });
 
+  test('cli backend swallows missing tools', () async {
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async {
+      throw ProcessException(exe, args);
+    }
+
+    CliSystemBackend(run: fakeRun)
+      ..wifi(true)
+      ..session(OasisSessionAction.lock);
+    await CliSystemBackend(run: fakeRun).wifi(false);
+  });
+
+  test('cli backend logs out without a session id', () {
+    final calls = <String>[];
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async {
+      calls.add('$exe ${args.join(' ')}');
+      return ProcessResult(0, 0, '', '');
+    }
+
+    CliSystemBackend(run: fakeRun, sessionId: () => '')
+        .session(OasisSessionAction.logout);
+    expect(calls, ['loginctl terminate-user self']);
+  });
+
   test('cli backend reads system info', () async {
     Future<ProcessResult> fakeRun(String exe, List<String> args) async {
       return ProcessResult(

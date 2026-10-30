@@ -180,6 +180,37 @@ void main() {
     service.dispose();
   });
 
+  test('default installer handles pacman and unknown suffixes', () async {
+    final bytes = utf8.encode('pkg');
+    final hex = sha256.convert(bytes).toString();
+    final ran = <List<String>>[];
+    Future<ProcessResult> run(String exe, List<String> args) async {
+      ran.add([exe, ...args]);
+      return ProcessResult(1, exe == 'pkexec' ? 0 : 1, '', '');
+    }
+
+    Future<UpdateService> mk(String name) async {
+      final s = UpdateService(
+        checker: _FakeChecker(installable(name, sum: 's')),
+        currentVersion: () async => '1.0.0',
+        downloader: (uri) async =>
+            uri.path.endsWith('s') ? utf8.encode(hex) : bytes,
+        runProcess: run,
+      );
+      await s.check();
+      return s;
+    }
+
+    final pac = await mk('oasis-2.0.0.pkg.tar.zst');
+    expect(await pac.install(), isTrue);
+    expect(ran.last[1], 'pacman');
+    pac.dispose();
+
+    final weird = await mk('oasis-2.0.0.flatpak');
+    expect(await weird.install(), isFalse);
+    weird.dispose();
+  });
+
   test('default installer fails when no tool works', () async {
     final bytes = utf8.encode('pkg');
     final hex = sha256.convert(bytes).toString();
