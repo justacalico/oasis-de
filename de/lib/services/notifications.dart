@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dbus/dbus.dart';
+import 'package:flutter/foundation.dart';
 
 class OasisNotification {
   const OasisNotification({
@@ -112,17 +113,30 @@ class NotificationDaemon {
     required void Function(int) onClose,
   }) async {
     final bus = _connect();
-    final server = OasisNotificationServer(
-      onNotify: onNotify,
-      onClose: onClose,
-    );
-    await bus.registerObject(server);
-    final reply = await bus.requestName(
-      'org.freedesktop.Notifications',
-    );
-    started = reply == DBusRequestNameReply.primaryOwner;
-    _bus = bus;
-    _server = server;
+    try {
+      final server = OasisNotificationServer(
+        onNotify: onNotify,
+        onClose: onClose,
+      );
+      await bus.registerObject(server);
+      final reply = await bus.requestName(
+        'org.freedesktop.Notifications',
+      );
+      started = reply == DBusRequestNameReply.primaryOwner;
+      if (!started) {
+        debugPrint(
+          'Oasis: org.freedesktop.Notifications name not owned ($reply)',
+        );
+        await bus.unregisterObject(server);
+        await bus.close();
+        return;
+      }
+      _bus = bus;
+      _server = server;
+    } catch (e) {
+      debugPrint('Oasis: notification daemon failed to start: $e');
+      await bus.close();
+    }
   }
 
   Future<void> invokeAction(int id, String action) async {
@@ -147,6 +161,7 @@ class NotificationDaemon {
     await _bus?.releaseName('org.freedesktop.Notifications');
     final server = _server;
     if (server != null) await _bus?.unregisterObject(server);
+    await _bus?.close();
     _bus = null;
     _server = null;
     started = false;

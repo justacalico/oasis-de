@@ -162,4 +162,16 @@ class _FakeBus extends Fake implements DBusClient {
 
   @override
   Future<void> unregisterObject(DBusObject object) async {}
+
+  @override
+  Future<void> emitSignal({
+    required DBusObjectPath path,
+    required String interface,
+    required String name,
+    Iterable<DBusValue> values = const [],
+    String? destination,
+  }) async {}
+
+  @override
+  Future<void> close() async {}
 }
