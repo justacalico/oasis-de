@@ -54,6 +54,15 @@ class OasisNotificationServer extends DBusObject {
         ]);
       case 'Notify':
         final values = methodCall.values;
+        if (values.length < 8 ||
+            values[0] is! DBusString ||
+            values[1] is! DBusUint32 ||
+            values[3] is! DBusString ||
+            values[4] is! DBusString ||
+            values[6] is! DBusDict ||
+            values[7] is! DBusInt32) {
+          return DBusMethodErrorResponse.invalidArgs();
+        }
         final replaces = (values[1] as DBusUint32).value;
         final id = replaces != 0 ? replaces : _nextId++;
         final hints = values[6] as DBusDict;

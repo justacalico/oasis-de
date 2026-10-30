@@ -51,6 +51,14 @@ void main() {
       (notify.returnValues.single as DBusUint32).value,
       pushed.single.id,
     );
+    final bad = await server.handleMethodCall(
+      DBusMethodCall(
+        sender: 'x',
+        name: 'Notify',
+        values: [DBusString('app'), DBusUint32(0)],
+      ),
+    );
+    expect(bad, isA<DBusMethodErrorResponse>());
     final second = await server.handleMethodCall(
       DBusMethodCall(
         sender: 'x',
