@@ -47,52 +47,64 @@ class ReleaseClient {
   Future<List<ReleaseInfo>> fetch() async {
     final all = <ReleaseInfo>[];
     for (var page = 1; page <= _maxPages; page++) {
-      final uri = Uri(
-        scheme: 'https',
-        host: host,
-        pathSegments: ['api', 'v4', 'projects', projectPath, 'releases'],
-        queryParameters: {
-          'per_page': '20',
-          'order_by': 'released_at',
-          'sort': 'desc',
-          'page': '$page',
-        },
-      );
-      final response = await _client
-          .get(uri, headers: {'Accept': 'application/json'})
-          .timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) {
-        throw ReleaseClientException('HTTP ${response.statusCode}');
-      }
-      final decoded = jsonDecode(response.body);
-      if (decoded is! List) {
-        throw const ReleaseClientException('unexpected response shape');
-      }
-      for (final raw in decoded) {
-        if (raw is! Map<String, dynamic>) continue;
-        final tag = raw['tag_name'];
-        if (tag is! String) continue;
-        final name = raw['name'];
-        final assets = <ReleaseAsset>[];
-        final links = raw['assets'] is Map ? raw['assets']['links'] : null;
-        if (links is List) {
-          for (final l in links) {
-            if (l is! Map) continue;
-            final an = l['name'];
-            final url = l['direct_asset_url'] ?? l['url'];
-            if (an is String && url is String) {
-              assets.add(ReleaseAsset(name: an, url: url));
-            }
+      final results = await _fetchPage(page);
+      all.addAll(results);
+      if (results.length < 20) break;
+    }
+    return all;
+  }
+
+  Future<ReleaseInfo?> latest() async {
+    final results = await _fetchPage(1);
+    return results.isEmpty ? null : results.first;
+  }
+
+  Future<List<ReleaseInfo>> _fetchPage(int page) async {
+    final uri = Uri(
+      scheme: 'https',
+      host: host,
+      pathSegments: ['api', 'v4', 'projects', projectPath, 'releases'],
+      queryParameters: {
+        'per_page': '20',
+        'order_by': 'released_at',
+        'sort': 'desc',
+        'page': '$page',
+      },
+    );
+    final response = await _client
+        .get(uri, headers: {'Accept': 'application/json'})
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) {
+      throw ReleaseClientException('HTTP ${response.statusCode}');
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw const ReleaseClientException('unexpected response shape');
+    }
+    final all = <ReleaseInfo>[];
+    for (final raw in decoded) {
+      if (raw is! Map<String, dynamic>) continue;
+      final tag = raw['tag_name'];
+      if (tag is! String) continue;
+      final name = raw['name'];
+      final assets = <ReleaseAsset>[];
+      final links = raw['assets'] is Map ? raw['assets']['links'] : null;
+      if (links is List) {
+        for (final l in links) {
+          if (l is! Map) continue;
+          final an = l['name'];
+          final url = l['direct_asset_url'] ?? l['url'];
+          if (an is String && url is String) {
+            assets.add(ReleaseAsset(name: an, url: url));
           }
         }
-        all.add(ReleaseInfo(
-          tag: tag,
-          name: name is String ? name : tag,
-          url: 'https://$host/$projectPath/-/releases/${Uri.encodeComponent(tag)}',
-          assets: assets,
-        ));
       }
-      if (decoded.length < 20) break;
+      all.add(ReleaseInfo(
+        tag: tag,
+        name: name is String ? name : tag,
+        url: 'https://$host/$projectPath/-/releases/${Uri.encodeComponent(tag)}',
+        assets: assets,
+      ));
     }
     return all;
   }
