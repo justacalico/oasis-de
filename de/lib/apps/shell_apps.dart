@@ -17,47 +17,52 @@ List<OasisApp> buildShellApps(
   ValueChanged<String>? openUrl,
   OasisStore? store,
   OasisSystemBackend? backend,
-}) =>
-    [
-      OasisApp(
-        id: 'settings',
-        name: l10n.settingsTitle,
-        icon: Icons.settings,
-        iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
-        builder: (context) => OasisHost(
-          appearance: appearance,
-          updates: updates,
-          setLocale: setLocale,
-          locale: locale,
-          openUrl: openUrl,
-          child: SettingsHome(
-            wallpaper: wallpaper,
-            state: SettingsState(store: store, backend: backend),
+}) {
+  SettingsState? settingsState;
+  return [
+    OasisApp(
+      id: 'settings',
+      name: l10n.settingsTitle,
+      icon: Icons.settings,
+      iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
+      builder: (context) => OasisHost(
+        appearance: appearance,
+        updates: updates,
+        setLocale: setLocale,
+        locale: locale,
+        openUrl: openUrl,
+        child: SettingsHome(
+          wallpaper: wallpaper,
+          state: settingsState ??= SettingsState(
+            store: store,
+            backend: backend,
           ),
         ),
       ),
-      OasisApp(
-        id: 'about',
-        name: l10n.menuAbout,
-        icon: Icons.water_drop,
-        iconColors: const [Color(0xFF4FC3F7), Color(0xFF0078C8)],
-        builder: (context) => AboutWindow(version: version),
-      ),
-      OasisApp(
-        id: 'notes',
-        name: l10n.appNotes,
-        icon: Icons.edit_note,
-        iconColors: const [Color(0xFFFFD66E), Color(0xFFE6A817)],
-        builder: (context) => NotesWindow(store: store),
-      ),
-      OasisApp(
-        id: 'calculator',
-        name: l10n.appCalculator,
-        icon: Icons.calculate,
-        iconColors: const [Color(0xFF34C759), Color(0xFF1E7D3E)],
-        builder: (context) => const CalculatorWindow(),
-      ),
-    ];
+    ),
+    OasisApp(
+      id: 'about',
+      name: l10n.menuAbout,
+      icon: Icons.water_drop,
+      iconColors: const [Color(0xFF4FC3F7), Color(0xFF0078C8)],
+      builder: (context) => AboutWindow(version: version),
+    ),
+    OasisApp(
+      id: 'notes',
+      name: l10n.appNotes,
+      icon: Icons.edit_note,
+      iconColors: const [Color(0xFFFFD66E), Color(0xFFE6A817)],
+      builder: (context) => NotesWindow(store: store),
+    ),
+    OasisApp(
+      id: 'calculator',
+      name: l10n.appCalculator,
+      icon: Icons.calculate,
+      iconColors: const [Color(0xFF34C759), Color(0xFF1E7D3E)],
+      builder: (context) => const CalculatorWindow(),
+    ),
+  ];
+}
 
 class NotesWindow extends StatefulWidget {
   const NotesWindow({super.key, this.store});
@@ -185,10 +190,22 @@ class _CalculatorWindowState extends State<CalculatorWindow> {
   Widget build(BuildContext context) {
     final p = OasisStyle.of(context).palette;
     const keys = [
-      'C', '÷', '×', '−',
-      '7', '8', '9', '+',
-      '4', '5', '6', '=',
-      '1', '2', '3', '.',
+      'C',
+      '÷',
+      '×',
+      '−',
+      '7',
+      '8',
+      '9',
+      '+',
+      '4',
+      '5',
+      '6',
+      '=',
+      '1',
+      '2',
+      '3',
+      '.',
       '0',
     ];
     return Padding(
