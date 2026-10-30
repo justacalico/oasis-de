@@ -39,6 +39,13 @@
   "ccVolume": "Toirt",
   "ccAppearance": "Dealramh",
   "ccDarkMode": "Mód Dorcha",
+  "aboutDeviceName": "Ainm an ghléis",
+  "aboutOs": "Córas oibriúcháin",
+  "aboutKernel": "Eithne",
+  "aboutCpu": "Próiseálaí",
+  "aboutMemory": "Cuimhne",
+  "aboutDisk": "Diosca",
+  "aboutGpu": "Grafaicí",
   "aboutTagline": "Timpeallacht deisce shochréatach ghloineach do Linux.",
   "versionLabel": "Leagan {version}",
   "@versionLabel": {

@@ -173,4 +173,7 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<bool> verifyPassword(String password) async => true;
+
+  @override
+  Future<OasisSystemInfo> systemInfo() async => const OasisSystemInfo();
 }

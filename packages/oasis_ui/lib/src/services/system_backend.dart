@@ -33,6 +33,27 @@ abstract class OasisSystemBackend {
   Future<OasisBattery> battery();
   void session(OasisSessionAction action);
   Future<bool> verifyPassword(String password);
+  Future<OasisSystemInfo> systemInfo();
+}
+
+class OasisSystemInfo {
+  const OasisSystemInfo({
+    this.deviceName = '',
+    this.osName = '',
+    this.kernel = '',
+    this.cpu = '',
+    this.memory = '',
+    this.disk = '',
+    this.gpu = '',
+  });
+
+  final String deviceName;
+  final String osName;
+  final String kernel;
+  final String cpu;
+  final String memory;
+  final String disk;
+  final String gpu;
 }
 
 class NoopSystemBackend implements OasisSystemBackend {
@@ -65,4 +86,7 @@ class NoopSystemBackend implements OasisSystemBackend {
 
   @override
   Future<bool> verifyPassword(String password) async => true;
+
+  @override
+  Future<OasisSystemInfo> systemInfo() async => const OasisSystemInfo();
 }

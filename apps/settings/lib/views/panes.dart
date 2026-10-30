@@ -308,9 +308,10 @@ class NetworkPane extends StatelessWidget {
 }
 
 class AboutPane extends StatelessWidget {
-  const AboutPane({super.key, required this.version});
+  const AboutPane({super.key, required this.version, this.backend});
 
   final String version;
+  final OasisSystemBackend? backend;
 
   @override
   Widget build(BuildContext context) {
@@ -352,6 +353,30 @@ class AboutPane extends StatelessWidget {
             if (host.updates != null)
               UpdateCheckTile(service: host.updates!, onOpenUrl: host.openUrl),
           ],
+        ),
+        const SizedBox(height: 16),
+        FutureBuilder<OasisSystemInfo>(
+          future: backend?.systemInfo() ??
+              Future<OasisSystemInfo>.value(const OasisSystemInfo()),
+          builder: (context, snap) {
+            final i = snap.data;
+            if (i == null) return const SizedBox.shrink();
+            return OasisSection(
+              children: [
+                for (final row in [
+                  (l10n.aboutDeviceName, i.deviceName),
+                  (l10n.aboutOs, i.osName),
+                  (l10n.aboutKernel, i.kernel),
+                  (l10n.aboutCpu, i.cpu),
+                  (l10n.aboutMemory, i.memory),
+                  (l10n.aboutDisk, i.disk),
+                  (l10n.aboutGpu, i.gpu),
+                ])
+                  if (row.$2.isNotEmpty)
+                    OasisRow(title: row.$1, subtitle: row.$2),
+              ],
+            );
+          },
         ),
       ],
     );

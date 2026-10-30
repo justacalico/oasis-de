@@ -584,6 +584,9 @@ class _DenyBackend extends NoopSystemBackend {
 
   @override
   Future<bool> verifyPassword(String password) async => false;
+
+  @override
+  Future<OasisSystemInfo> systemInfo() async => const OasisSystemInfo();
 }
 
 class _Ctx extends Fake implements BuildContext {
@@ -624,6 +627,9 @@ class _BatteryBackend implements OasisSystemBackend {
 
   @override
   Future<bool> verifyPassword(String password) async => true;
+
+  @override
+  Future<OasisSystemInfo> systemInfo() async => const OasisSystemInfo();
 }
 
 class _RecordingBackend implements OasisSystemBackend {
@@ -658,4 +664,7 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<bool> verifyPassword(String password) async => true;
+
+  @override
+  Future<OasisSystemInfo> systemInfo() async => const OasisSystemInfo();
 }

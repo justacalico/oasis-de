@@ -88,6 +88,27 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get ccDarkMode => '深色模式';
 
   @override
+  String get aboutDeviceName => '设备名称';
+
+  @override
+  String get aboutOs => '操作系统';
+
+  @override
+  String get aboutKernel => '内核';
+
+  @override
+  String get aboutCpu => '处理器';
+
+  @override
+  String get aboutMemory => '内存';
+
+  @override
+  String get aboutDisk => '磁盘';
+
+  @override
+  String get aboutGpu => '显卡';
+
+  @override
   String get aboutTagline => '为 Linux 打造的宁静、通透的桌面环境。';
 
   @override

@@ -39,6 +39,13 @@
   "ccVolume": "音量",
   "ccAppearance": "外观",
   "ccDarkMode": "深色模式",
+  "aboutDeviceName": "设备名称",
+  "aboutOs": "操作系统",
+  "aboutKernel": "内核",
+  "aboutCpu": "处理器",
+  "aboutMemory": "内存",
+  "aboutDisk": "磁盘",
+  "aboutGpu": "显卡",
   "aboutTagline": "为 Linux 打造的宁静、通透的桌面环境。",
   "versionLabel": "版本 {version}",
   "@versionLabel": {

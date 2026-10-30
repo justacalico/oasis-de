@@ -154,4 +154,52 @@ class CliSystemBackend implements OasisSystemBackend {
       return true;
     }
   }
+
+  @override
+  Future<OasisSystemInfo> systemInfo() async {
+    if (kIsWeb) return const OasisSystemInfo();
+    String read(String p) {
+      try {
+        return File(p).readAsStringSync().trim();
+      } catch (_) {
+        return '';
+      }
+    }
+
+    final cpuLine = read('/proc/cpuinfo')
+        .split('\n')
+        .firstWhere((l) => l.startsWith('model name'), orElse: () => '');
+    final memKb = RegExp(r'MemTotal:\s+(\d+)')
+        .firstMatch(read('/proc/meminfo'))
+        ?.group(1);
+    String disk = '';
+    try {
+      final r = await (run ?? Process.run)('df', ['-h', '/']);
+      if (r.exitCode == 0) {
+        final parts = '${r.stdout}'
+            .split('\n')
+            .last
+            .trim()
+            .split(RegExp(r'\s+'));
+        if (parts.length >= 4) disk = '${parts[1]} (${parts[2]} used)';
+      }
+    } catch (_) {}
+    String osName = '';
+    for (final line in read('/etc/os-release').split('\n')) {
+      if (line.startsWith('PRETTY_NAME=')) {
+        osName = line.substring(12).replaceAll('"', '');
+      }
+    }
+    return OasisSystemInfo(
+      deviceName: Platform.localHostname,
+      osName: osName,
+      kernel: read('/proc/version').split(' ').take(3).join(' '),
+      cpu: cpuLine.contains(':') ? cpuLine.split(':').last.trim() : '',
+      memory: memKb == null
+          ? ''
+          : '${(int.parse(memKb) / 1048576).toStringAsFixed(1)} GB',
+      disk: disk,
+      gpu: '',
+    );
+  }
 }

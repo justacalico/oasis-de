@@ -105,7 +105,10 @@ class _SettingsHomeState extends State<SettingsHome> {
                         onChanged: (v) => s.bluetoothEnabled = v,
                         subtitle: l10n.settingsBluetoothBody,
                       ),
-                    SettingsPane.about => AboutPane(version: widget.version),
+                    SettingsPane.about => AboutPane(
+                      version: widget.version,
+                      backend: s.backend,
+                    ),
                   },
                 ),
               ),

@@ -39,6 +39,13 @@
   "ccVolume": "Громкость",
   "ccAppearance": "Оформление",
   "ccDarkMode": "Тёмная тема",
+  "aboutDeviceName": "Имя устройства",
+  "aboutOs": "Операционная система",
+  "aboutKernel": "Ядро",
+  "aboutCpu": "Процессор",
+  "aboutMemory": "Память",
+  "aboutDisk": "Диск",
+  "aboutGpu": "Графика",
   "aboutTagline": "Спокойная стеклянная среда рабочего стола для Linux.",
   "versionLabel": "Версия {version}",
   "@versionLabel": {
