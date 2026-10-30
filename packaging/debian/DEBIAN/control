@@ -5,6 +5,7 @@ Priority: optional
 Architecture: PKG_ARCH
 Maintainer: Oasis <ci@oasis.local>
 Depends: dbus, cage, libwayland-client0, libxkbcommon0, libegl1, libgtk-3-0
+Recommends: weston-terminal
 Description: A calm, glassy desktop environment for Linux
  Oasis is a desktop environment for people, not nerds. A floating dock,
  a translucent menu bar, a quiet launcher, a control center that stays

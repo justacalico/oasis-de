@@ -40,6 +40,14 @@ install -Dm644 %{_sourcedir}/gitlab.httpanimations.oasisde.desktop \
 install -Dm644 %{_sourcedir}/gitlab.httpanimations.oasisde.png \
   %{buildroot}%{_datadir}/icons/hicolor/1024x1024/apps/gitlab.httpanimations.oasisde.png
 
+%post
+/usr/bin/update-desktop-database %{_datadir}/applications &> /dev/null || :
+/usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &> /dev/null || :
+
+%postun
+/usr/bin/update-desktop-database %{_datadir}/applications &> /dev/null || :
+/usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &> /dev/null || :
+
 %files
 /opt/oasis
 %{_bindir}/oasis

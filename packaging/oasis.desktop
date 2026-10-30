@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=Oasis
 Comment=A calm, glassy desktop environment
+TryExec=/usr/bin/oasis-session
 Exec=/usr/bin/oasis-session
 Type=Application
 DesktopNames=Oasis
