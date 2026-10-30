@@ -194,6 +194,7 @@ class WaylandSurfaceView extends StatefulWidget {
 
 class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   final _keys = FocusNode();
+  final _pressed = <int>{};
   var _buttons = 0;
   ({Size size, bool max, bool fs, bool resizing})? _reported;
 
@@ -203,9 +204,18 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   @override
   void initState() {
     super.initState();
+    _keys.addListener(_flushKeysOnBlur);
     if (widget.focused) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _grabFocus());
     }
+  }
+
+  void _flushKeysOnBlur() {
+    if (_keys.hasFocus) return;
+    for (final c in _pressed) {
+      service.key(c, false);
+    }
+    _pressed.clear();
   }
 
   @override
@@ -273,8 +283,10 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
     final code = evdevCodeFor(event.physicalKey);
     if (code == null) return KeyEventResult.ignored;
     if (event is KeyUpEvent) {
+      _pressed.remove(code);
       service.key(code, false);
     } else if (event is KeyDownEvent) {
+      _pressed.add(code);
       service.key(code, true);
     }
     return KeyEventResult.handled;
@@ -282,6 +294,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
 
   @override
   void dispose() {
+    _keys.removeListener(_flushKeysOnBlur);
     _keys.dispose();
     super.dispose();
   }

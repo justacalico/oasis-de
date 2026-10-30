@@ -9,7 +9,10 @@ import 'package:oasis_de/wayland/desktop_entries.dart';
 import 'package:oasis_de/wayland/keymap.dart';
 import 'package:oasis_de/wayland/wayland_host.dart';
 import 'package:oasis_de/wayland/wayland_service.dart';
+import 'package:oasis_de/wayland/wayland_surface_view.dart';
 import 'package:oasis_ui/oasis_ui.dart';
+
+import 'helpers/test_app.dart';
 
 class FakeWaylandHost extends WaylandHost {
   final _events = StreamController<Map<String, Object?>>.broadcast();
@@ -102,6 +105,7 @@ class FakeWaylandHost extends WaylandHost {
 }
 
 void main() {
+  surfaceViewCoverage();
   test('service starts and handles surface events', () async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
@@ -771,6 +775,40 @@ NoDisplay=true
     expect(app.isExternal, isTrue);
     expect(app.exec, ['good']);
     expect(app.builder(_StubContext()), isNotNull);
+  });
+}
+
+void surfaceViewCoverage() {
+  testWidgets('surface view releases pressed keys on focus loss',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    addTearDown(service.dispose);
+    await service.start();
+    final other = FocusNode();
+    addTearDown(other.dispose);
+    await pumpOasis(
+      tester,
+      Row(
+        children: [
+          Expanded(
+            child: WaylandSurfaceView(
+              surface: WaylandSurface(id: 1),
+              service: service,
+              focused: true,
+              maximized: false,
+            ),
+          ),
+          Focus(focusNode: other, child: const SizedBox(width: 10)),
+        ],
+      ),
+      size: const Size(400, 300),
+    );
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    expect(host.calls, contains('key:29:true'));
+    other.requestFocus();
+    await tester.pump();
+    expect(host.calls, contains('key:29:false'));
   });
 }
 
