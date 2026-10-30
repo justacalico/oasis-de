@@ -29,6 +29,9 @@ class FakeWaylandHost extends WaylandHost {
   }
 
   @override
+  Future<void> stop() async {}
+
+  @override
   Future<void> launch(List<String> argv) async {
     calls.add('launch:${argv.join(' ')}');
   }
@@ -346,7 +349,7 @@ void main() {
     expect(evdevCodeFor(PhysicalKeyboardKey.arrowLeft), 105);
     expect(evdevCodeFor(PhysicalKeyboardKey.f12), 88);
     expect(evdevCodeFor(PhysicalKeyboardKey.controlLeft), 29);
-    expect(evdevCodeFor(PhysicalKeyboardKey.mediaPlayPause), isNull);
+    expect(evdevCodeFor(PhysicalKeyboardKey.mediaPlayPause), 164);
     for (var u = 0; u <= 0xFF; u++) {
       evdevCodeFor(PhysicalKeyboardKey(u | 0x70000));
     }
