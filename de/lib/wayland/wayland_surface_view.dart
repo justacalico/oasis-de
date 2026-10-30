@@ -348,6 +348,10 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                       forwardButtonDiff(service, _buttons, e.buttons);
                       _buttons = e.buttons;
                     },
+                    onPointerCancel: (e) {
+                      forwardButtonDiff(service, _buttons, e.buttons);
+                      _buttons = e.buttons;
+                    },
                     onPointerSignal: (e) {
                       if (e is PointerScrollEvent) {
                         service.pointerAxis(e.scrollDelta.dx, e.scrollDelta.dy);
@@ -436,6 +440,10 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
                   _buttons = e.buttons;
                 },
                 onPointerUp: (e) {
+                  forwardButtonDiff(widget.service, _buttons, e.buttons);
+                  _buttons = e.buttons;
+                },
+                onPointerCancel: (e) {
                   forwardButtonDiff(widget.service, _buttons, e.buttons);
                   _buttons = e.buttons;
                 },
