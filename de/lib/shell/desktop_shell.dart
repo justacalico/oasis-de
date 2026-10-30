@@ -141,8 +141,9 @@ class _DesktopShellState extends State<DesktopShell> {
                   ),
                 ),
                 for (final w in controller.windows)
-                  if (!w.minimized ||
-                      w.transition != ShellWindowTransition.none)
+                  if (w.workspace == controller.activeWorkspace &&
+                      (!w.minimized ||
+                          w.transition != ShellWindowTransition.none))
                     Positioned(
                       key: ValueKey(w.id),
                       left: w.zoomed || w.fullscreen ? 0 : w.position.dx,
@@ -205,7 +206,10 @@ class _DesktopShellState extends State<DesktopShell> {
                     ),
                   ),
                 if (!controller.windows.any(
-                  (w) => w.fullscreen && !w.minimized,
+                  (w) =>
+                      w.fullscreen &&
+                      !w.minimized &&
+                      w.workspace == controller.activeWorkspace,
                 ))
                   Positioned(
                     top: 0,
@@ -254,7 +258,10 @@ class _DesktopShellState extends State<DesktopShell> {
                     child: WindowSwitcher(controller: controller),
                   ),
                 if (!controller.windows.any(
-                  (w) => w.fullscreen && !w.minimized,
+                  (w) =>
+                      w.fullscreen &&
+                      !w.minimized &&
+                      w.workspace == controller.activeWorkspace,
                 ))
                   Positioned(
                     top: kCcTopOffset + 4,
@@ -283,7 +290,10 @@ class _DesktopShellState extends State<DesktopShell> {
                   ),
                 ),
                 if (!controller.windows.any(
-                  (w) => w.fullscreen && !w.minimized,
+                  (w) =>
+                      w.fullscreen &&
+                      !w.minimized &&
+                      w.workspace == controller.activeWorkspace,
                 ))
                   Positioned(
                     left: 0,
