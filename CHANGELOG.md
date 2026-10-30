@@ -2,6 +2,185 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.6.0 - 2026-10-30
+#### Other changes
+- Merge branch 'fix/ci-regressions' [skip ci] - (4e76fd9) - calico
+- Merge branch 'fix/issue-72-panzoom' [skip ci] - (e7af4d9) - calico
+#### Features
+- app de arquivos para o desktop [skip ci] - (5a43c40) - Devin
+- baixar, verificar e instalar atualizações no app [skip ci] - (5bc45b8) - Devin
+- cartão de mídia MPRIS no centro de controle [skip ci] - (8886491) - Devin
+- novos painéis de configurações e busca na barra lateral - (485ee4b) - HttpAnimations
+- componentes oasis_ui (menu, diálogo, campo, checkbox, tooltip) - (89341a1) - HttpAnimations
+- painel About com informações do sistema - (fb0e6ea) - HttpAnimations
+- animação de geometria em zoom/fullscreen/snap - (777855a) - HttpAnimations
+- eventos wl_touch encaminhados para clientes - (4ec2a5e) - HttpAnimations
+- seletor de idioma na landing com persistência - (7b8289f) - HttpAnimations
+- downloads agrupados por formato e arquitetura - (42bd402) - HttpAnimations
+- central de notificações com hora, ícone e urgência - (67f6ae0) - HttpAnimations
+- menu de contexto do dock com janelas, ações e sair - (ba96e31) - HttpAnimations
+- Semantics e tooltips nos elementos interativos do shell - (e5f6b1b) - HttpAnimations
+- banner de notificação interativo com timeout e limite - (6dd54ad) - HttpAnimations
+- tela de bloqueio com senha e lock antes de suspender - (64bd67a) - HttpAnimations
+- confirmação antes de ações de energia e logout por sessão - (3a1fe3f) - HttpAnimations
+- Meta+D alterna mostrar área de trabalho e restaura janelas - (33638bf) - HttpAnimations
+- entrada English simples e rótulo English (UK) no seletor - (e1a1455) - HttpAnimations
+#### Bug Fixes
+- 以 bash 调用 release 和 RPM 构建脚本 - (82b2d8c) - calico
+- 修复应用图标在 web 构建下的类型错误 - (53d60ec) - calico
+- github-sync 以 bash 运行 watch 脚本 - (d62ef50) - calico
+- github-sync 使用完整克隆避免浅克隆推送缺少对象 - (b60b273) - calico
+- 修复 CI 流水线并补齐行覆盖率 - (195880b) - calico
+- 修复启动器大部分应用图标无法加载的问题 - (fd1b5bd) - HttpAnimations
+- 修复激活令牌提前销毁与初始 configure 缺失导致应用无法打开 - (bec387a) - HttpAnimations
+- 窗口级联偏移只计当前工作区可见窗口 [skip ci] - (aacbf63) - Devin
+- 切换工作区不聚焦最小化窗口 [skip ci] - (7c41737) - Devin
+- 移动窗口到工作区时带上瞬态子窗口 [skip ci] - (7067394) - Devin
+- Alt+Tab 按最近使用顺序切换窗口 [skip ci] - (6a3b9c6) - Devin
+- 修复 CI 打包、集成与覆盖率门禁 - (0b8cdb8) - Devin
+- 客户端光标纹理仅在客户端表面上渲染 [skip ci] - (c2b92fe) - Devin
+- 启动器结果行传入 iconPath [skip ci] - (bebebf1) - Devin
+- 解锁限流改为延迟而非拒绝 - (02106fb) - Devin
+- 过滤启动面板时回到第一页 [skip ci] - (aa33483) - Devin
+- 焦点丢失时释放客户端按键 [skip ci] - (fc102ce) - Devin
+- 修复 MPRIS 总线死锁与打包、集成 CI 检查 - (4278b77) - Devin
+- 修复“关于”页系统信息解析与 GPU 显示 [skip ci] - (6e734c4) - Devin
+- 修复 CI 失败（MPRIS 总线容错、libdrm 依赖、打包与集成任务） - (2191fe2) - Devin
+- desbloqueio falha fechado e limita tentativas [skip ci] - (d9b39a9) - Devin
+- relógio da tela de bloqueio atualiza por minuto [skip ci] - (6538f31) - Devin
+- tema de ícone do sistema, png-only e fallback de erro - (8bdcc09) - HttpAnimations
+- drag/resize/snap respeitam fullscreen, zoom e pré-snap - (2236c7b) - HttpAnimations
+- text-input envia leave antes de enter e sync na criação - (ee99fca) - HttpAnimations
+- set_source do viewport e crop nas coords de input - (e2bb127) - HttpAnimations
+- tokens de ativação com serial, surface e dono validados - (c202a6a) - HttpAnimations
+- timer de retry cancelável e ordenação estável de apps - (d98588c) - calico
+- enter com teclas, caps locked, pressed limpo, state validado - (bcf214e) - HttpAnimations
+- pan-zoom pelos callbacks dedicados do Listener - (b108a95) - calico
+- eventos de axis v5 com source, discrete e stop - (ca13a5c) - HttpAnimations
+- popup hit-test em subsurfaces e coords normalizadas - (0bbbf4d) - HttpAnimations
+- render e fullscreen filtrados pelo workspace ativo - (56224f4) - HttpAnimations
+- toplevel anunciado só no primeiro commit com conteúdo - (f4ca33b) - HttpAnimations
+- start retenta com backoff e stop exposto - (c88ca62) - HttpAnimations
+- diretório ausente vigiado via pai e rearmado - (2a93021) - HttpAnimations
+- terminal resolve xdg-terminal-exec e probes Wayland - (b82be8a) - HttpAnimations
+- primeiro dir vence, erros por arquivo e symlinks seguidos - (0f8b4f2) - HttpAnimations
+- entradas de apps carregam mesmo sem Wayland - (467313d) - HttpAnimations
+- foco Wayland enviado só pelo controller - (d52ec43) - HttpAnimations
+- cursor limpo no exit e shapes 30/31 como resize - (42e57ef) - HttpAnimations
+- evento childrenReordered após reorder de subsurface - (cd79f59) - HttpAnimations
+- HID 0x32 mapeia para KEY_102ND - (36645e1) - calico
+- página HID checada e teclas de consumidor mapeadas - (da10d60) - HttpAnimations
+- botões sincronizados no cancelamento do ponteiro - (db240df) - HttpAnimations
+- spawn com child watch, erro, cwd e XDG desktop - (57e24bd) - HttpAnimations
+- vínculos de subsurface pendentes resolvem no announce do pai - (1b801fb) - HttpAnimations
+- atalhos do shell reservados antes de enviar ao cliente - (1146bee) - HttpAnimations
+- contexto EGL perdido reseta caches e dispose apaga textura - (8c7b9fc) - HttpAnimations
+- free remove timers, queries e sinais pendentes - (3427f0a) - HttpAnimations
+- resend de saída coalescido em idle e só em mudança real - (b101cf9) - HttpAnimations
+- feedback dmabuf aborta quando memfd falha - (aadee6f) - HttpAnimations
+- oferta anterior destruída por dispositivo - (1a4fa11) - HttpAnimations
+- formatos shm não duplicados e keymap só se houver mapa - (7defccb) - HttpAnimations
+- modo de decoração rastreado e erro already_constructed - (6508b9d) - HttpAnimations
+- erro de role ao destruir e announced limpo - (2cf0509) - HttpAnimations
+- serials pendentes em conjunto e w/h validados - (145d8e8) - HttpAnimations
+- set_selection exige serial de foco e leitura limitada a 1MB - (12f1cab) - HttpAnimations
+- set_cursor valida serial e papel da superfície - (8fb8db2) - HttpAnimations
+- commit recursivo cobre toda a subárvore sincronizada - (52a7388) - HttpAnimations
+- offset de popup cru no nativo, clamp só no Dart - (5137265) - HttpAnimations
+- fullscreen e resizing enviados no configure do toplevel - (0da72db) - HttpAnimations
+- evento de tamanho inclui geo x/y e view alinha textura - (a2ed810) - HttpAnimations
+- grab de ponteiro rastreia botões até todos liberados - (7491d36) - HttpAnimations
+- done/presented após textura e frames destruídos no free - (7860276) - HttpAnimations
+- região de input NULL distinta de vazia até o Dart - (de55d90) - HttpAnimations
+- checa tipo dos objetos recebidos do cliente com instance_of - (c9da3a7) - HttpAnimations
+- mutex na textura dmabuf contra race com populate - (d6187df) - HttpAnimations
+- popup_done enviado a popups órfãos ao destruir o pai - (c3aa685) - HttpAnimations
+- rejeita subsuperfície de descendente em get_subsurface - (28cea37) - HttpAnimations
+- erro de protocolo ao colocar subsuperfície sobre si mesma - (b405faa) - HttpAnimations
+- alocações de textura com clamp e try_malloc - (36a3051) - HttpAnimations
+- valida formato e stride do buffer shm e ordena access - (69bb42e) - HttpAnimations
+- rastreia attach solicitado para unmap com buffer nulo - (eb3f29a) - HttpAnimations
+- libera buffer shm após a cópia no commit - (0c45f54) - HttpAnimations
+- pipelines sobem test/failures e cobertura como artefatos - (2f41cbb) - HttpAnimations
+- sessão exporta activation-env e lança apps em scope - (e929b81) - HttpAnimations
+- caminho de crash reentra via cage ou sai com erro - (f903933) - HttpAnimations
+- scripts de manutenção atualizam caches de desktop e ícones - (fa840ab) - HttpAnimations
+- dependências, arquitetura e gitignore do pacote deb - (66daaf3) - HttpAnimations
+- scripts de build usam caminho do próprio diretório - (7eca930) - HttpAnimations
+- workflow sem release duplicado e watch checa todos os runs - (8120334) - HttpAnimations
+- github-sync só em pushes na main e tags [skip ci] - (6ffaec5) - HttpAnimations
+- github-sync só em pushes na main e tags [skip ci] - (a813721) - Devin
+- seção de downloads com retry e link sempre visível - (fd89813) - HttpAnimations
+- landing desliga listener e remove UpdateService sem uso - (f111359) - HttpAnimations
+- busca só a página 1 para o último release - (35b7808) - HttpAnimations
+- remove parâmetros mortos e corrige slider degenerado - (82a9cab) - HttpAnimations
+- daemon de notificações loga falhas e fecha o bus - (0fa994b) - HttpAnimations
+- valida assinatura do Notify antes dos casts - (e87ebbe) - HttpAnimations
+- NotificationClosed emitido com motivo ao dispensar - (16f2c6b) - HttpAnimations
+- protocolo Notify honra replaces_id, transient e ações - (6ba4e98) - HttpAnimations
+- apps empacotados recebem store e backend reais - (29a2cd9) - HttpAnimations
+- estado do app de configurações criado uma única vez - (067a609) - HttpAnimations
+- alt+tab fecha ao soltar Alt e foco só no commit - (6679f77) - HttpAnimations
+- backend CLI exportado condicionalmente para não quebrar web - (a659a28) - HttpAnimations
+- launcher com atalho Ctrl+Space, recents e ranking persistido - (a1a79a2) - HttpAnimations
+- UI do shell se ajusta a telas pequenas - (080f994) - HttpAnimations
+- popups seguem estado do pai, fecham órfãos e respeitam tela - (fccef4e) - HttpAnimations
+- leitura do sistema em paralelo e gammastep via stderr - (be30b34) - HttpAnimations
+- toggles reconciliam estado após chamada ao backend - (c6b73d0) - HttpAnimations
+- toggles persistidos são reaplicados no backend ao iniciar - (7fc121d) - HttpAnimations
+- prefs gravam só quando mudam e notas debounce - (2f53bd2) - HttpAnimations
+- sliders aplicam no backend só ao soltar o controle - (b45cc67) - HttpAnimations
+- fixados do dock persistem após rebuild do shell - (1c29ab4) - HttpAnimations
+- dock e banner escondem com janela em tela cheia - (dfd0ec8) - HttpAnimations
+- overlays do shell são mutuamente exclusivos - (f5fada2) - HttpAnimations
+- dock deduplica janelas por app e mostra apps internos - (7e8cae5) - HttpAnimations
+- itens de menu Novo, títulos de janela e Sair funcionam de verdade - (ddc673e) - HttpAnimations
+- logo, bateria e relógio na barra de menus agora funcionam - (a6705de) - HttpAnimations
+- alphas de texto secundário e terciário sobem para contraste - (6099a7c) - HttpAnimations
+- setas não movem seleção quando o campo de busca tem foco - (bfbe844) - HttpAnimations
+- atualizações ignoram pré-lançamentos para usuários estáveis - (d1cd146) - HttpAnimations
+- UpdateService exige versão, fecha http.Client e separa rótulo do botão - (98a7c22) - HttpAnimations
+- bateria lida periodicamente a cada 60s - (7b25471) - HttpAnimations
+- cartão de bateria usa leitura real do sistema - (8617bc6) - HttpAnimations
+- menus de contexto com separadores e estilo de vidro compartilhado - (b48c52f) - HttpAnimations
+- barra de menus com fundo translúcido desfocado - (4122662) - HttpAnimations
+- título elidido e zoom só com botão primário - (e9b15a6) - HttpAnimations
+- erro de lançamento exibido como notificação localizada - (750b3d7) - HttpAnimations
+- promove foco para próxima janela ao fechar ou minimizar - (b95a2af) - HttpAnimations
+- persistência de locale mantém country e script - (9cd0ed9) - HttpAnimations
+- calculadora avalia operações encadeadas e normaliza display - (fad5631) - HttpAnimations
+- guarda contra ciclo em pais transitórios - (ca4ed20) - HttpAnimations
+- posição do menu limitada à borda da tela - (d401df7) - HttpAnimations
+- títulos, meta SEO e manifest dos index.html web - (65c1343) - HttpAnimations
+- textos separados por painel de rede e sem 'demo desktop' - (96caec4) - HttpAnimations
+- traduções erradas em ga e zh - (2f092e2) - HttpAnimations
+- sombra do OasisGlass renderiza fora do clip - (4e01c0c) - HttpAnimations
+- papel de parede valida caminho e decodifica no tamanho da tela - (97a483f) - HttpAnimations
+- troca de preset de papel de parede sempre notifica - (ab18c65) - HttpAnimations
+- 未命名窗口标题回退走 ARB 本地化 - (5d86cb3) - HttpAnimations
+- OLED 主题窗口与侧栏背景改为纯黑 - (55c5f62) - HttpAnimations
+- 修复合成器对象生命周期导致的客户端协议错误 - (6749584) - HttpAnimations
+#### Documentation
+- corrige matriz de protocolos wayland desatualizada - (82aba6e) - HttpAnimations
+#### Tests
+- 补齐环境相关代码路径的行覆盖率 - (ea050f5) - calico
+- integração, build nativo e packaging no CI - (a68a45a) - HttpAnimations
+- goldens por locale e superfícies ausentes - (f6acbe9) - HttpAnimations
+- contrato do canal Dart/nativo e configureAcked consumido - (02ed13b) - HttpAnimations
+#### Refactoring
+- configures de toplevel coalescidos em idle - (22f2bc7) - HttpAnimations
+- notifyListeners agregado por turno de eventos - (167243e) - HttpAnimations
+- constantes compartilhadas e syncApps fora do build - (67191d9) - HttpAnimations
+#### Miscellaneous Chores
+- corrigir lint no teste de instalação de atualização - (b25d70d) - Devin
+- unificar versão 0.5.0 em todos os pubspecs - (aba9410) - HttpAnimations
+- remove codegen de tablet-unstable-v2 sem implementação - (05e92b6) - HttpAnimations
+- pub get único na raiz do workspace e dev.sh - (bd23c36) - HttpAnimations
+- remove empacotamento flatpak - (7ab04d2) - HttpAnimations
+- remove ícones e chave ARB morta - (0332b5b) - HttpAnimations
+
+- - -
+
 ## v0.5.0 - 2026-10-29
 #### Features
 - freedesktop 通知守护进程与通知中心 - (7a3995c) - HttpAnimations
