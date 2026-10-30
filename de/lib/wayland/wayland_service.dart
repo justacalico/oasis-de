@@ -86,6 +86,17 @@ class WaylandService extends ChangeNotifier {
   final WaylandHost _host;
   final Map<int, WaylandSurface> surfaces = {};
   final Map<int, List<int>> _pendingSubs = {};
+  bool _notifyQueued = false;
+  bool _disposed = false;
+
+  void _queueNotify() {
+    if (_notifyQueued) return;
+    _notifyQueued = true;
+    scheduleMicrotask(() {
+      _notifyQueued = false;
+      if (!_disposed) notifyListeners();
+    });
+  }
   final _requests = StreamController<WaylandRequest>.broadcast();
   StreamSubscription<Map<String, Object?>>? _sub;
   WaylandCursor? cursor;
@@ -308,7 +319,7 @@ class WaylandService extends ChangeNotifier {
           ),
         );
     }
-    notifyListeners();
+    _queueNotify();
   }
 
   Future<void> launch(List<String> argv) =>
@@ -353,6 +364,7 @@ class WaylandService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _sub?.cancel();
     _requests.close();
     super.dispose();
