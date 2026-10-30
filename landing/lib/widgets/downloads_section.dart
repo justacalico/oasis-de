@@ -18,12 +18,12 @@ class DownloadsSection extends StatefulWidget {
 }
 
 class _DownloadsSectionState extends State<DownloadsSection> {
-  late Future<List<ReleaseInfo>> _future;
+  late Future<ReleaseInfo?> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = widget.client.fetch();
+    _future = widget.client.latest();
   }
 
   @override
@@ -40,7 +40,7 @@ class _DownloadsSectionState extends State<DownloadsSection> {
         Text(l10n.landingDownloadsBody,
             style: text.bodyMedium?.copyWith(color: p.textSecondary)),
         const SizedBox(height: 18),
-        FutureBuilder<List<ReleaseInfo>>(
+        FutureBuilder<ReleaseInfo?>(
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState != ConnectionState.done) {
@@ -61,11 +61,10 @@ class _DownloadsSectionState extends State<DownloadsSection> {
               return Text(l10n.landingReleasesFailed,
                   style: text.bodySmall);
             }
-            final releases = snap.data ?? const <ReleaseInfo>[];
-            if (releases.isEmpty) {
+            final latest = snap.data;
+            if (latest == null) {
               return Text(l10n.landingNoReleases, style: text.bodySmall);
             }
-            final latest = releases.first;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
