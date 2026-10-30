@@ -55,21 +55,7 @@ class ShellWindowData {
       surface != null && surface!.title.isNotEmpty ? surface!.title : app.name;
 }
 
-class ShellMenuItem {
-  const ShellMenuItem({
-    required this.label,
-    this.enabled = true,
-    this.separatorAfter = false,
-    this.checked = false,
-    this.action,
-  });
-
-  final String label;
-  final bool enabled;
-  final bool separatorAfter;
-  final bool checked;
-  final void Function(BuildContext context)? action;
-}
+typedef ShellMenuItem = OasisMenuItem;
 
 typedef ShellMenuAction = void Function(BuildContext context);
 

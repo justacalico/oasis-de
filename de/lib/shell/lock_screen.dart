@@ -77,32 +77,13 @@ class _ShellLockScreenState extends State<ShellLockScreen> {
                 const SizedBox(height: 24),
                 SizedBox(
                   width: 260,
-                  child: TextField(
+                  child: OasisTextField(
                     controller: _password,
                     autofocus: true,
                     obscureText: true,
+                    filled: true,
+                    hintText: l10n.lockHint,
                     onSubmitted: (_) => _submit(),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: true,
-                      fillColor: p.cardBackground.withValues(alpha: 0.6),
-                      hintText: l10n.lockHint,
-                      hintStyle: TextStyle(color: p.textTertiary),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(style.cardRadius),
-                        borderSide: BorderSide(color: p.glassBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(style.cardRadius),
-                        borderSide: BorderSide(color: p.glassBorder),
-                      ),
-                    ),
                     style: TextStyle(color: p.textPrimary),
                   ),
                 ),

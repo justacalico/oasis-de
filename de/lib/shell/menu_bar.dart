@@ -222,7 +222,7 @@ class _StatusIcon extends StatelessWidget {
       onTap: onTap,
       child: tip == null
           ? iconWidget
-          : Tooltip(message: tip, child: iconWidget),
+          : OasisTooltip(message: tip, child: iconWidget),
     );
   }
 }

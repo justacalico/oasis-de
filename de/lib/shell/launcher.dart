@@ -97,7 +97,7 @@ class _ShellLauncherState extends State<ShellLauncher> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextField(
+                    OasisTextField(
                       controller: _field,
                       autofocus: true,
                       onChanged: (_) => setState(() => _selected = 0),
@@ -111,19 +111,14 @@ class _ShellLauncherState extends State<ShellLauncher> {
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w400,
                       ),
-                      cursorColor: p.accent,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        border: InputBorder.none,
-                        hintText: l10n.launcherHint,
-                        hintStyle: Theme.of(
-                          context,
-                        ).textTheme.titleLarge?.copyWith(color: p.textTertiary),
-                        icon: Icon(
-                          Icons.search,
-                          size: 22,
-                          color: p.textTertiary,
-                        ),
+                      hintText: l10n.launcherHint,
+                      hintStyle: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(color: p.textTertiary),
+                      icon: Icon(
+                        Icons.search,
+                        size: 22,
+                        color: p.textTertiary,
                       ),
                     ),
                     if (results.isEmpty)

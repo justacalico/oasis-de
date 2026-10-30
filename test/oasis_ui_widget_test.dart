@@ -530,4 +530,229 @@ void main() {
     OasisHost.of(element).setLocale.call(const Locale('ru'));
     expect(seen, [const Locale('ru')]);
   });
+
+  testWidgets('OasisMenu opens, hovers, selects and closes', (tester) async {
+    var selected = '';
+    await pumpOasis(
+      tester,
+      Builder(
+        builder: (context) => Center(
+          child: GestureDetector(
+            onTap: () => showOasisMenu(context, const Offset(100, 100), [
+              OasisMenuItem(label: 'One', action: (_) => selected = 'one'),
+              OasisMenuItem(
+                label: 'Two',
+                checked: true,
+                separatorAfter: true,
+                action: (_) => selected = 'two',
+              ),
+              const OasisMenuItem(label: 'Bare'),
+              const OasisMenuItem(label: 'Off', enabled: false),
+            ]),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.text('Two'), findsOneWidget);
+    final mouse = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(
+      mouse.hover(tester.getCenter(find.text('Two'))),
+    );
+    await tester.pump();
+    await tester.sendEventToBinding(
+      mouse.hover(tester.getCenter(find.text('Off'))),
+    );
+    await tester.pump();
+    await tester.sendEventToBinding(mouse.hover(const Offset(4, 4)));
+    await tester.pump();
+    await tester.tap(find.text('Two'));
+    await tester.pumpAndSettle();
+    expect(selected, 'two');
+    expect(find.text('Two'), findsNothing);
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bare'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bare'), findsNothing);
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(
+      const Offset(10, 500),
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Two'), findsNothing);
+  });
+
+  testWidgets('OasisPopupMenuButton opens and selects', (tester) async {
+    int? got;
+    await pumpOasis(
+      tester,
+      Center(
+        child: OasisPopupMenuButton<int>(
+          icon: const Icon(Icons.more_vert),
+          tooltip: 'more',
+          selectedValue: 2,
+          items: const [
+            OasisPopupItem(value: 1, label: 'A'),
+            OasisPopupItem(value: 2, label: 'B'),
+          ],
+          onSelected: (v) => got = v,
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    expect(find.text('A'), findsOneWidget);
+    await tester.tap(find.text('A'));
+    await tester.pumpAndSettle();
+    expect(got, 1);
+  });
+
+  testWidgets('OasisDialog opens and closes both ways', (tester) async {
+    await pumpOasis(
+      tester,
+      Builder(
+        builder: (context) => Center(
+          child: GestureDetector(
+            onTap: () => showOasisDialog(
+              context,
+              (context, close) =>
+                  OasisButton(label: 'ok', onPressed: close),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.text('ok'), findsOneWidget);
+    await tester.tap(find.text('ok'));
+    await tester.pumpAndSettle();
+    expect(find.text('ok'), findsNothing);
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.text('ok'), findsNothing);
+  });
+
+  testWidgets('OasisDialog without overlay no-ops', (tester) async {
+    await tester.pumpWidget(
+      Builder(
+        builder: (context) {
+          showOasisDialog(
+            context,
+            (context, close) => const Text('x'),
+          );
+          return const SizedBox();
+        },
+      ),
+    );
+  });
+
+  testWidgets('OasisTextField variants and callbacks', (tester) async {
+    final c = TextEditingController();
+    var changed = '';
+    var submitted = '';
+    await pumpOasis(
+      tester,
+      Material(
+        child: Column(
+        children: [
+          OasisTextField(
+            controller: c,
+            hintText: 'plain',
+            icon: const Icon(Icons.search),
+            onChanged: (v) => changed = v,
+            onSubmitted: (v) => submitted = v,
+          ),
+          const OasisTextField(
+            filled: true,
+            hintText: 'filled',
+            obscureText: true,
+            autofocus: true,
+          ),
+          const Expanded(child: OasisTextField(expands: true)),
+        ],
+      ),
+      ),
+    );
+    await tester.enterText(find.byType(TextField).first, 'hi');
+    expect(changed, 'hi');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    expect(submitted, 'hi');
+    expect(find.byType(TextField), findsNWidgets(3));
+  });
+
+  testWidgets('OasisCheckbox and OasisRadio toggle', (tester) async {
+    var cb = false;
+    var radio = 1;
+    await pumpOasis(
+      tester,
+      StatefulBuilder(
+        builder: (context, setState) => Column(
+          children: [
+            OasisCheckbox(
+              value: cb,
+              onChanged: (v) => setState(() => cb = v),
+            ),
+            const OasisCheckbox(value: true),
+            const OasisCheckbox(value: false),
+            OasisRadio<int>(
+              value: 2,
+              groupValue: radio,
+              onChanged: (v) => setState(() => radio = v),
+            ),
+            const OasisRadio<int>(value: 1, groupValue: 1),
+            const OasisRadio<int>(value: 3, groupValue: 1),
+          ],
+        ),
+      ),
+    );
+    expect(cb, isFalse);
+    await tester.tap(find.byType(OasisCheckbox).first);
+    await tester.pump();
+    expect(cb, isTrue);
+    expect(radio, 1);
+    await tester.tap(find.byType(OasisRadio<int>).first);
+    await tester.pump();
+    expect(radio, 2);
+  });
+
+  testWidgets('OasisTooltip shows styled tip or bare child', (
+    tester,
+  ) async {
+    await pumpOasis(
+      tester,
+      Column(
+        children: const [
+          OasisTooltip(message: 'tip', child: Text('a')),
+          OasisTooltip(message: null, child: Text('b')),
+          OasisTooltip(
+            message: 'tap me',
+            preferBelow: false,
+            triggerMode: TooltipTriggerMode.tap,
+            child: Text('c'),
+          ),
+        ],
+      ),
+    );
+    final mouse = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(
+      mouse.hover(tester.getCenter(find.text('a'))),
+    );
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(find.text('tip'), findsOneWidget);
+    await tester.tap(find.text('c'));
+    await tester.pumpAndSettle();
+    expect(find.text('tap me'), findsOneWidget);
+  });
 }
