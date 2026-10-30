@@ -40,8 +40,13 @@ static gboolean oasis_texture_copy_pixels(FlPixelBufferTexture* texture,
   g_mutex_lock(&self->mutex);
   size_t need = static_cast<size_t>(self->stage_w) * self->stage_h * 4;
   if (need > self->frame_cap) {
+    uint8_t* frame = static_cast<uint8_t*>(g_try_malloc(need));
+    if (frame == nullptr) {
+      g_mutex_unlock(&self->mutex);
+      return FALSE;
+    }
     g_free(self->frame);
-    self->frame = static_cast<uint8_t*>(g_malloc(need));
+    self->frame = frame;
     self->frame_cap = need;
   }
   memcpy(self->frame, self->stage, need);
@@ -81,8 +86,13 @@ void oasis_texture_push(OasisTexture* self,
                                uint32_t h) {
   g_mutex_lock(&self->mutex);
   if (self->stage_w != w || self->stage_h != h) {
+    uint8_t* stage = static_cast<uint8_t*>(g_try_malloc((size_t)w * h * 4));
+    if (stage == nullptr) {
+      g_mutex_unlock(&self->mutex);
+      return;
+    }
     g_free(self->stage);
-    self->stage = static_cast<uint8_t*>(g_malloc((size_t)w * h * 4));
+    self->stage = stage;
     self->stage_w = w;
     self->stage_h = h;
   }
