@@ -774,6 +774,12 @@ abstract class OasisLocalizations {
   /// **'No notifications'**
   String get notifEmpty;
 
+  /// No description provided for @notifDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get notifDismiss;
+
   /// No description provided for @sessionConfirmLogOut.
   ///
   /// In en, this message translates to:

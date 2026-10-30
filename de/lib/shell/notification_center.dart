@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
+import '../services/notifications.dart';
 import 'control_center.dart';
 import 'shell_controller.dart';
 
@@ -9,9 +10,24 @@ class NotificationCenterPanel extends StatelessWidget {
 
   final ShellController controller;
 
+  Widget _appIcon(ShellController c, OasisNotification n) {
+    for (final a in c.apps) {
+      if (a.name == n.appName) {
+        return OasisAppIcon(
+          icon: a.icon,
+          colors: a.iconColors,
+          iconPath: a.iconPath,
+          size: 20,
+        );
+      }
+    }
+    return const Icon(Icons.notifications, size: 18);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = OasisLocalizations.of(context);
+    final p = OasisStyle.of(context).palette;
     final c = controller;
     return Align(
       alignment: Alignment.topRight,
@@ -72,6 +88,13 @@ class NotificationCenterPanel extends StatelessWidget {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 1,
+                                        right: 8,
+                                      ),
+                                      child: _appIcon(c, n),
+                                    ),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -81,9 +104,14 @@ class NotificationCenterPanel extends StatelessWidget {
                                             n.summary,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
+                                              color: n.urgency >= 2
+                                                  ? const Color(0xFFFF453A)
+                                                  : n.urgency == 0
+                                                  ? p.textSecondary
+                                                  : null,
                                             ),
                                           ),
                                           if (n.body.isNotEmpty)
@@ -96,7 +124,7 @@ class NotificationCenterPanel extends StatelessWidget {
                                               ),
                                             ),
                                           Text(
-                                            n.appName,
+                                            '${n.appName} · ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(n.timestamp))}',
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
@@ -243,7 +271,7 @@ class NotificationBanner extends StatelessWidget {
                       onTap: () => controller.dismissNotification(n.id),
                       child: Semantics(
                         button: true,
-                        label: OasisLocalizations.of(context).notifClearAll,
+                        label: OasisLocalizations.of(context).notifDismiss,
                         child: Padding(
                           padding: const EdgeInsets.all(6),
                           child: Icon(

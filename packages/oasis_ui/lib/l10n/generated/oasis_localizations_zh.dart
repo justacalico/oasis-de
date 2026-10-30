@@ -355,6 +355,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get notifEmpty => '没有通知';
 
   @override
+  String get notifDismiss => '忽略';
+
+  @override
   String get sessionConfirmLogOut => '注销当前会话？';
 
   @override

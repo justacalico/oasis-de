@@ -147,6 +147,7 @@
   "notifCenter": "Fógraí",
   "notifClearAll": "Glan Gach",
   "notifEmpty": "Gan fhógraí",
+  "notifDismiss": "Rua",
   "sessionConfirmLogOut": "Logáil amach as an seisiún?",
   "sessionConfirmSuspend": "Cuir an córas ar fionraí?",
   "sessionConfirmRestart": "Atosaigh an córas?",
