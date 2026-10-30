@@ -142,15 +142,42 @@ class ShellController extends ChangeNotifier {
 
   void pushNotification(OasisNotification n) {
     notifications.insert(0, n);
+    if (notifications.length > 50) notifications.length = 50;
     if (!focusOn) {
       bannerNotification = n;
-      _bannerTimer?.cancel();
-      _bannerTimer = Timer(const Duration(seconds: 5), () {
-        if (_disposed) return;
-        bannerNotification = null;
-        notifyListeners();
-      });
+      _scheduleBannerDismiss();
     }
+    notifyListeners();
+  }
+
+  Duration? get _bannerTimeout {
+    final n = bannerNotification;
+    if (n == null) return null;
+    if (n.expireTimeout == 0 || n.urgency >= 2) return null;
+    if (n.expireTimeout > 0) {
+      return Duration(milliseconds: n.expireTimeout);
+    }
+    return const Duration(seconds: 5);
+  }
+
+  void _scheduleBannerDismiss() {
+    _bannerTimer?.cancel();
+    final timeout = _bannerTimeout;
+    if (timeout == null) return;
+    _bannerTimer = Timer(timeout, () {
+      if (_disposed) return;
+      bannerNotification = null;
+      notifyListeners();
+    });
+  }
+
+  void pauseBannerDismiss() => _bannerTimer?.cancel();
+
+  void resumeBannerDismiss() => _scheduleBannerDismiss();
+
+  void dismissBanner() {
+    bannerNotification = null;
+    _bannerTimer?.cancel();
     notifyListeners();
   }
 

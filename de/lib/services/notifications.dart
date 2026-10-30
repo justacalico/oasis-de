@@ -9,6 +9,8 @@ class OasisNotification {
     required this.summary,
     required this.body,
     required this.timestamp,
+    this.urgency = 1,
+    this.expireTimeout = -1,
   });
 
   final int id;
@@ -16,6 +18,8 @@ class OasisNotification {
   final String summary;
   final String body;
   final DateTime timestamp;
+  final int urgency;
+  final int expireTimeout;
 }
 
 class OasisNotificationServer extends DBusObject {
@@ -47,6 +51,9 @@ class OasisNotificationServer extends DBusObject {
       case 'Notify':
         final id = _nextId++;
         final values = methodCall.values;
+        final hints = values[6] as DBusDict;
+        final urgency =
+            hints.children[const DBusString('urgency')]?.toNative();
         onNotify(
           OasisNotification(
             id: id,
@@ -54,6 +61,8 @@ class OasisNotificationServer extends DBusObject {
             summary: (values[3] as DBusString).value,
             body: (values[4] as DBusString).value,
             timestamp: DateTime.now(),
+            urgency: urgency is int ? urgency : 1,
+            expireTimeout: (values[7] as DBusInt32).value,
           ),
         );
         return DBusMethodSuccessResponse([DBusUint32(id)]);

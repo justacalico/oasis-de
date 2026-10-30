@@ -1,6 +1,7 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oasis_de/services/notifications.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_de/shell/shell_menus.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -524,6 +525,42 @@ void main() {
     expect(backend.calls, ['session', 'session', 'session']);
     expect(await c.tryUnlock('pw'), isTrue);
     expect(c.locked, isFalse);
+  });
+
+  test('notifications cap at 50 and banner can be dismissed', () {
+    final c = ShellController(
+      apps: const [],
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    for (var i = 0; i < 55; i++) {
+      c.pushNotification(
+        OasisNotification(
+          id: i,
+          appName: 'a',
+          summary: 's',
+          body: '',
+          timestamp: DateTime(2024),
+        ),
+      );
+    }
+    expect(c.notifications.length, 50);
+    expect(c.bannerNotification!.id, 54);
+    c.dismissBanner();
+    expect(c.bannerNotification, isNull);
+    c.pushNotification(
+      OasisNotification(
+        id: 99,
+        appName: 'a',
+        summary: 's',
+        body: '',
+        timestamp: DateTime(2024),
+        urgency: 2,
+      ),
+    );
+    c.pauseBannerDismiss();
+    c.resumeBannerDismiss();
+    expect(c.bannerNotification!.id, 99);
   });
 
   test('tryUnlock rejects when backend denies', () async {
