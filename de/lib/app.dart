@@ -237,6 +237,8 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 setLocale: _setLocale,
                 locale: _locale,
                 openUrl: widget.openUrl,
+                store: widget.store,
+                backend: widget.backend,
               );
               final apps = [...builtins, ..._externalApps];
               final appsById = {for (final a in apps) a.id: a};
