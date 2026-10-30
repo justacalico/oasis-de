@@ -174,6 +174,7 @@ class WaylandSurfaceView extends StatefulWidget {
     required this.focused,
     required this.maximized,
     this.fullscreen = false,
+    this.resizing = false,
   });
 
   final WaylandSurface surface;
@@ -181,6 +182,7 @@ class WaylandSurfaceView extends StatefulWidget {
   final bool focused;
   final bool maximized;
   final bool fullscreen;
+  final bool resizing;
 
   @override
   State<WaylandSurfaceView> createState() => _WaylandSurfaceViewState();
@@ -189,7 +191,7 @@ class WaylandSurfaceView extends StatefulWidget {
 class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   final _keys = FocusNode();
   var _buttons = 0;
-  Size? _reported;
+  ({Size size, bool max, bool fs, bool resizing})? _reported;
 
   WaylandSurface get surface => widget.surface;
   WaylandService get service => widget.service;
@@ -284,14 +286,24 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
           final box = constraints.biggest;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final last = _reported;
-            if (last == null || last != box) {
-              _reported = box;
+            if (last == null ||
+                last.size != box ||
+                last.max != widget.maximized ||
+                last.fs != widget.fullscreen ||
+                last.resizing != widget.resizing) {
+              _reported = (
+                size: box,
+                max: widget.maximized,
+                fs: widget.fullscreen,
+                resizing: widget.resizing,
+              );
               service.configure(
                 surface.id,
                 box.width.round(),
                 box.height.round(),
                 maximized: widget.maximized,
                 fullscreen: widget.fullscreen,
+                resizing: widget.resizing,
               );
             }
           });

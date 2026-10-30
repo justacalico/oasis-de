@@ -474,6 +474,7 @@ class _DesktopShellState extends State<DesktopShell> {
         focused: controller.focusedId == w.id,
         maximized: w.zoomed,
         fullscreen: w.fullscreen,
+        resizing: controller.surfaceResize?.id == w.id,
       );
     } else if (w.launching) {
       body = Center(

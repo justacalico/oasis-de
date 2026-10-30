@@ -297,6 +297,7 @@ class WaylandService extends ChangeNotifier {
     int height, {
     bool maximized = false,
     bool fullscreen = false,
+    bool resizing = false,
   }) => available
       ? _host.configure(
           id,
@@ -304,6 +305,7 @@ class WaylandService extends ChangeNotifier {
           height,
           maximized: maximized,
           fullscreen: fullscreen,
+          resizing: resizing,
         )
       : Future.value();
 

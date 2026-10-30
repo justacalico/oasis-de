@@ -40,6 +40,7 @@ class FakeWaylandHost extends WaylandHost {
     int height, {
     bool maximized = false,
     bool fullscreen = false,
+    bool resizing = false,
   }) async {
     calls.add('configure:$id:${width}x$height:$maximized:$fullscreen');
   }

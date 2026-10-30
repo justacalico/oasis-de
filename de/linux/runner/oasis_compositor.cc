@@ -140,6 +140,8 @@ struct Surface {
   int cfg_w = 0;
   int cfg_h = 0;
   bool cfg_max = false;
+  bool cfg_fs = false;
+  bool cfg_resizing = false;
   uint32_t pending_serial = 0;
   uint32_t acked_serial = 0;
   uint32_t grab_serial = 0;
@@ -1984,11 +1986,15 @@ static void toplevel_configure(OasisCompositor* c,
                                int w,
                                int h,
                                bool maximized,
-                               bool active) {
+                               bool active,
+                               bool fullscreen,
+                               bool resizing) {
   if (s->role_res == nullptr || s->xdg_surface == nullptr) return;
   s->cfg_w = w;
   s->cfg_h = h;
   s->cfg_max = maximized;
+  s->cfg_fs = fullscreen;
+  s->cfg_resizing = resizing;
   wl_array states;
   wl_array_init(&states);
   if (active) {
@@ -1998,6 +2004,14 @@ static void toplevel_configure(OasisCompositor* c,
   if (maximized) {
     *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
         XDG_TOPLEVEL_STATE_MAXIMIZED;
+  }
+  if (fullscreen) {
+    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
+        XDG_TOPLEVEL_STATE_FULLSCREEN;
+  }
+  if (resizing) {
+    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
+        XDG_TOPLEVEL_STATE_RESIZING;
   }
   xdg_toplevel_send_configure(s->role_res, w, h, &states);
   wl_array_release(&states);
@@ -3761,7 +3775,9 @@ static void method_call_cb(FlMethodChannel* channel,
       toplevel_configure(c, s, (int)arg_int(args, "w"),
                          (int)arg_int(args, "h"),
                          arg_int(args, "maximized") != 0,
-                         s == c->activated);
+                         s == c->activated,
+                         arg_int(args, "fullscreen") != 0,
+                         arg_int(args, "resizing") != 0);
     }
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (g_strcmp0(name, "close") == 0) {
@@ -3788,9 +3804,11 @@ static void method_call_cb(FlMethodChannel* channel,
             c->activated->role == SURFACE_TOPLEVEL) {
           toplevel_configure(c, c->activated, c->activated->cfg_w,
                              c->activated->cfg_h, c->activated->cfg_max,
-                             false);
+                             false, c->activated->cfg_fs,
+                             c->activated->cfg_resizing);
         }
-        toplevel_configure(c, s, s->cfg_w, s->cfg_h, s->cfg_max, true);
+        toplevel_configure(c, s, s->cfg_w, s->cfg_h, s->cfg_max, true,
+                           s->cfg_fs, s->cfg_resizing);
         c->activated = s;
       }
     } else {
@@ -3799,7 +3817,8 @@ static void method_call_cb(FlMethodChannel* channel,
           c->activated->role == SURFACE_TOPLEVEL) {
         toplevel_configure(c, c->activated, c->activated->cfg_w,
                            c->activated->cfg_h, c->activated->cfg_max,
-                           false);
+                           false, c->activated->cfg_fs,
+                           c->activated->cfg_resizing);
         c->activated = nullptr;
       }
     }
