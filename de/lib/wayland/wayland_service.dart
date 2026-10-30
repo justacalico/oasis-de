@@ -28,6 +28,7 @@ class WaylandSurface {
   Offset offset;
   Size size;
   Size bufferSize = Size.zero;
+  Offset geoOffset = Offset.zero;
   double scale = 1;
   int transform = 0;
   List<Rect>? inputRegion;
@@ -147,6 +148,10 @@ class WaylandService extends ChangeNotifier {
           s.bufferSize = Size(
             (e['bw'] as num?)?.toDouble() ?? s.size.width,
             (e['bh'] as num?)?.toDouble() ?? s.size.height,
+          );
+          s.geoOffset = Offset(
+            (e['gx'] as num?)?.toDouble() ?? 0,
+            (e['gy'] as num?)?.toDouble() ?? 0,
           );
           final scale = (e['scale'] as num?)?.toDouble();
           if (scale != null && scale > 0) s.scale = scale;

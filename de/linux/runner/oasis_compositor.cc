@@ -147,6 +147,8 @@ struct Surface {
   int rep_h = 0;
   int rep_bw = 0;
   int rep_bh = 0;
+  int rep_gx = 0;
+  int rep_gy = 0;
   int min_w = 0;
   int min_h = 0;
   int max_w = 0;
@@ -401,17 +403,22 @@ static void emit_size(Surface* s) {
   int w = s->geo_w > 0 ? s->geo_w : s->vp_w > 0 ? s->vp_w : bw;
   int h = s->geo_h > 0 ? s->geo_h : s->vp_h > 0 ? s->vp_h : bh;
   if (s->rep_w == w && s->rep_h == h && s->rep_bw == s->iw &&
-      s->rep_bh == s->ih) {
+      s->rep_bh == s->ih && s->rep_gx == s->geo_x &&
+      s->rep_gy == s->geo_y) {
     return;
   }
   s->rep_w = w;
   s->rep_h = h;
   s->rep_bw = s->iw;
   s->rep_bh = s->ih;
+  s->rep_gx = s->geo_x;
+  s->rep_gy = s->geo_y;
   FlValue* m = new_event("size");
   ev_id(m, s->public_id);
   fl_value_set_string_take(m, "w", fl_value_new_int(w));
   fl_value_set_string_take(m, "h", fl_value_new_int(h));
+  fl_value_set_string_take(m, "gx", fl_value_new_int(s->geo_x));
+  fl_value_set_string_take(m, "gy", fl_value_new_int(s->geo_y));
   fl_value_set_string_take(m, "bw", fl_value_new_int(s->iw));
   fl_value_set_string_take(m, "bh", fl_value_new_int(s->ih));
   fl_value_set_string_take(m, "scale", fl_value_new_int(scale));
