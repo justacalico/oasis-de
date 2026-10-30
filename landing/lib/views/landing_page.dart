@@ -216,6 +216,8 @@ class _NavBar extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium),
         const Spacer(),
         if (appearance != null) _ThemeMenu(appearance: appearance),
+        const SizedBox(width: 4),
+        const _LocaleMenu(),
         const SizedBox(width: 8),
         OasisButton(
           label: l10n.landingSource,
@@ -224,6 +226,47 @@ class _NavBar extends StatelessWidget {
           onPressed:
               onOpenUrl == null ? null : () => onOpenUrl!(repoUrl),
         ),
+      ],
+    );
+  }
+}
+
+class _LocaleMenu extends StatelessWidget {
+  const _LocaleMenu();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
+    final p = OasisStyle.of(context).palette;
+    final host = OasisHost.maybeOf(context);
+    if (host == null) return const SizedBox.shrink();
+    final entries = <(Locale?, String)>[
+      (null, l10n.languageSystem),
+      (const Locale('en'), l10n.languageEn),
+      (const Locale('zh'), l10n.languageZh),
+      (const Locale('ru'), l10n.languageRu),
+      (const Locale('ga'), l10n.languageGa),
+    ];
+    return PopupMenuButton<Locale?>(
+      tooltip: l10n.settingsLanguage,
+      icon: Icon(Icons.language, size: 18, color: p.textSecondary),
+      onSelected: host.setLocale,
+      itemBuilder: (context) => [
+        for (final e in entries)
+          PopupMenuItem<Locale?>(
+            value: e.$1,
+            child: Row(
+              children: [
+                Icon(
+                  host.locale == e.$1 ? Icons.check : Icons.language,
+                  size: 16,
+                  color: p.textSecondary,
+                ),
+                const SizedBox(width: 10),
+                Text(e.$2),
+              ],
+            ),
+          ),
       ],
     );
   }
