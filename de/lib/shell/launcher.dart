@@ -30,8 +30,7 @@ class _ShellLauncherState extends State<ShellLauncher> {
     super.dispose();
   }
 
-  List<OasisApp> get _results =>
-      widget.controller.filterApps(_field.text);
+  List<OasisApp> get _results => widget.controller.filterApps(_field.text);
 
   void _open(OasisApp app) {
     widget.controller.openApp(app);
@@ -43,14 +42,18 @@ class _ShellLauncherState extends State<ShellLauncher> {
     if (event is! KeyDownEvent) return false;
     final results = _results;
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      setState(() => _selected =
-          results.isEmpty ? 0 : (_selected + 1) % results.length);
+      setState(
+        () =>
+            _selected = results.isEmpty ? 0 : (_selected + 1) % results.length,
+      );
       return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      setState(() => _selected = results.isEmpty
-          ? 0
-          : (_selected - 1 + results.length) % results.length);
+      setState(
+        () => _selected = results.isEmpty
+            ? 0
+            : (_selected - 1 + results.length) % results.length,
+      );
       return true;
     }
     if (event.logicalKey == LogicalKeyboardKey.enter) {
@@ -83,59 +86,59 @@ class _ShellLauncherState extends State<ShellLauncher> {
           child: GestureDetector(
             onTap: () {},
             child: SizedBox(
-              width: (MediaQuery.sizeOf(context).width - 32)
-                  .clamp(0.0, 560.0),
+              width: (MediaQuery.sizeOf(context).width - 32).clamp(0.0, 560.0),
               child: OasisGlass(
                 borderRadius: 18,
                 blur: 40,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: _field,
                       autofocus: true,
-                      onChanged: (_) =>
-                          setState(() => _selected = 0),
+                      onChanged: (_) => setState(() => _selected = 0),
                       onSubmitted: (_) {
                         if (results.isNotEmpty) {
-                          _open(results[
-                              _selected.clamp(0, results.length - 1)]);
+                          _open(
+                            results[_selected.clamp(0, results.length - 1)],
+                          );
                         }
                       },
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w400),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w400,
+                      ),
                       cursorColor: p.accent,
                       decoration: InputDecoration(
                         isDense: true,
                         border: InputBorder.none,
                         hintText: l10n.launcherHint,
-                        hintStyle: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(color: p.textTertiary),
-                        icon: Icon(Icons.search,
-                            size: 22, color: p.textTertiary),
+                        hintStyle: Theme.of(
+                          context,
+                        ).textTheme.titleLarge?.copyWith(color: p.textTertiary),
+                        icon: Icon(
+                          Icons.search,
+                          size: 22,
+                          color: p.textTertiary,
+                        ),
                       ),
                     ),
                     if (results.isEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(
-                            top: 10, bottom: 4),
-                        child: Text(l10n.launcherNoResults,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall),
+                        padding: const EdgeInsets.only(top: 10, bottom: 4),
+                        child: Text(
+                          l10n.launcherNoResults,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       )
                     else
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: ConstrainedBox(
-                          constraints:
-                              const BoxConstraints(maxHeight: 300),
+                          constraints: const BoxConstraints(maxHeight: 300),
                           child: ListView.builder(
                             shrinkWrap: true,
                             itemCount: results.length,
@@ -144,31 +147,36 @@ class _ShellLauncherState extends State<ShellLauncher> {
                               final selected = i == _selected;
                               return GestureDetector(
                                 onTap: () => _open(app),
-                                child: Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: selected
-                                        ? p.selection
-                                        : const Color(0x00000000),
-                                    borderRadius:
-                                        BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      OasisAppIcon(
-                                        icon: app.icon,
-                                        colors: app.iconColors,
-                                        size: 30,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(app.name,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium),
-                                    ],
+                                child: Semantics(
+                                  button: true,
+                                  label: app.name,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: selected
+                                          ? p.selection
+                                          : const Color(0x00000000),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        OasisAppIcon(
+                                          icon: app.icon,
+                                          colors: app.iconColors,
+                                          size: 30,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          app.name,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );

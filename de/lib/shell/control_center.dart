@@ -244,47 +244,50 @@ class _CcToggle extends StatelessWidget {
     return Expanded(
       child: GestureDetector(
         onTap: () => onChanged(!value),
-        child: _CcCard(
-          child: Row(
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: value
-                      ? p.accent
-                      : p.textTertiary.withValues(alpha: 0.3),
+        child: Semantics(
+          button: true,
+          toggled: value,
+          label: label,
+          child: _CcCard(
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: value
+                        ? p.accent
+                        : p.textTertiary.withValues(alpha: 0.3),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 16,
+                    color: value ? const Color(0xFFFFFFFF) : p.textSecondary,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  size: 16,
-                  color: value ? const Color(0xFFFFFFFF) : p.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (subtitle != null)
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        subtitle!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontSize: 10,
-                          color: p.textTertiary,
-                        ),
+                        label,
+                        style: Theme.of(context).textTheme.bodySmall,
                         overflow: TextOverflow.ellipsis,
                       ),
-                  ],
+                      if (subtitle != null)
+                        Text(
+                          subtitle!,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontSize: 10, color: p.textTertiary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

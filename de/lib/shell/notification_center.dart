@@ -26,114 +26,105 @@ class NotificationCenterPanel extends StatelessWidget {
               blur: 40,
               padding: const EdgeInsets.all(12),
               child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 480),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          l10n.notifCenter,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                constraints: const BoxConstraints(maxHeight: 480),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            l10n.notifCenter,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: c.clearNotifications,
-                        child: Text(l10n.notifClearAll),
-                      ),
-                    ],
-                  ),
-                  if (c.notifications.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 28),
-                      child: Center(
-                        child: Text(
-                          l10n.notifEmpty,
-                          style: const TextStyle(fontSize: 13),
+                        TextButton(
+                          onPressed: c.clearNotifications,
+                          child: Text(l10n.notifClearAll),
                         ),
-                      ),
-                    )
-                  else
-                    Flexible(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          for (final n in c.notifications)
-                            Padding(
-                              key: ValueKey(n.id),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 4,
-                              ),
-                              child: Row(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          n.summary,
-                                          maxLines: 1,
-                                          overflow:
-                                              TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight:
-                                                FontWeight.w600,
-                                          ),
-                                        ),
-                                        if (n.body.isNotEmpty)
+                      ],
+                    ),
+                    if (c.notifications.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 28),
+                        child: Center(
+                          child: Text(
+                            l10n.notifEmpty,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      )
+                    else
+                      Flexible(
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final n in c.notifications)
+                              Padding(
+                                key: ValueKey(n.id),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
                                           Text(
-                                            n.body,
-                                            maxLines: 3,
-                                            overflow: TextOverflow
-                                                .ellipsis,
+                                            n.summary,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
-                                              fontSize: 12,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
-                                        Text(
-                                          n.appName,
-                                          maxLines: 1,
-                                          overflow:
-                                              TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 11,
+                                          if (n.body.isNotEmpty)
+                                            Text(
+                                              n.body,
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          Text(
+                                            n.appName,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () =>
-                                        c.dismissNotification(n.id),
-                                    child: const Padding(
-                                      padding: EdgeInsets.all(6),
-                                      child: Icon(
-                                        Icons.close,
-                                        size: 16,
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    GestureDetector(
+                                      onTap: () => c.dismissNotification(n.id),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Icon(Icons.close, size: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -209,10 +200,17 @@ class NotificationBanner extends StatelessWidget {
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => controller.dismissNotification(n.id),
-                      child: Icon(
-                        Icons.close,
-                        size: 15,
-                        color: OasisStyle.of(context).palette.textSecondary,
+                      child: Semantics(
+                        button: true,
+                        label: OasisLocalizations.of(context).notifClearAll,
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            Icons.close,
+                            size: 15,
+                            color: OasisStyle.of(context).palette.textSecondary,
+                          ),
+                        ),
                       ),
                     ),
                   ],

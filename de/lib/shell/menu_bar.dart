@@ -176,15 +176,19 @@ class _MenuLabel extends StatelessWidget {
       onEnter: (_) => onHover(),
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: open
-                ? const Color(0xFFFFFFFF).withValues(alpha: 0.25)
-                : const Color(0x00000000),
-            borderRadius: BorderRadius.circular(6),
+        child: Semantics(
+          button: true,
+          label: label,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: open
+                  ? const Color(0xFFFFFFFF).withValues(alpha: 0.25)
+                  : const Color(0x00000000),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(label, style: effective),
           ),
-          child: Text(label, style: effective),
         ),
       ),
     );
@@ -207,16 +211,19 @@ class _StatusIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tip = tooltip;
-    final iconWidget = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 5),
-      child: Icon(icon, size: 15, color: style?.color),
+    final iconWidget = Semantics(
+      button: true,
+      label: tip,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Icon(icon, size: 15, color: style?.color),
+      ),
     );
     return GestureDetector(
       onTap: onTap,
-      child: tip == null ? iconWidget : Tooltip(
-        message: tip,
-        child: iconWidget,
-      ),
+      child: tip == null
+          ? iconWidget
+          : Tooltip(message: tip, child: iconWidget),
     );
   }
 }
@@ -336,11 +343,11 @@ class _SessionMenu extends StatelessWidget {
     return _StatusIcon(
       icon: Icons.power_settings_new,
       style: style,
+      tooltip: l10n.sessionShutDown,
       onTap: () {
         final box = context.findRenderObject()! as RenderBox;
         final pos = box.localToGlobal(Offset(0, box.size.height + 4));
-        void confirm(String message, String label,
-                OasisSessionAction action) =>
+        void confirm(String message, String label, OasisSessionAction action) =>
             confirmShellAction(
               context,
               message: message,
@@ -356,30 +363,34 @@ class _SessionMenu extends StatelessWidget {
           ShellMenuItem(
             label: l10n.sessionLogOut,
             action: (ctx) => confirm(
-                l10n.sessionConfirmLogOut,
-                l10n.sessionLogOut,
-                OasisSessionAction.logout),
+              l10n.sessionConfirmLogOut,
+              l10n.sessionLogOut,
+              OasisSessionAction.logout,
+            ),
           ),
           ShellMenuItem(
             label: l10n.sessionSleep,
             action: (ctx) => confirm(
-                l10n.sessionConfirmSuspend,
-                l10n.sessionSleep,
-                OasisSessionAction.suspend),
+              l10n.sessionConfirmSuspend,
+              l10n.sessionSleep,
+              OasisSessionAction.suspend,
+            ),
           ),
           ShellMenuItem(
             label: l10n.sessionRestart,
             action: (ctx) => confirm(
-                l10n.sessionConfirmRestart,
-                l10n.sessionRestart,
-                OasisSessionAction.reboot),
+              l10n.sessionConfirmRestart,
+              l10n.sessionRestart,
+              OasisSessionAction.reboot,
+            ),
           ),
           ShellMenuItem(
             label: l10n.sessionShutDown,
             action: (ctx) => confirm(
-                l10n.sessionConfirmPoweroff,
-                l10n.sessionShutDown,
-                OasisSessionAction.poweroff),
+              l10n.sessionConfirmPoweroff,
+              l10n.sessionShutDown,
+              OasisSessionAction.poweroff,
+            ),
           ),
         ]);
       },
