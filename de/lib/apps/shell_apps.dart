@@ -101,16 +101,13 @@ class _NotesWindowState extends State<NotesWindow> {
 
   @override
   Widget build(BuildContext context) {
-    final p = OasisStyle.of(context).palette;
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: TextField(
+      child: OasisTextField(
         controller: _controller,
         maxLines: null,
         expands: true,
         style: Theme.of(context).textTheme.bodyMedium,
-        cursorColor: p.accent,
-        decoration: const InputDecoration(border: InputBorder.none),
       ),
     );
   }

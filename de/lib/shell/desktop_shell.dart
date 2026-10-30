@@ -195,7 +195,7 @@ class _DesktopShellState extends State<DesktopShell> {
                                       }
                                     },
                                     child: SizedBox(
-                                      width: r!.width,
+                                      width: r.width,
                                       height: r.height,
                                       child: _windowContent(
                                         w,

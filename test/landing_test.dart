@@ -121,13 +121,13 @@ void main() {
     await tester.tap(find.text('Source code'));
     expect(opened, contains('https://repo'));
 
-    await tester.tap(find.byType(PopupMenuButton<OasisThemeMode>));
+    await tester.tap(find.byType(OasisPopupMenuButton<OasisThemeMode>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Dark').last);
     await tester.pumpAndSettle();
     expect(appearance.themeMode, OasisThemeMode.dark);
 
-    await tester.tap(find.byType(PopupMenuButton<OasisThemeMode>));
+    await tester.tap(find.byType(OasisPopupMenuButton<OasisThemeMode>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('OLED').last);
     await tester.pumpAndSettle();
@@ -201,7 +201,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(PopupMenuButton<OasisThemeMode>));
+    await tester.tap(find.byType(OasisPopupMenuButton<OasisThemeMode>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Light').last);
     await tester.pumpAndSettle();

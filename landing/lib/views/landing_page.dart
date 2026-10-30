@@ -247,26 +247,14 @@ class _LocaleMenu extends StatelessWidget {
       (const Locale('ru'), l10n.languageRu),
       (const Locale('ga'), l10n.languageGa),
     ];
-    return PopupMenuButton<Locale?>(
+    return OasisPopupMenuButton<Locale?>(
       tooltip: l10n.settingsLanguage,
       icon: Icon(Icons.language, size: 18, color: p.textSecondary),
+      selectedValue: host.locale,
       onSelected: host.setLocale,
-      itemBuilder: (context) => [
+      items: [
         for (final e in entries)
-          PopupMenuItem<Locale?>(
-            value: e.$1,
-            child: Row(
-              children: [
-                Icon(
-                  host.locale == e.$1 ? Icons.check : Icons.language,
-                  size: 16,
-                  color: p.textSecondary,
-                ),
-                const SizedBox(width: 10),
-                Text(e.$2),
-              ],
-            ),
-          ),
+          OasisPopupItem(value: e.$1, label: e.$2),
       ],
     );
   }
@@ -291,27 +279,14 @@ class _ThemeMenu extends StatelessWidget {
     return AnimatedBuilder(
       animation: appearance,
       builder: (context, _) {
-        return PopupMenuButton<OasisThemeMode>(
+        return OasisPopupMenuButton<OasisThemeMode>(
           tooltip: l10n.settingsTheme,
           icon: Icon(Icons.contrast, size: 18, color: p.textSecondary),
+          selectedValue: appearance.themeMode,
           onSelected: (m) => appearance.themeMode = m,
-          itemBuilder: (context) => [
+          items: [
             for (final e in entries)
-              PopupMenuItem<OasisThemeMode>(
-                value: e.$1,
-                child: Row(
-                  children: [
-                    Icon(
-                        appearance.themeMode == e.$1
-                            ? Icons.check
-                            : e.$3,
-                        size: 16,
-                        color: p.textSecondary),
-                    const SizedBox(width: 10),
-                    Text(e.$2),
-                  ],
-                ),
-              ),
+              OasisPopupItem(value: e.$1, label: e.$2),
           ],
         );
       },

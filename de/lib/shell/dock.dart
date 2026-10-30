@@ -277,7 +277,7 @@ class _DockIcon extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Tooltip(
+                OasisTooltip(
                   message: app.name,
                   preferBelow: false,
                   triggerMode: triggerMode,
