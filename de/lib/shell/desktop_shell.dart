@@ -144,41 +144,72 @@ class _DesktopShellState extends State<DesktopShell> {
                   if (w.workspace == controller.activeWorkspace &&
                       (!w.minimized ||
                           w.transition != ShellWindowTransition.none))
-                    Positioned(
+                    Builder(
                       key: ValueKey(w.id),
-                      left: w.zoomed || w.fullscreen ? 0 : w.position.dx,
-                      top: w.zoomed
-                          ? kMenuBarHeight + 4
-                          : w.fullscreen
-                          ? 0
-                          : w.position.dy,
-                      child: GenieWindow(
-                        window: w,
-                        rect: _windowRect(w, context),
-                        onEnd: () => controller.finishTransition(w.id),
-                        child: Listener(
-                          onPointerDown: (_) => controller.focusWindow(w.id),
-                          child: GestureDetector(
-                            onSecondaryTapUp: (e) {
-                              if (e.localPosition.dy <=
-                                  kOasisWindowTitleBarHeight) {
-                                _windowMenu(context, e.globalPosition, w);
-                              }
-                            },
-                            child: w.zoomed || w.fullscreen
-                                ? SizedBox(
-                                    width: MediaQuery.sizeOf(context).width,
-                                    height: w.fullscreen
-                                        ? MediaQuery.sizeOf(context).height
-                                        : MediaQuery.sizeOf(context).height -
-                                              kMenuBarHeight -
-                                              8,
-                                    child: _windowContent(w, context),
-                                  )
-                                : _windowContent(w, context),
-                          ),
-                        ),
-                      ),
+                      builder: (context) {
+                        final screen = MediaQuery.sizeOf(context);
+                        final target = Rect.fromLTWH(
+                          w.zoomed || w.fullscreen ? 0 : w.position.dx,
+                          w.zoomed
+                              ? kMenuBarHeight + 4
+                              : w.fullscreen
+                              ? 0
+                              : w.position.dy,
+                          w.zoomed || w.fullscreen
+                              ? screen.width
+                              : _windowSize(w, screen).width,
+                          w.fullscreen
+                              ? screen.height
+                              : w.zoomed
+                              ? screen.height - kMenuBarHeight - 8
+                              : _windowSize(w, screen).height,
+                        );
+                        return TweenAnimationBuilder<Rect?>(
+                          tween: RectTween(end: target),
+                          duration: w.animateGeom
+                              ? const Duration(milliseconds: 180)
+                              : Duration.zero,
+                          curve: Curves.easeOutCubic,
+                          builder: (context, r, _) {
+                            r ??= target;
+                            return Positioned(
+                              left: r.left,
+                              top: r.top,
+                              child: GenieWindow(
+                                window: w,
+                                rect: _windowRect(w, context),
+                                onEnd: () =>
+                                    controller.finishTransition(w.id),
+                                child: Listener(
+                                  onPointerDown: (_) =>
+                                      controller.focusWindow(w.id),
+                                  child: GestureDetector(
+                                    onSecondaryTapUp: (e) {
+                                      if (e.localPosition.dy <=
+                                          kOasisWindowTitleBarHeight) {
+                                        _windowMenu(
+                                          context,
+                                          e.globalPosition,
+                                          w,
+                                        );
+                                      }
+                                    },
+                                    child: SizedBox(
+                                      width: r!.width,
+                                      height: r.height,
+                                      child: _windowContent(
+                                        w,
+                                        context,
+                                        r.size,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                 if (controller.wayland != null)
                   for (final popup in controller.wayland!.popups)
@@ -472,8 +503,7 @@ class _DesktopShellState extends State<DesktopShell> {
     return (w.zoomed ? const Offset(0, kMenuBarHeight + 4) : w.position) & s;
   }
 
-  Widget _windowContent(ShellWindowData w, BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
+  Widget _windowContent(ShellWindowData w, BuildContext context, Size size) {
     Widget body;
     final surface = w.surface;
     final service = controller.wayland;
@@ -511,12 +541,11 @@ class _DesktopShellState extends State<DesktopShell> {
     } else {
       body = Builder(builder: w.app.builder);
     }
-    final windowSize = _windowSize(w, size);
     return OasisWindow(
       title: w.displayTitle,
       focused: controller.focusedId == w.id,
-      width: w.zoomed ? size.width : windowSize.width,
-      height: w.zoomed ? size.height - kMenuBarHeight - 8 : windowSize.height,
+      width: size.width,
+      height: size.height,
       onClose: () => controller.closeWindow(w.id),
       onMinimize: () => controller.minimizeWindow(w.id),
       onMaximize: () => controller.toggleZoom(w.id),
@@ -527,7 +556,7 @@ class _DesktopShellState extends State<DesktopShell> {
               w.id,
               d,
               edge,
-              _defaultWindowSize(size),
+              _defaultWindowSize(MediaQuery.sizeOf(context)),
             ),
       child: body,
     );
