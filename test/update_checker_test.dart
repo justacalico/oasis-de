@@ -169,6 +169,82 @@ void main() {
     expect(a == Object(), isFalse);
   });
 
+  test('picks installable asset and checksum from release links', () async {
+    final client = MockClient(
+      (req) async => http.Response(
+        _page([
+          {
+            'tag_name': 'v1.2.0',
+            'assets': {
+              'links': [
+                {'name': 'notes.txt', 'url': 'https://x/notes.txt'},
+                {
+                  'name': 'oasis_1.2.0_amd64.deb',
+                  'url': 'https://x/pkg',
+                  'direct_asset_url': 'https://x/oasis.deb',
+                },
+                {'name': 'sha256sums.txt', 'url': 'https://x/sums'},
+              ],
+            },
+          },
+        ]),
+        200,
+      ),
+    );
+    final update = await _checker(client).check('1.0.0');
+    expect(update.asset, isNotNull);
+    expect(update.asset!.name, 'oasis_1.2.0_amd64.deb');
+    expect(update.asset!.url, 'https://x/oasis.deb');
+    expect(update.asset!.checksumUrl, 'https://x/sums');
+    expect(update.asset!.verifiable, isTrue);
+    expect(update.asset, const UpdateAsset(
+      name: 'oasis_1.2.0_amd64.deb',
+      url: 'https://x/oasis.deb',
+      checksumUrl: 'https://x/sums',
+    ));
+    expect(update.asset.hashCode, update.asset.hashCode);
+    expect(update.asset == Object(), isFalse);
+  });
+
+  test('no links or no package yields no asset', () async {
+    final client = MockClient(
+      (req) async => http.Response(
+        _page([
+          {'tag_name': 'v1.2.0'},
+          {
+            'tag_name': 'v1.3.0',
+            'assets': {
+              'links': [
+                {'name': 'readme.md', 'url': 'https://x/r'},
+                {'name': 4, 'url': 'https://x/bad'},
+                {'name': 'x.deb'},
+                'junk',
+              ],
+            },
+          },
+        ]),
+        200,
+      ),
+    );
+    final update = await _checker(client).check('1.0.0');
+    expect(update.latestVersion, '1.3.0');
+    expect(update.asset, isNull);
+    expect(const UpdateAsset(name: 'a', url: 'u').verifiable, isFalse);
+  });
+
+  test('fetch downloads bytes and wraps http errors', () async {
+    final client = MockClient((req) async {
+      if (req.url.path.contains('ok')) return http.Response('data', 200);
+      return http.Response('no', 404);
+    });
+    final checker = _checker(client);
+    expect(await checker.fetch(Uri.parse('https://x/ok')), 'data'.codeUnits);
+    expect(
+      () => checker.fetch(Uri.parse('https://x/nope')),
+      throwsA(isA<VersionCheckException>()),
+    );
+  });
+
   test('ReleaseClient releasesUrl honours host and project', () {
     expect(
       ReleaseClient(

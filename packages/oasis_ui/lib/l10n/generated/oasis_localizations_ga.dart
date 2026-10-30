@@ -144,6 +144,18 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get updateAllReleases => 'Gach eisiúint';
 
   @override
+  String get updateInstall => 'Suiteáil';
+
+  @override
+  String get updateInstalling => 'Á íoslódáil agus á shuiteáil…';
+
+  @override
+  String get updateInstalled => 'Nuashonrú suiteáilte';
+
+  @override
+  String get updateInstallFailed => 'Níorbh fhéidir an nuashonrú a shuiteáil';
+
+  @override
   String get settingsTitle => 'Socruithe';
 
   @override
