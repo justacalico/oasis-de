@@ -1569,9 +1569,13 @@ void main() {
       'hy': 4,
     });
     await tester.pumpAndSettle();
-    expect(find.byType(Texture), findsWidgets);
+    expect(
+      find.byWidgetPredicate((w) => w is Texture && w.textureId == 7),
+      findsNothing,
+    );
     final pointer = TestPointer(1, PointerDeviceKind.mouse);
-    await tester.sendEventToBinding(pointer.hover(const Offset(500, 300)));
+    final over = tester.getCenter(find.byType(WaylandSurfaceView));
+    await tester.sendEventToBinding(pointer.hover(over));
     await tester.pump();
     final move = tester.widget<Transform>(
       find.ancestor(
@@ -1581,7 +1585,16 @@ void main() {
         matching: find.byType(Transform),
       ).first,
     );
-    expect(move.transform.getTranslation().x, closeTo(496, 0.001));
+    expect(
+      move.transform.getTranslation().x,
+      closeTo(over.dx - 4, 0.001),
+    );
+    await tester.sendEventToBinding(pointer.hover(const Offset(10, 10)));
+    await tester.pump();
+    expect(
+      find.byWidgetPredicate((w) => w is Texture && w.textureId == 7),
+      findsNothing,
+    );
   });
 
   testWidgets('clicking a nested popup keeps its ancestors open', (

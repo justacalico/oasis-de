@@ -103,6 +103,7 @@ class WaylandService extends ChangeNotifier {
   StreamSubscription<Map<String, Object?>>? _sub;
   WaylandCursor? cursor;
   int cursorShape = 0;
+  bool pointerOverClient = false;
 
   var socket = '';
   var started = false;
@@ -390,11 +391,15 @@ class WaylandService extends ChangeNotifier {
 
   Future<void> focus(int? id) => available ? _host.focus(id) : Future.value();
 
-  Future<void> pointerMotion(int id, double x, double y) =>
-      available ? _host.pointerMotion(id, x, y) : Future.value();
+  Future<void> pointerMotion(int id, double x, double y) {
+    pointerOverClient = true;
+    return available ? _host.pointerMotion(id, x, y) : Future.value();
+  }
 
-  Future<void> pointerExit(int id) =>
-      available ? _host.pointerExit(id) : Future.value();
+  Future<void> pointerExit(int id) {
+    pointerOverClient = false;
+    return available ? _host.pointerExit(id) : Future.value();
+  }
 
   Future<void> pointerButton(int button, bool pressed) =>
       available ? _host.pointerButton(button, pressed) : Future.value();
