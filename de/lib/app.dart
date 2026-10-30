@@ -176,10 +176,14 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
           widget.notificationDaemon?.invokeAction(id, action) ??
               Future.value(),
         );
+    _controller.notificationClosedHandler = (id, reason) => unawaited(
+          widget.notificationDaemon?.notifyClosed(id, reason) ??
+              Future.value(),
+        );
     unawaited(
       widget.notificationDaemon?.start(
             onNotify: _controller.pushNotification,
-            onClose: _controller.dismissNotification,
+            onClose: (id) => _controller.dismissNotification(id, reason: 3),
           ) ??
           Future.value(),
     );

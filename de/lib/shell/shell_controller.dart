@@ -141,6 +141,7 @@ class ShellController extends ChangeNotifier {
   Timer? _bannerTimer;
 
   void Function(int id, String action)? notificationActionHandler;
+  void Function(int id, int reason)? notificationClosedHandler;
 
   void pushNotification(OasisNotification n) {
     if (!n.transient) {
@@ -186,9 +187,10 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void dismissNotification(int id) {
+  void dismissNotification(int id, {int reason = 2}) {
     if (bannerNotification?.id == id) bannerNotification = null;
     notifications.removeWhere((n) => n.id == id);
+    notificationClosedHandler?.call(id, reason);
     notifyListeners();
   }
 
@@ -198,6 +200,12 @@ class ShellController extends ChangeNotifier {
   }
 
   void clearNotifications() {
+    final closed = notificationClosedHandler;
+    if (closed != null) {
+      for (final n in notifications) {
+        closed(n.id, 2);
+      }
+    }
     notifications.clear();
     bannerNotification = null;
     notifyListeners();
