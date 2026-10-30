@@ -4,7 +4,7 @@ disable_changelog = false
 disable_bump_commit = false
 tag_prefix = "v"
 pre_bump_hooks = [
-  "sed -i 's/^version: .*/version: {{version}}/' de/pubspec.yaml",
+  "sed -i 's/^version: .*/version: {{version}}/' pubspec.yaml de/pubspec.yaml packages/oasis_ui/pubspec.yaml apps/settings/pubspec.yaml landing/pubspec.yaml",
 ]
 
 [commit_types]
