@@ -894,7 +894,7 @@ class ShellController extends ChangeNotifier {
   List<ShellWindowData> get switcherWindows {
     final src = _switcherList ?? windows;
     return [
-      for (final w in src)
+      for (final w in src.reversed)
         if (w.workspace == activeWorkspace && !w.minimized) w,
     ];
   }
