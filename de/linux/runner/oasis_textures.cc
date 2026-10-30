@@ -4,6 +4,9 @@
 
 #include "oasis_textures.h"
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <cstring>
 
 #include <EGL/egl.h>
@@ -12,9 +15,6 @@
 #include <GLES2/gl2ext.h>
 #include <gtk/gtk.h>
 #include <libdrm/drm_fourcc.h>
-#include <wayland-server.h>
-
-#include "linux-dmabuf-v1-server-protocol.h"
 
 
 struct _OasisTexture {
@@ -105,8 +105,9 @@ void oasis_texture_push(OasisTexture* self,
 struct _OasisGLTexture {
   FlTextureGL parent_instance;
   GMutex mutex = {};
-  DmabufBuf* dmabuf = nullptr;
-  DmabufBuf* img_buf = nullptr;
+  DmabufInfo dmabuf;
+  bool has_dmabuf = false;
+  bool dirty = true;
   EGLImage image = EGL_NO_IMAGE;
   EGLDisplay img_dpy = EGL_NO_DISPLAY;
   GLuint gl_name = 0;
@@ -116,15 +117,15 @@ struct _OasisGLTexture {
 
 G_DEFINE_TYPE(OasisGLTexture, oasis_gl_texture, fl_texture_gl_get_type())
 
-static EGLImage dmabuf_import(EGLDisplay dpy, DmabufBuf* b) {
+static EGLImage dmabuf_import(EGLDisplay dpy, const DmabufInfo& b) {
   EGLAttrib attrs[64];
   int i = 0;
   attrs[i++] = EGL_WIDTH;
-  attrs[i++] = b->w;
+  attrs[i++] = b.w;
   attrs[i++] = EGL_HEIGHT;
-  attrs[i++] = b->h;
+  attrs[i++] = b.h;
   attrs[i++] = EGL_LINUX_DRM_FOURCC_EXT;
-  attrs[i++] = static_cast<EGLAttrib>(b->format);
+  attrs[i++] = static_cast<EGLAttrib>(b.format);
   static const EGLint fd_at[4] = {EGL_DMA_BUF_PLANE0_FD_EXT,
                                   EGL_DMA_BUF_PLANE1_FD_EXT,
                                   EGL_DMA_BUF_PLANE2_FD_EXT,
@@ -145,18 +146,20 @@ static EGLImage dmabuf_import(EGLDisplay dpy, DmabufBuf* b) {
                                    EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT,
                                    EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT,
                                    EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT};
-  int n = b->nplanes < 4 ? b->nplanes : 4;
+  int n = b.nplanes < 4 ? b.nplanes : 4;
   for (int p = 0; p < n; p++) {
     attrs[i++] = fd_at[p];
-    attrs[i++] = b->fds[p];
+    attrs[i++] = b.fds[p];
     attrs[i++] = off_at[p];
-    attrs[i++] = static_cast<EGLAttrib>(b->offsets[p]);
+    attrs[i++] = static_cast<EGLAttrib>(b.offsets[p]);
     attrs[i++] = pitch_at[p];
-    attrs[i++] = static_cast<EGLAttrib>(b->strides[p]);
-    attrs[i++] = mlo_at[p];
-    attrs[i++] = static_cast<EGLAttrib>(b->mods[p] & 0xffffffffu);
-    attrs[i++] = mhi_at[p];
-    attrs[i++] = static_cast<EGLAttrib>(b->mods[p] >> 32);
+    attrs[i++] = static_cast<EGLAttrib>(b.strides[p]);
+    if (b.mods[p] != DRM_FORMAT_MOD_INVALID) {
+      attrs[i++] = mlo_at[p];
+      attrs[i++] = static_cast<EGLAttrib>(b.mods[p] & 0xffffffffu);
+      attrs[i++] = mhi_at[p];
+      attrs[i++] = static_cast<EGLAttrib>(b.mods[p] >> 32);
+    }
   }
   attrs[i++] = EGL_NONE;
   return eglCreateImage(dpy, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
@@ -172,7 +175,7 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
   OasisGLTexture* self = OASIS_GL_TEXTURE(texture);
   g_mutex_lock(&self->mutex);
   EGLDisplay dpy = eglGetCurrentDisplay();
-  if (self->dmabuf == nullptr || dpy == EGL_NO_DISPLAY ||
+  if (!self->has_dmabuf || dpy == EGL_NO_DISPLAY ||
       eglGetCurrentContext() == EGL_NO_CONTEXT) {
     g_mutex_unlock(&self->mutex);
     g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
@@ -180,17 +183,14 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
     return FALSE;
   }
   if (self->gl_name == 0) glGenTextures(1, &self->gl_name);
-  if (self->img_buf != self->dmabuf) {
+  if (self->image == EGL_NO_IMAGE || self->dirty) {
     if (self->image != EGL_NO_IMAGE && self->img_dpy == dpy) {
       eglDestroyImage(self->img_dpy, self->image);
     }
     self->image = EGL_NO_IMAGE;
-    if (self->img_buf != nullptr) {
-      oasis_dmabuf_unref(self->img_buf);
-      self->img_buf = nullptr;
-    }
     self->image = dmabuf_import(dpy, self->dmabuf);
     self->img_dpy = dpy;
+    self->dirty = false;
     if (self->image == EGL_NO_IMAGE) {
       if (eglGetError() == EGL_CONTEXT_LOST) self->gl_name = 0;
       g_mutex_unlock(&self->mutex);
@@ -198,8 +198,6 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
                   "dmabuf import failed");
       return FALSE;
     }
-    self->img_buf = self->dmabuf;
-    oasis_dmabuf_ref(self->img_buf);
   }
   static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC image_target = nullptr;
   if (image_target == nullptr) {
@@ -220,8 +218,6 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
   if (eglGetError() == EGL_CONTEXT_LOST) {
     self->gl_name = 0;
     self->image = EGL_NO_IMAGE;
-    oasis_dmabuf_unref(self->img_buf);
-    self->img_buf = nullptr;
     g_mutex_unlock(&self->mutex);
     g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "gl context lost");
     return FALSE;
@@ -234,19 +230,19 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
   return TRUE;
 }
 
-void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, DmabufBuf* db) {
+void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, const DmabufInfo& db) {
   g_mutex_lock(&self->mutex);
-  if (self->dmabuf == db) {
-    g_mutex_unlock(&self->mutex);
-    return;
-  }
-  if (self->dmabuf != nullptr) oasis_dmabuf_unref(self->dmabuf);
+  self->dmabuf.close_fds();
   self->dmabuf = db;
-  if (db != nullptr) {
-    oasis_dmabuf_ref(db);
-    self->w = static_cast<uint32_t>(db->w);
-    self->h = static_cast<uint32_t>(db->h);
+  for (int i = 0; i < 4; i++) {
+    if (self->dmabuf.fds[i] >= 0) {
+      self->dmabuf.fds[i] = fcntl(self->dmabuf.fds[i], F_DUPFD_CLOEXEC, 0);
+    }
   }
+  self->has_dmabuf = true;
+  self->dirty = true;
+  self->w = static_cast<uint32_t>(db.w);
+  self->h = static_cast<uint32_t>(db.h);
   g_mutex_unlock(&self->mutex);
 }
 
@@ -261,10 +257,7 @@ static void oasis_gl_texture_dispose(GObject* object) {
     eglDestroyImage(self->img_dpy, self->image);
     self->image = EGL_NO_IMAGE;
   }
-  oasis_dmabuf_unref(self->img_buf);
-  self->img_buf = nullptr;
-  oasis_dmabuf_unref(self->dmabuf);
-  self->dmabuf = nullptr;
+  self->dmabuf.close_fds();
   g_mutex_unlock(&self->mutex);
   G_OBJECT_CLASS(oasis_gl_texture_parent_class)->dispose(object);
 }

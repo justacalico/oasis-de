@@ -42,14 +42,29 @@ void main() {
   });
 
   test('native events are consumed and Dart cases are real events', () {
-    final emitted = {
-      ..._scan(compositor, RegExp('new_event\\("([a-zA-Z]+)"\\)')),
-      ..._scan(compositor, RegExp('emit_simple\\([^,]+, "([a-zA-Z]+)"\\)')),
-      ..._scan(
-        compositor,
-        RegExp('"(toplevelClosed|popupClosed|subsurfaceClosed)"'),
-      ),
-    };
+    final emitted = <String>{};
+    for (final path in [
+      compositor,
+      ...Directory('de/compositor')
+          .listSync()
+          .whereType<File>()
+          .map((f) => f.path),
+    ]) {
+      for (final line in File(path).readAsLinesSync()) {
+        if (line.contains('emit(') || line.contains('emit_id(')) {
+          emitted.addAll({
+            for (final m in RegExp('"([a-zA-Z]+)"').allMatches(line))
+              if (m.group(1) != null) m.group(1)!,
+          });
+        }
+      }
+      emitted.addAll(
+        _scan(
+          path,
+          RegExp('"(toplevelClosed|popupClosed|subsurfaceClosed)"'),
+        ),
+      );
+    }
     final cases = _scan(service, RegExp("case '([a-zA-Z]+)':"));
     expect(
       emitted.difference(cases),
