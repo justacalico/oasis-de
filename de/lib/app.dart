@@ -34,6 +34,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.appDirWatcher,
     this.store,
     this.backend,
+    this.locale,
   });
 
   final String version;
@@ -47,6 +48,7 @@ class OasisDesktopApp extends StatefulWidget {
   final Stream<void> Function()? appDirWatcher;
   final OasisStore? store;
   final OasisSystemBackend? backend;
+  final Locale? locale;
 
   @override
   State<OasisDesktopApp> createState() => _OasisDesktopAppState();
@@ -86,6 +88,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _controller.launchFailedMessage = (app) =>
         lookupOasisLocalizations(_locale ?? const Locale('en'))
             .launchFailed(app);
+    _locale = widget.locale;
     _restoreState();
     _appearance.addListener(_persistState);
     _controller.addListener(_persistState);

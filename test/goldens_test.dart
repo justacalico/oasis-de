@@ -1,18 +1,36 @@
 import 'dart:convert';
 
 import 'package:clock/clock.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:oasis_de/app.dart';
+import 'package:oasis_de/services/notifications.dart';
+import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_landing/landing_app.dart';
 import 'package:oasis_landing/services/release_client.dart';
 import 'package:oasis_settings/oasis_settings.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import 'helpers/test_app.dart';
+
+class _InfoBackend extends NoopSystemBackend {
+  const _InfoBackend();
+
+  @override
+  Future<OasisSystemInfo> systemInfo() async => const OasisSystemInfo(
+    deviceName: 'oasis-box',
+    osName: 'Oasis Linux 1.0',
+    kernel: 'Linux version 6.8.1',
+    cpu: 'Virtual Core 8c',
+    memory: '16.0 GB',
+    disk: '512G (120G used)',
+    gpu: 'virtio-gpu',
+  );
+}
 
 class _FakeChecker extends UpdateChecker {
   @override
@@ -282,6 +300,228 @@ void main() {
     );
   });
 
+  testWidgets('desktop zh', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        OasisDesktopApp(
+          backend: const NoopSystemBackend(),
+          version: '1.0.0',
+          locale: const Locale('zh'),
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/desktop_zh.png'),
+      );
+    });
+  });
+
+  testWidgets('desktop context menu', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        OasisDesktopApp(
+          backend: const NoopSystemBackend(),
+          version: '1.0.0',
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tapAt(
+        const Offset(640, 400),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/desktop_context_menu.png'),
+      );
+    });
+  });
+
+  testWidgets('window context menu', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        OasisDesktopApp(
+          backend: const NoopSystemBackend(),
+          version: '1.0.0',
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.edit_note).first);
+      await tester.pumpAndSettle();
+      final bar = tester
+          .getRect(find.byType(OasisTrafficLights).first)
+          .centerRight;
+      await tester.tapAt(
+        bar + const Offset(60, 0),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/window_context_menu.png'),
+      );
+    });
+  });
+
+  testWidgets('window switcher', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        OasisDesktopApp(
+          backend: const NoopSystemBackend(),
+          version: '1.0.0',
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.edit_note).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.calculate).first);
+      await tester.pumpAndSettle();
+      final dynamic st = tester.state(find.byType(OasisDesktopApp));
+      (st.controller as ShellController).cycleWindows();
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/window_switcher.png'),
+      );
+    });
+  });
+
+  testWidgets('notification center', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        OasisDesktopApp(
+          backend: const NoopSystemBackend(),
+          version: '1.0.0',
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final dynamic st = tester.state(find.byType(OasisDesktopApp));
+      final controller = st.controller as ShellController;
+      controller.pushNotification(
+        OasisNotification(
+          id: 1,
+          appName: 'Files',
+          summary: 'Download finished',
+          body: '3 items saved to Downloads',
+          timestamp: DateTime(2025, 6, 10, 9, 40),
+          expireTimeout: 0,
+        ),
+      );
+      controller.dismissBanner();
+      controller.toggleNotificationCenter();
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/notification_center.png'),
+      );
+    });
+  });
+
+  testWidgets('launcher empty', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        OasisDesktopApp(
+          backend: const NoopSystemBackend(),
+          version: '1.0.0',
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.search).first);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'zzzzqq');
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/launcher_empty.png'),
+      );
+    });
+  });
+
+  for (final pane in [
+    SettingsPane.wallpaper,
+    SettingsPane.general,
+    SettingsPane.about,
+  ]) {
+    testWidgets('settings ${pane.name}', (tester) async {
+      await _size(tester, const Size(1000, 700));
+      final s = SettingsState(backend: const _InfoBackend())
+        ..selectPane(pane);
+      await tester.pumpWidget(
+        OasisSettingsApp(
+          state: s,
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/settings_${pane.name}.png'),
+      );
+    });
+  }
+
+  for (final locale in const [
+    Locale('zh'),
+    Locale('ru'),
+    Locale('ga'),
+  ]) {
+    testWidgets('settings about ${locale.languageCode}', (tester) async {
+      await _size(tester, const Size(1000, 700));
+      final s = SettingsState(backend: const _InfoBackend())
+        ..selectPane(SettingsPane.about);
+      await tester.pumpWidget(
+        OasisSettingsApp(
+          state: s,
+          locale: locale,
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/settings_about_${locale.languageCode}.png',
+        ),
+      );
+    });
+  }
+
+  testWidgets('settings oled', (tester) async {
+    await _size(tester, const Size(1000, 700));
+    await tester.pumpWidget(
+      OasisSettingsApp(
+        appearance: OasisAppearance(themeMode: OasisThemeMode.oled),
+        updateChecker: _FakeChecker(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/settings_oled.png'),
+    );
+  });
+
   for (final mode in [
     OasisThemeMode.light,
     OasisThemeMode.dark,
@@ -303,4 +543,24 @@ void main() {
       );
     });
   }
+
+  testWidgets('landing releases error', (tester) async {
+    await _size(tester, const Size(1100, 2400));
+    await tester.pumpWidget(
+      LandingApp(
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        client: ReleaseClient(
+          client: MockClient((_) async => http.Response('nope', 500)),
+          host: 'gitlab.test',
+          projectPath: 'x/y',
+        ),
+        onOpenUrl: (_) {},
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/landing_error.png'),
+    );
+  });
 }
