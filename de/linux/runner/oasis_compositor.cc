@@ -563,6 +563,16 @@ static void surface_commit(Surface* s) {
     }
     s->pending_place_set = false;
     s->pending_place_sibling = nullptr;
+    if (s->parent->announced != SURFACE_NONE) {
+      FlValue* m = new_event("childrenReordered");
+      ev_id(m, s->parent->public_id);
+      FlValue* kids = fl_value_new_list();
+      for (Surface* k : s->parent->children) {
+        fl_value_append_take(kids, fl_value_new_int(k->public_id));
+      }
+      fl_value_set_string_take(m, "children", kids);
+      send_event(s->comp, m);
+    }
   }
   if (s->pending_geo_set) {
     s->geo_x = s->pending_geo_x;
