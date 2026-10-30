@@ -147,19 +147,19 @@ class _RecordingBackend implements OasisSystemBackend {
   final List<String> calls;
 
   @override
-  void wifi(bool enabled) => calls.add('wifi');
+  Future<void> wifi(bool enabled) async => calls.add('wifi');
 
   @override
-  void bluetooth(bool enabled) => calls.add('bluetooth');
+  Future<void> bluetooth(bool enabled) async => calls.add('bluetooth');
 
   @override
-  void brightness(double level) => calls.add('brightness');
+  Future<void> brightness(double level) async => calls.add('brightness');
 
   @override
-  void volume(double level) => calls.add('volume');
+  Future<void> volume(double level) async => calls.add('volume');
 
   @override
-  void nightLight(bool enabled) => calls.add('nightLight');
+  Future<void> nightLight(bool enabled) async => calls.add('nightLight');
 
   @override
   Future<OasisSystemState> read() async => const OasisSystemState();

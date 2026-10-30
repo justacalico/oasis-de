@@ -936,9 +936,12 @@ class ShellController extends ChangeNotifier {
     return false;
   }
 
-  void _set(void Function() apply, [void Function()? after]) {
+  void _set(void Function() apply, [Future<void> Function()? after]) {
     apply();
-    after?.call();
+    final done = after?.call();
+    if (done != null) {
+      unawaited(done.then((_) => _refreshSystemState()));
+    }
     notifyListeners();
   }
 
