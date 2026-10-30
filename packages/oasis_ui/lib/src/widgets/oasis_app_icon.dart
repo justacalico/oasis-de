@@ -71,8 +71,8 @@ class OasisAppIcon extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(size * 0.16),
                 child: iconPath!.endsWith('.svg')
-                    ? SvgPicture.file(
-                        File(iconPath!),
+                    ? SvgPicture.memory(
+                        File(iconPath!).readAsBytesSync(),
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stack) => Icon(
                           icon,
