@@ -103,6 +103,47 @@ class NotificationCenterPanel extends StatelessWidget {
                                               fontSize: 11,
                                             ),
                                           ),
+                                          if (n.actions.length > 1)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 4,
+                                              ),
+                                              child: Wrap(
+                                                spacing: 10,
+                                                children: [
+                                                  for (
+                                                    var i = 0;
+                                                    i + 1 < n.actions.length;
+                                                    i += 2
+                                                  )
+                                                    if (n.actions[i] !=
+                                                            'default' &&
+                                                        n.actions[i] !=
+                                                            'cancel')
+                                                      GestureDetector(
+                                                        onTap: () => c
+                                                            .invokeNotificationAction(
+                                                              n,
+                                                              n.actions[i],
+                                                            ),
+                                                        child: Text(
+                                                          n.actions[i + 1],
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color:
+                                                                OasisStyle.of(
+                                                                      context,
+                                                                    )
+                                                                    .palette
+                                                                    .accent,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                ],
+                                              ),
+                                            ),
                                         ],
                                       ),
                                     ),

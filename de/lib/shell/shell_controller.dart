@@ -140,9 +140,14 @@ class ShellController extends ChangeNotifier {
   var notificationCenterOpen = false;
   Timer? _bannerTimer;
 
+  void Function(int id, String action)? notificationActionHandler;
+
   void pushNotification(OasisNotification n) {
-    notifications.insert(0, n);
-    if (notifications.length > 50) notifications.length = 50;
+    if (!n.transient) {
+      notifications.removeWhere((o) => o.id == n.id);
+      notifications.insert(0, n);
+      if (notifications.length > 50) notifications.length = 50;
+    }
     if (!focusOn) {
       bannerNotification = n;
       _scheduleBannerDismiss();
@@ -185,6 +190,11 @@ class ShellController extends ChangeNotifier {
     if (bannerNotification?.id == id) bannerNotification = null;
     notifications.removeWhere((n) => n.id == id);
     notifyListeners();
+  }
+
+  void invokeNotificationAction(OasisNotification n, String action) {
+    notificationActionHandler?.call(n.id, action);
+    dismissNotification(n.id);
   }
 
   void clearNotifications() {

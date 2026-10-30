@@ -11,6 +11,8 @@ class OasisNotification {
     required this.timestamp,
     this.urgency = 1,
     this.expireTimeout = -1,
+    this.transient = false,
+    this.actions = const [],
   });
 
   final int id;
@@ -20,6 +22,8 @@ class OasisNotification {
   final DateTime timestamp;
   final int urgency;
   final int expireTimeout;
+  final bool transient;
+  final List<String> actions;
 }
 
 class OasisNotificationServer extends DBusObject {
@@ -46,14 +50,18 @@ class OasisNotificationServer extends DBusObject {
         ]);
       case 'GetCapabilities':
         return DBusMethodSuccessResponse([
-          DBusArray.string(['body']),
+          DBusArray.string(['body', 'actions']),
         ]);
       case 'Notify':
-        final id = _nextId++;
         final values = methodCall.values;
+        final replaces = (values[1] as DBusUint32).value;
+        final id = replaces != 0 ? replaces : _nextId++;
         final hints = values[6] as DBusDict;
         final urgency =
             hints.children[const DBusString('urgency')]?.toNative();
+        final transient =
+            hints.children[const DBusString('transient')]?.toNative();
+        final actionsValue = values[5];
         onNotify(
           OasisNotification(
             id: id,
@@ -63,6 +71,12 @@ class OasisNotificationServer extends DBusObject {
             timestamp: DateTime.now(),
             urgency: urgency is int ? urgency : 1,
             expireTimeout: (values[7] as DBusInt32).value,
+            transient: transient == true,
+            actions: [
+              if (actionsValue is DBusArray)
+                for (final a in actionsValue.children)
+                  if (a is DBusString) a.value,
+            ],
           ),
         );
         return DBusMethodSuccessResponse([DBusUint32(id)]);
@@ -100,6 +114,15 @@ class NotificationDaemon {
     started = reply == DBusRequestNameReply.primaryOwner;
     _bus = bus;
     _server = server;
+  }
+
+  Future<void> invokeAction(int id, String action) async {
+    await _bus?.emitSignal(
+      path: DBusObjectPath('/org/freedesktop/Notifications'),
+      interface: 'org.freedesktop.Notifications',
+      name: 'ActionInvoked',
+      values: [DBusUint32(id), DBusString(action)],
+    );
   }
 
   Future<void> stop() async {
