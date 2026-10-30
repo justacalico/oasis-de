@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+export 'shell_constants.dart';
+
 import 'package:flutter/material.dart';
 
 import 'package:oasis_ui/oasis_ui.dart';
@@ -8,12 +10,10 @@ import 'package:oasis_ui/oasis_ui.dart';
 import '../services/notifications.dart';
 
 import '../wayland/wayland_service.dart';
-import 'menu_bar.dart';
+import 'shell_constants.dart';
 
 enum ShellWindowTransition { none, minimizing, restoring }
 
-const kMinWindowWidth = 360.0;
-const kMinWindowHeight = 300.0;
 
 const _waylandResizeEdges = {
   1: OasisResizeEdge.top,

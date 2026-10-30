@@ -6,7 +6,6 @@ import 'package:oasis_ui/oasis_ui.dart';
 import 'context_menu.dart';
 import 'shell_controller.dart';
 
-const kDockIconSize = 52.0;
 
 OasisApp launchPadEntry(OasisLocalizations l10n, OasisPalette palette) =>
     OasisApp(
