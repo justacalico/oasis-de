@@ -731,6 +731,13 @@ static const struct wl_surface_interface surface_impl = {
     surface_offset,
 };
 
+static Surface* surface_of(wl_resource* r) {
+  return r != nullptr && wl_resource_instance_of(r, &wl_surface_interface,
+                                                 &surface_impl)
+             ? static_cast<Surface*>(wl_resource_get_user_data(r))
+             : nullptr;
+}
+
 static void emit_closed(OasisCompositor* c, Surface* s) {
   const char* name = s->announced == SURFACE_POPUP
                          ? "popupClosed"
@@ -949,14 +956,16 @@ static void subsurface_place_above(wl_client* client,
                                    wl_resource* sibling_res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   if (s == nullptr) return;
-  Surface* sibling =
-      static_cast<Surface*>(wl_resource_get_user_data(sibling_res));
+  Surface* sibling = surface_of(sibling_res);
   if (s == sibling) {
     wl_resource_post_error(res, WL_SUBSURFACE_ERROR_BAD_SURFACE,
                            "cannot place surface relative to itself");
     return;
   }
-  if (s->parent == nullptr || s->parent != sibling->parent) return;
+  if (sibling == nullptr || s->parent == nullptr ||
+      s->parent != sibling->parent) {
+    return;
+  }
   auto& ch = s->parent->children;
   ch.erase(std::remove(ch.begin(), ch.end(), s), ch.end());
   auto it = std::find(ch.begin(), ch.end(), sibling);
@@ -969,14 +978,16 @@ static void subsurface_place_below(wl_client* client,
                                    wl_resource* sibling_res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   if (s == nullptr) return;
-  Surface* sibling =
-      static_cast<Surface*>(wl_resource_get_user_data(sibling_res));
+  Surface* sibling = surface_of(sibling_res);
   if (s == sibling) {
     wl_resource_post_error(res, WL_SUBSURFACE_ERROR_BAD_SURFACE,
                            "cannot place surface relative to itself");
     return;
   }
-  if (s->parent == nullptr || s->parent != sibling->parent) return;
+  if (sibling == nullptr || s->parent == nullptr ||
+      s->parent != sibling->parent) {
+    return;
+  }
   auto& ch = s->parent->children;
   ch.erase(std::remove(ch.begin(), ch.end(), s), ch.end());
   auto it = std::find(ch.begin(), ch.end(), sibling);
@@ -1013,10 +1024,13 @@ static void subcompositor_get_subsurface(wl_client* client,
                                          uint32_t id,
                                          wl_resource* surface_res,
                                          wl_resource* parent_res) {
-  Surface* s =
-      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
-  Surface* parent =
-      static_cast<Surface*>(wl_resource_get_user_data(parent_res));
+  Surface* s = surface_of(surface_res);
+  Surface* parent = surface_of(parent_res);
+  if (s == nullptr || parent == nullptr) {
+    wl_resource_post_error(res, WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE,
+                           "invalid surface object");
+    return;
+  }
   if (s->role != SURFACE_NONE) {
     wl_resource_post_error(res, WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE,
                            "surface already has a role");
@@ -1203,8 +1217,8 @@ static void pointer_set_cursor(wl_client* client,
     emit_cursor(c);
     return;
   }
-  Surface* s =
-      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  Surface* s = surface_of(surface_res);
+  if (s == nullptr) return;
   if (s->role == SURFACE_NONE) s->role = SURFACE_CURSOR;
   c->cursor_surface = s;
   emit_cursor(c);
@@ -1865,6 +1879,13 @@ static void positioner_res_destroyed(wl_resource* res) {
   delete static_cast<Positioner*>(wl_resource_get_user_data(res));
 }
 
+static Positioner* positioner_of(wl_resource* r) {
+  return r != nullptr && wl_resource_instance_of(r, &xdg_positioner_interface,
+                                                 &positioner_impl)
+             ? static_cast<Positioner*>(wl_resource_get_user_data(r))
+             : nullptr;
+}
+
 static void popup_position(Positioner* p, int* out_x, int* out_y) {
   int ax = p->arx;
   int ay = p->ary;
@@ -2010,6 +2031,8 @@ static void toplevel_created(OasisCompositor* c,
   comp_flush(c);
 }
 
+static Surface* xdg_surface_of(wl_resource* r);
+
 static void popup_created(OasisCompositor* c,
                           wl_client* client,
                           wl_resource* xdg_res,
@@ -2023,13 +2046,19 @@ static void popup_created(OasisCompositor* c,
     return;
   }
   Positioner* p =
-      pos_res != nullptr
-          ? static_cast<Positioner*>(wl_resource_get_user_data(pos_res))
-          : nullptr;
+      pos_res != nullptr ? positioner_of(pos_res) : nullptr;
+  if (pos_res != nullptr && p == nullptr) {
+    wl_resource_post_error(xdg_res, WL_DISPLAY_ERROR_INVALID_OBJECT,
+                           "invalid xdg_positioner object");
+    return;
+  }
   Surface* parent =
-      parent_res != nullptr
-          ? static_cast<Surface*>(wl_resource_get_user_data(parent_res))
-          : nullptr;
+      parent_res != nullptr ? xdg_surface_of(parent_res) : nullptr;
+  if (parent_res != nullptr && parent == nullptr) {
+    wl_resource_post_error(xdg_res, WL_DISPLAY_ERROR_INVALID_OBJECT,
+                           "invalid xdg_surface parent object");
+    return;
+  }
   wl_resource* pop = wl_resource_create(client, &xdg_popup_interface,
                                         wl_resource_get_version(xdg_res), id);
   extern const struct xdg_popup_interface popup_impl;
@@ -2114,6 +2143,13 @@ static const struct xdg_surface_interface xdg_surface_impl = {
     xdg_surface_get_popup,    xdg_surface_set_window_geometry,
     xdg_surface_ack_configure};
 
+static Surface* xdg_surface_of(wl_resource* r) {
+  return r != nullptr && wl_resource_instance_of(r, &xdg_surface_interface,
+                                                 &xdg_surface_impl)
+             ? static_cast<Surface*>(wl_resource_get_user_data(r))
+             : nullptr;
+}
+
 static void toplevel_destroy(wl_client* client, wl_resource* res) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   if (s != nullptr) s->role = SURFACE_NONE;
@@ -2126,7 +2162,9 @@ static void toplevel_set_parent(wl_client* client,
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   if (s == nullptr) return;
   s->tl_parent =
-      parent != nullptr
+      parent != nullptr &&
+              wl_resource_instance_of(parent, &xdg_toplevel_interface,
+                                      &toplevel_impl)
           ? static_cast<Surface*>(wl_resource_get_user_data(parent))
           : nullptr;
   FlValue* m = new_event("toplevelParent");
@@ -2313,8 +2351,8 @@ static void popup_reposition(wl_client* client,
                              uint32_t token) {
   Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
   if (s == nullptr || s->xdg_surface == nullptr) return;
-  Positioner* p =
-      static_cast<Positioner*>(wl_resource_get_user_data(pos_res));
+  Positioner* p = positioner_of(pos_res);
+  if (p == nullptr) return;
   int x = 0;
   int y = 0;
   popup_position(p, &x, &y);
@@ -2353,8 +2391,12 @@ static void wm_base_get_xdg_surface(wl_client* client,
                                   wl_resource* res,
                                   uint32_t id,
                                   wl_resource* surface_res) {
-  Surface* s =
-      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  Surface* s = surface_of(surface_res);
+  if (s == nullptr) {
+    wl_resource_post_error(res, WL_DISPLAY_ERROR_INVALID_OBJECT,
+                           "invalid wl_surface object");
+    return;
+  }
   if (s->xdg_surface != nullptr) {
     wl_resource_post_error(res, XDG_WM_BASE_ERROR_ROLE,
                            "surface already has xdg_surface");
@@ -2445,8 +2487,12 @@ static void viewporter_get_viewport(wl_client* client,
                                     wl_resource* res,
                                     uint32_t id,
                                     wl_resource* surface_res) {
-  Surface* s =
-      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  Surface* s = surface_of(surface_res);
+  if (s == nullptr) {
+    wl_resource_post_error(res, WL_DISPLAY_ERROR_INVALID_OBJECT,
+                           "invalid wl_surface object");
+    return;
+  }
   wl_resource* vp = wl_resource_create(client, &wp_viewport_interface,
                                        wl_resource_get_version(res), id);
   s->viewports.push_back(vp);
@@ -2481,8 +2527,12 @@ static void fs_manager_get_fractional_scale(wl_client* client,
                                             wl_resource* surface_res) {
   OasisCompositor* c =
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
-  Surface* s =
-      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  Surface* s = surface_of(surface_res);
+  if (s == nullptr) {
+    wl_resource_post_error(res, WL_DISPLAY_ERROR_INVALID_OBJECT,
+                           "invalid wl_surface object");
+    return;
+  }
   wl_resource* fs =
       wl_resource_create(client, &wp_fractional_scale_v1_interface,
                          wl_resource_get_version(res), id);
@@ -2548,8 +2598,12 @@ static void inhibit_manager_create(wl_client* client,
                                    wl_resource* res,
                                    uint32_t id,
                                    wl_resource* surface_res) {
-  Surface* s =
-      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  Surface* s = surface_of(surface_res);
+  if (s == nullptr) {
+    wl_resource_post_error(res, WL_DISPLAY_ERROR_INVALID_OBJECT,
+                           "invalid wl_surface object");
+    return;
+  }
   wl_resource* inh =
       wl_resource_create(client, &zwp_idle_inhibitor_v1_interface,
                          wl_resource_get_version(res), id);
@@ -2654,8 +2708,12 @@ static void presentation_feedback(wl_client* client,
                                   wl_resource* res,
                                   wl_resource* surface_res,
                                   uint32_t callback) {
-  Surface* s =
-      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  Surface* s = surface_of(surface_res);
+  if (s == nullptr) {
+    wl_resource_post_error(res, WL_DISPLAY_ERROR_INVALID_OBJECT,
+                           "invalid wl_surface object");
+    return;
+  }
   wl_resource* fb =
       wl_resource_create(client, &wp_presentation_feedback_interface,
                          wl_resource_get_version(res), callback);
@@ -2752,8 +2810,7 @@ static void activation_manager_activate(wl_client* client,
                                         wl_resource* surface_res) {
   OasisCompositor* c =
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
-  Surface* s =
-      static_cast<Surface*>(wl_resource_get_user_data(surface_res));
+  Surface* s = surface_of(surface_res);
   if (s == nullptr || s->announced != SURFACE_TOPLEVEL) return;
   if (c->activation_tokens.erase(token) == 0) return;
   FlValue* m = new_event("activate");
@@ -2991,9 +3048,16 @@ static void primary_device_set_selection(wl_client* client,
   c->primary_source = source;
   c->primary_mimes.clear();
   if (source != nullptr) {
-    c->primary_mimes =
-        static_cast<PrimarySource*>(wl_resource_get_user_data(source))
-            ->mimes;
+    PrimarySource* ps =
+        wl_resource_instance_of(
+            source, &zwp_primary_selection_source_v1_interface,
+            &primary_source_impl)
+            ? static_cast<PrimarySource*>(
+                  wl_resource_get_user_data(source))
+            : nullptr;
+    if (ps == nullptr) c->primary_source = nullptr;
+    c->primary_mimes = ps != nullptr ? ps->mimes
+                                     : std::vector<std::string>{};
   }
   for (wl_resource* dev : c->primary_devices) {
     send_primary_selection(c, dev);
