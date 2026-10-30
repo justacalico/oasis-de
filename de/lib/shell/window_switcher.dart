@@ -21,50 +21,53 @@ class WindowSwitcher extends StatelessWidget {
           borderRadius: 18,
           blur: 40,
           padding: const EdgeInsets.all(10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final (i, w) in wins.indexed)
-                GestureDetector(
-                  onTap: () => c.selectSwitcherWindow(w.id),
-                  child: Semantics(
-                    button: true,
-                    label: w.displayTitle,
-                    child: Container(
-                      width: 150,
-                      margin: const EdgeInsets.all(6),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: i == selected
-                            ? Colors.white.withValues(alpha: 0.16)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          OasisAppIcon(
-                            icon: w.app.icon,
-                            colors: w.app.iconColors,
-                            iconPath: w.app.iconPath,
-                            size: 36,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            w.displayTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ],
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final (i, w) in wins.indexed)
+                  GestureDetector(
+                    onTap: () => c.selectSwitcherWindow(w.id),
+                    child: Semantics(
+                      button: true,
+                      label: w.displayTitle,
+                      child: Container(
+                        width: 150,
+                        margin: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: i == selected
+                              ? Colors.white.withValues(alpha: 0.16)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            OasisAppIcon(
+                              icon: w.app.icon,
+                              colors: w.app.iconColors,
+                              iconPath: w.app.iconPath,
+                              size: 36,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              w.displayTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

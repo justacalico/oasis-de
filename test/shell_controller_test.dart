@@ -308,7 +308,7 @@ void main() {
     c.dispose();
   });
 
-  test('cycleWindows focuses next visible window', () {
+  test('cycleWindows selects and commits the next visible window', () {
     final c = _controller();
     c.cycleWindows();
     c.openApp(c.apps[0]);
@@ -316,11 +316,14 @@ void main() {
     final w1 = c.windows[0];
     final w2 = c.windows[1];
     c.cycleWindows();
+    c.commitSwitcher();
     expect(c.focusedId, w1.id);
     c.cycleWindows();
+    c.commitSwitcher();
     expect(c.focusedId, w2.id);
     w1.minimized = true;
     c.cycleWindows();
+    c.commitSwitcher();
     expect(c.focusedId, w2.id);
     c.dispose();
   });

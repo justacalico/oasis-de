@@ -46,13 +46,26 @@ class _DesktopShellState extends State<DesktopShell> {
   void initState() {
     super.initState();
     _requestSub = controller.wayland?.requests.listen(_onWaylandRequest);
+    HardwareKeyboard.instance.addHandler(_onAltRelease);
   }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onAltRelease);
     _requestSub?.cancel();
     _pointerPos.dispose();
     super.dispose();
+  }
+
+  bool _onAltRelease(KeyEvent event) {
+    if (event is KeyUpEvent &&
+        (event.logicalKey == LogicalKeyboardKey.altLeft ||
+            event.logicalKey == LogicalKeyboardKey.altRight) &&
+        controller.switcherIndex != null) {
+      controller.commitSwitcher();
+      return true;
+    }
+    return false;
   }
 
   void _onWaylandRequest(WaylandRequest request) {
@@ -97,7 +110,8 @@ class _DesktopShellState extends State<DesktopShell> {
               LogicalKeyboardKey.tab,
               alt: true,
               shift: true,
-            ): () => controller.cycleWindows(backwards: true),
+            ): () =>
+                controller.cycleWindows(backwards: true),
             const SingleActivator(LogicalKeyboardKey.escape): () {
               controller.closeSwitcher();
               controller.closeOverlays();
@@ -232,9 +246,7 @@ class _DesktopShellState extends State<DesktopShell> {
                     child: GestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onTap: controller.toggleNotificationCenter,
-                      child: NotificationCenterPanel(
-                        controller: controller,
-                      ),
+                      child: NotificationCenterPanel(controller: controller),
                     ),
                   ),
                 if (controller.switcherIndex != null)
@@ -277,9 +289,7 @@ class _DesktopShellState extends State<DesktopShell> {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    child: Center(
-                      child: ShellDock(controller: controller),
-                    ),
+                    child: Center(child: ShellDock(controller: controller)),
                   ),
                 if (controller.launcherOpen)
                   Positioned.fill(child: ShellLauncher(controller: controller)),
@@ -417,9 +427,10 @@ class _DesktopShellState extends State<DesktopShell> {
     final base = w.fullscreen
         ? Offset.zero
         : w.zoomed
-            ? const Offset(0, kMenuBarHeight + 4)
-            : w.position;
-    var pos = base +
+        ? const Offset(0, kMenuBarHeight + 4)
+        : w.position;
+    var pos =
+        base +
         (w.fullscreen
             ? Offset.zero
             : const Offset(0, kOasisWindowTitleBarHeight)) +
@@ -433,10 +444,7 @@ class _DesktopShellState extends State<DesktopShell> {
   }
 
   Size _defaultWindowSize(Size screen) => Size(
-    math.min(
-      (screen.width * 0.62).clamp(kMinWindowWidth, 940.0),
-      screen.width,
-    ),
+    math.min((screen.width * 0.62).clamp(kMinWindowWidth, 940.0), screen.width),
     math.min(
       (screen.height * 0.62).clamp(kMinWindowHeight, 720.0),
       screen.height,
