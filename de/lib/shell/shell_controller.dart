@@ -46,6 +46,7 @@ class ShellWindowData {
   Rect? preSnapRect;
   var workspace = 0;
   var transition = ShellWindowTransition.none;
+  var animateGeom = false;
   WaylandSurface? surface;
   var launching = false;
   Timer? launchTimer;
@@ -518,6 +519,7 @@ class ShellController extends ChangeNotifier {
     if (w == null) return;
     w.fullscreen = !w.fullscreen;
     w.adoptedSize = w.surface?.size;
+    w.animateGeom = true;
     notifyListeners();
   }
 
@@ -526,6 +528,7 @@ class ShellController extends ChangeNotifier {
     if (window == null) return;
     window.zoomed = !window.zoomed;
     window.adoptedSize = window.surface?.size;
+    window.animateGeom = true;
     notifyListeners();
   }
 
@@ -556,6 +559,7 @@ class ShellController extends ChangeNotifier {
         window.transition != ShellWindowTransition.none) {
       return;
     }
+    window.animateGeom = false;
     if (window.zoomed) {
       window.zoomed = false;
       window.position = Offset(
@@ -589,6 +593,7 @@ class ShellController extends ChangeNotifier {
         window.transition != ShellWindowTransition.none) {
       return;
     }
+    window.animateGeom = false;
     var minW = kMinWindowWidth;
     var minH = kMinWindowHeight;
     var maxW = double.infinity;
@@ -636,6 +641,7 @@ class ShellController extends ChangeNotifier {
       if (!w.zoomed) {
         w.zoomed = true;
         w.adoptedSize = w.surface?.size;
+        w.animateGeom = true;
         notifyListeners();
       }
     } else if (pointer.dx <= 8 || pointer.dx >= screen.width - 8) {
@@ -652,7 +658,8 @@ class ShellController extends ChangeNotifier {
         ..fullscreen = false
         ..size = Size(screen.width / 2, screen.height - kMenuBarHeight - 8)
         ..position = Offset(left ? 0 : screen.width / 2, kMenuBarHeight + 4)
-        ..adoptedSize = w.surface?.size;
+        ..adoptedSize = w.surface?.size
+        ..animateGeom = true;
       notifyListeners();
     }
   }
