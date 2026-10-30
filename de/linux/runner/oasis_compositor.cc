@@ -552,6 +552,7 @@ static void surface_commit(Surface* s) {
       if (s->texture != nullptr && s->iw > 0 && s->ih > 0) {
         oasis_texture_push(s->texture, s->img, s->iw, s->ih);
       }
+      wl_buffer_send_release(b);
     }
   }
   finish_frames(s);
