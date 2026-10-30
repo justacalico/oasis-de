@@ -847,6 +847,7 @@ class ShellController extends ChangeNotifier {
 
   void cycleWindows({bool backwards = false}) {
     _switcherList ??= [...windows];
+    _switcherList!.removeWhere((w) => !windows.contains(w));
     final visible = switcherWindows;
     if (visible.isEmpty) {
       closeSwitcher();
@@ -861,7 +862,16 @@ class ShellController extends ChangeNotifier {
     }
     _switcherIndex =
         ((idx % visible.length) + visible.length) % visible.length;
-    _focus(visible[_switcherIndex!].id);
+    notifyListeners();
+  }
+
+  void commitSwitcher() {
+    final visible = switcherWindows;
+    final idx = _switcherIndex;
+    if (idx != null && idx < visible.length) {
+      focusWindow(visible[idx].id);
+    }
+    closeSwitcher();
   }
 
   void closeSwitcher() {

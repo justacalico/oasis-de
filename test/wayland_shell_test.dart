@@ -1189,12 +1189,12 @@ void main() {
     expect(c.switcherIndex, isNull);
     c.cycleWindows();
     expect(c.switcherIndex, isNotNull);
-    final first = c.focusedWindow;
+    final first = c.switcherIndex;
     c.cycleWindows();
-    expect(c.focusedWindow, isNot(first));
+    expect(c.switcherIndex, isNot(first));
     c.cycleWindows(backwards: true);
-    expect(c.focusedWindow, first);
-    c.closeSwitcher();
+    expect(c.switcherIndex, first);
+    c.commitSwitcher();
     expect(c.switcherIndex, isNull);
     c.closeSwitcher();
     c.cycleWindows(backwards: true);
