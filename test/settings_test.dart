@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -235,6 +238,47 @@ void main() {
     service.check();
     await tester.pump();
     expect(find.text('Checking for updates…'), findsOneWidget);
+    service.dispose();
+  });
+
+  testWidgets('update tile installs a verifiable asset', (tester) async {
+    final bytes = utf8.encode('pkg');
+    final hex = sha256.convert(bytes).toString();
+    final service = UpdateService(
+      checker: _FakeChecker(
+        const AppUpdate(
+          latestVersion: '2.0.0',
+          updateAvailable: true,
+          releaseUrl: 'https://r',
+          asset: UpdateAsset(
+            name: 'oasis.deb',
+            url: 'https://x/oasis.deb',
+            checksumUrl: 'https://x/sums',
+          ),
+        ),
+      ),
+      currentVersion: () async => '1.0.0',
+      downloader: (uri) async =>
+          uri.path.endsWith('sums') ? utf8.encode(hex) : bytes,
+      writeFile: (_, __) async {},
+      installer: (_) async => true,
+    );
+    await pumpOasis(
+      tester,
+      OasisHost(
+        appearance: OasisAppearance(),
+        updates: service,
+        setLocale: (_) {},
+        child: UpdateCheckTile(service: service),
+      ),
+    );
+    await service.check();
+    await tester.pump();
+    expect(find.text('Install'), findsOneWidget);
+    await tester.tap(find.text('Install'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Update installed'), findsOneWidget);
     service.dispose();
   });
 

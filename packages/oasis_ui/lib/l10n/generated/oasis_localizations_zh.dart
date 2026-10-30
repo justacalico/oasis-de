@@ -143,6 +143,18 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get updateAllReleases => '所有发布';
 
   @override
+  String get updateInstall => '安装';
+
+  @override
+  String get updateInstalling => '正在下载并安装…';
+
+  @override
+  String get updateInstalled => '更新已安装';
+
+  @override
+  String get updateInstallFailed => '无法安装更新';
+
+  @override
   String get settingsTitle => '设置';
 
   @override

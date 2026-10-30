@@ -45,25 +45,58 @@ class UpdateCheckTile extends StatelessWidget {
         } else if (update == null) {
           status = const SizedBox.shrink();
         } else if (update.updateAvailable) {
+          final asset = update.asset;
           status = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(l10n.updateAvailable(update.latestVersion),
                   style: text.bodySmall),
+              if (service.installing) ...[
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: p.accent),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(l10n.updateInstalling, style: text.bodySmall),
+                  ],
+                ),
+              ] else if (service.installDone) ...[
+                const SizedBox(height: 6),
+                Text(l10n.updateInstalled, style: text.bodySmall),
+              ] else if (service.installFailed) ...[
+                const SizedBox(height: 6),
+                Text(l10n.updateInstallFailed, style: text.bodySmall),
+              ],
               const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
                 runSpacing: 6,
                 children: [
+                  if (asset != null && asset.verifiable)
+                    OasisButton(
+                      label: l10n.updateInstall,
+                      dense: true,
+                      onPressed: service.installing
+                          ? null
+                          : () => service.install(),
+                    ),
                   OasisButton(
                     label: l10n.updateViewRelease,
+                    variant: asset != null && asset.verifiable
+                        ? OasisButtonVariant.text
+                        : OasisButtonVariant.primary,
                     dense: true,
                     onPressed: onOpenUrl == null
                         ? null
                         : () => onOpenUrl!(update.releaseUrl),
                   ),
-                  const SizedBox(width: 8),
                   OasisButton(
                     label: l10n.updateAllReleases,
                     variant: OasisButtonVariant.text,

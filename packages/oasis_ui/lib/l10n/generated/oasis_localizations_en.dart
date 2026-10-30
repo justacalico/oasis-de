@@ -143,6 +143,18 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get updateAllReleases => 'All releases';
 
   @override
+  String get updateInstall => 'Install';
+
+  @override
+  String get updateInstalling => 'Downloading and installing…';
+
+  @override
+  String get updateInstalled => 'Update installed';
+
+  @override
+  String get updateInstallFailed => 'Couldn\'t install the update';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

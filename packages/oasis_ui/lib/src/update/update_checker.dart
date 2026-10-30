@@ -55,6 +55,7 @@ class UpdateChecker {
         latestVersion: latestVersion.toString(),
         updateAvailable: true,
         releaseUrl: releaseUrl,
+        asset: latest.asset,
       );
     }
 
@@ -63,7 +64,19 @@ class UpdateChecker {
       latestVersion: latestVersion.toString(),
       updateAvailable: latestVersion.compareTo(current) > 0,
       releaseUrl: releaseUrl,
+      asset: latest.asset,
     );
+  }
+
+  Future<List<int>> fetch(Uri uri) async {
+    final client = _client ??= http.Client();
+    final response = await client
+        .get(uri)
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode != 200) {
+      throw VersionCheckException('HTTP ${response.statusCode}');
+    }
+    return response.bodyBytes;
   }
 
   void close() {
@@ -73,11 +86,13 @@ class UpdateChecker {
     }
   }
 
-  Future<({Version version, String tag})?> _fetchLatestRelease({
+  Future<({Version version, String tag, UpdateAsset? asset})?>
+      _fetchLatestRelease({
     bool allowPrerelease = false,
   }) async {
     Version? maxVersion;
     String? maxTag;
+    UpdateAsset? maxAsset;
     for (var page = 1; page <= _maxPages; page++) {
       final uri = Uri(
         scheme: 'https',
@@ -116,6 +131,7 @@ class UpdateChecker {
           if (maxVersion == null || version.compareTo(maxVersion) > 0) {
             maxVersion = version;
             maxTag = tag;
+            maxAsset = _releaseAsset(release);
           }
         }
 
@@ -127,7 +143,44 @@ class UpdateChecker {
     }
 
     if (maxVersion == null || maxTag == null) return null;
-    return (version: maxVersion, tag: maxTag);
+    return (version: maxVersion, tag: maxTag, asset: maxAsset);
+  }
+
+  static const _packageSuffixes = [
+    '.deb',
+    '.rpm',
+    '.pkg.tar.zst',
+  ];
+
+  UpdateAsset? _releaseAsset(Map<String, dynamic> release) {
+    final assets = release['assets'];
+    if (assets is! Map<String, dynamic>) return null;
+    final links = assets['links'];
+    if (links is! List<dynamic>) return null;
+
+    String? checksum;
+    final packages = <({String name, String url})>[];
+    for (final link in links) {
+      if (link is! Map<String, dynamic>) continue;
+      final name = link['name'];
+      final url = link['direct_asset_url'] ?? link['url'];
+      if (name is! String || url is! String) continue;
+      final lower = name.toLowerCase();
+      if (lower.endsWith('.sha256') ||
+          lower == 'sha256sums' ||
+          lower == 'sha256sums.txt') {
+        checksum = url;
+      } else if (_packageSuffixes.any(lower.endsWith)) {
+        packages.add((name: name, url: url));
+      }
+    }
+    if (packages.isEmpty) return null;
+    final pkg = packages.first;
+    return UpdateAsset(
+      name: pkg.name,
+      url: pkg.url,
+      checksumUrl: checksum,
+    );
   }
 
   String _releaseUrl(String tag) =>

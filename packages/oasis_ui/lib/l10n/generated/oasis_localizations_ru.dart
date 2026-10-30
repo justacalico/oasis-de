@@ -144,6 +144,18 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get updateAllReleases => 'Все релизы';
 
   @override
+  String get updateInstall => 'Установить';
+
+  @override
+  String get updateInstalling => 'Загрузка и установка…';
+
+  @override
+  String get updateInstalled => 'Обновление установлено';
+
+  @override
+  String get updateInstallFailed => 'Не удалось установить обновление';
+
+  @override
   String get settingsTitle => 'Настройки';
 
   @override

@@ -354,6 +354,30 @@ abstract class OasisLocalizations {
   /// **'All releases'**
   String get updateAllReleases;
 
+  /// No description provided for @updateInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Install'**
+  String get updateInstall;
+
+  /// No description provided for @updateInstalling.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading and installing…'**
+  String get updateInstalling;
+
+  /// No description provided for @updateInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Update installed'**
+  String get updateInstalled;
+
+  /// No description provided for @updateInstallFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t install the update'**
+  String get updateInstallFailed;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
