@@ -43,7 +43,7 @@ class AboutWindow extends StatelessWidget {
             child: host == null
                 ? null
                 : UpdateCheckTile(
-                    service: host.updates, onOpenUrl: host.openUrl),
+                    service: host.updates!, onOpenUrl: host.openUrl),
           ),
         ],
       ),

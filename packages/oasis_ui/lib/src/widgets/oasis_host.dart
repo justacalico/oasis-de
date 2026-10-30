@@ -7,7 +7,7 @@ class OasisHost extends InheritedWidget {
   const OasisHost({
     super.key,
     required this.appearance,
-    required this.updates,
+    this.updates,
     required this.setLocale,
     this.locale,
     this.openUrl,
@@ -15,7 +15,7 @@ class OasisHost extends InheritedWidget {
   });
 
   final OasisAppearance appearance;
-  final UpdateService updates;
+  final UpdateService? updates;
   final ValueChanged<Locale?> setLocale;
   final Locale? locale;
   final ValueChanged<String>? openUrl;
