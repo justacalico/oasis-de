@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../services/user_agent.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import '../services/release_client.dart';
@@ -27,6 +29,46 @@ class _DownloadsSectionState extends State<DownloadsSection> {
   }
 
   void _retry() => setState(() => _future = widget.client.latest());
+
+  String _archOf(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('aarch64') || n.contains('arm64')) return 'ARM64';
+    if (n.contains('x86_64') || n.contains('amd64')) return 'x86_64';
+    return '';
+  }
+
+  String _formatOf(String name) {
+    final n = name.toLowerCase();
+    if (n.endsWith('.deb')) return 'DEB';
+    if (n.endsWith('.rpm')) return 'RPM';
+    if (n.contains('appimage')) return 'AppImage';
+    if (n.contains('flatpak')) return 'Flatpak';
+    if (n.contains('.pkg.tar')) return 'Pacman';
+    if (n.endsWith('.tar.gz') || n.endsWith('.tgz')) return 'Tarball';
+    if (n.endsWith('.zip')) return 'ZIP';
+    return 'Binary';
+  }
+
+  int _primaryIndex(List<ReleaseAsset> assets) {
+    final ua = (webUserAgent() ?? '').toLowerCase();
+    final preferArm = ua.contains('arm') || ua.contains('aarch64');
+    var best = 0;
+    var bestScore = -99;
+    for (var i = 0; i < assets.length; i++) {
+      final n = assets[i].name.toLowerCase();
+      final arm = n.contains('aarch64') || n.contains('arm64');
+      final x64 = n.contains('x86_64') || n.contains('amd64');
+      var score = 0;
+      if (preferArm ? arm : x64) score += 2;
+      if (preferArm ? x64 : arm) score -= 2;
+      if (n.endsWith('.deb')) score += 1;
+      if (score > bestScore) {
+        bestScore = score;
+        best = i;
+      }
+    }
+    return best;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,10 +126,13 @@ class _DownloadsSectionState extends State<DownloadsSection> {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
-                    for (final asset in latest.assets)
+                    for (final (i, asset) in latest.assets.indexed)
                       OasisButton(
-                        label: asset.name,
-                        variant: OasisButtonVariant.secondary,
+                        label:
+                            '${_formatOf(asset.name)}${_archOf(asset.name).isEmpty ? '' : ' · ${_archOf(asset.name)}'}',
+                        variant: i == _primaryIndex(latest.assets)
+                            ? OasisButtonVariant.primary
+                            : OasisButtonVariant.secondary,
                         onPressed: widget.onOpenUrl == null
                             ? null
                             : () => widget.onOpenUrl!(asset.url),
