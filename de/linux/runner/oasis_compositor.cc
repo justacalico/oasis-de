@@ -577,7 +577,6 @@ static void surface_commit(Surface* s) {
     surface_set_dmabuf(s, nullptr);
   }
   s->attach_requested = false;
-  finish_frames(s);
   if (s->announced != SURFACE_NONE) {
     emit_size(s);
   }
@@ -592,6 +591,7 @@ static void surface_commit(Surface* s) {
     }
     if (s == s->comp->cursor_surface) emit_cursor(s->comp);
   }
+  finish_frames(s);
   send_presented(s);
 }
 
@@ -793,6 +793,10 @@ static void free_surface(Surface* s) {
   for (wl_resource* fb : s->presentation_feedbacks) {
     wl_resource_set_user_data(fb, nullptr);
   }
+  for (wl_resource* cb : s->frames) {
+    wl_resource_destroy(cb);
+  }
+  s->frames.clear();
   for (wl_resource* vp : s->viewports) {
     wl_resource_set_user_data(vp, nullptr);
   }
