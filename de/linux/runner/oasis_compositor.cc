@@ -2940,15 +2940,37 @@ static void bind_presentation(wl_client* client,
 
 // xdg_activation_v1
 
+struct ActivationToken {
+  OasisCompositor* c;
+  wl_client* client;
+  Surface* surface;
+  uint32_t serial;
+  bool has_serial;
+};
+
+static void activation_token_res_destroyed(wl_resource* res) {
+  delete static_cast<ActivationToken*>(wl_resource_get_user_data(res));
+}
+
 static void activation_token_destroy(wl_client* client,
                                      wl_resource* res) {
   wl_resource_destroy(res);
 }
 
-static void activation_token_noop(wl_client* client,
-                                  wl_resource* res,
-                                  uint32_t serial,
-                                  wl_resource* seat) {}
+static void activation_token_set_serial(wl_client* client,
+                                        wl_resource* res,
+                                        uint32_t serial,
+                                        wl_resource* seat) {
+  ActivationToken* t =
+      static_cast<ActivationToken*>(wl_resource_get_user_data(res));
+  if (seat == nullptr ||
+      !wl_resource_instance_of(seat, &wl_seat_interface, &seat_impl) ||
+      wl_resource_get_client(seat) != client) {
+    return;
+  }
+  t->serial = serial;
+  t->has_serial = true;
+}
 
 static void activation_token_set_app_id(wl_client* client,
                                         wl_resource* res,
@@ -2956,23 +2978,33 @@ static void activation_token_set_app_id(wl_client* client,
 
 static void activation_token_set_surface(wl_client* client,
                                          wl_resource* res,
-                                         wl_resource* surface) {}
+                                         wl_resource* surface) {
+  ActivationToken* t =
+      static_cast<ActivationToken*>(wl_resource_get_user_data(res));
+  Surface* s = surface_of(surface);
+  if (s == nullptr || s->client != client) return;
+  t->surface = s;
+}
 
 static void activation_token_commit(wl_client* client,
                                     wl_resource* res) {
-  OasisCompositor* c =
-      static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  ActivationToken* t =
+      static_cast<ActivationToken*>(wl_resource_get_user_data(res));
+  if (!t->has_serial && t->surface == nullptr) {
+    wl_resource_destroy(res);
+    return;
+  }
   char token[17];
   snprintf(token, sizeof(token), "%08x%08x", (unsigned)rand(),
            (unsigned)now_ms());
-  c->activation_tokens.insert(token);
+  t->c->activation_tokens.insert(token);
   xdg_activation_token_v1_send_done(res, token);
   wl_resource_destroy(res);
 }
 
 static const struct xdg_activation_token_v1_interface
     activation_token_impl = {
-        activation_token_noop,
+        activation_token_set_serial,
         activation_token_set_app_id,
         activation_token_set_surface,
         activation_token_commit,
@@ -2989,8 +3021,14 @@ static void activation_manager_get_token(wl_client* client,
   wl_resource* tok =
       wl_resource_create(client, &xdg_activation_token_v1_interface,
                          wl_resource_get_version(res), id);
-  wl_resource_set_implementation(tok, &activation_token_impl,
-                                 wl_resource_get_user_data(res), nullptr);
+  ActivationToken* t = new ActivationToken{
+      static_cast<OasisCompositor*>(wl_resource_get_user_data(res)),
+      client,
+      nullptr,
+      0,
+      false};
+  wl_resource_set_implementation(tok, &activation_token_impl, t,
+                                 activation_token_res_destroyed);
 }
 
 static void activation_manager_activate(wl_client* client,
@@ -3001,6 +3039,7 @@ static void activation_manager_activate(wl_client* client,
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
   Surface* s = surface_of(surface_res);
   if (s == nullptr || s->announced != SURFACE_TOPLEVEL) return;
+  if (s->client != client) return;
   if (c->activation_tokens.erase(token) == 0) return;
   FlValue* m = new_event("activate");
   ev_id(m, s->public_id);
