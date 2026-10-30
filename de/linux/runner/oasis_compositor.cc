@@ -3787,6 +3787,24 @@ static bool display_start(OasisCompositor* c, GError** error) {
 
 // spawn
 
+static void launch_reap(GPid pid, gint status, gpointer data) {
+  g_spawn_close_pid(pid);
+}
+
+static void spawn_child(gchar** argv, gchar** env) {
+  g_autoptr(GError) err = nullptr;
+  GPid pid = 0;
+  if (!g_spawn_async(g_get_home_dir(), argv, env,
+                     static_cast<GSpawnFlags>(G_SPAWN_SEARCH_PATH |
+                                              G_SPAWN_DO_NOT_REAP_CHILD),
+                     nullptr, nullptr, &pid, &err)) {
+    g_warning("oasis: failed to launch %s: %s", argv[0],
+              err != nullptr ? err->message : "unknown error");
+    return;
+  }
+  g_child_watch_add(pid, launch_reap, nullptr);
+}
+
 static void launch_app(OasisCompositor* c, FlValue* args) {
   if (c->socket_name == nullptr) return;
   FlValue* list = fl_value_lookup_string(args, "argv");
@@ -3814,6 +3832,8 @@ static void launch_app(OasisCompositor* c, FlValue* args) {
                          TRUE);
   env = g_environ_setenv(env, "SDL_VIDEODRIVER", "wayland", TRUE);
   env = g_environ_setenv(env, "XDG_SESSION_TYPE", "wayland", TRUE);
+  env = g_environ_setenv(env, "XDG_CURRENT_DESKTOP", "oasis", TRUE);
+  env = g_environ_setenv(env, "XDG_SESSION_DESKTOP", "oasis", TRUE);
   env = g_environ_setenv(env, "MOZ_ENABLE_WAYLAND", "1", TRUE);
   env = g_environ_setenv(env, "WINIT_UNIX_BACKEND", "wayland", TRUE);
   env = g_environ_setenv(env, "CLUTTER_BACKEND", "wayland", TRUE);
@@ -3831,16 +3851,10 @@ static void launch_app(OasisCompositor* c, FlValue* args) {
       g_ptr_array_add(scoped, argv->pdata[i]);
     }
     g_ptr_array_add(scoped, nullptr);
-    g_spawn_async(nullptr,
-                  reinterpret_cast<gchar**>(scoped->pdata), env,
-                  static_cast<GSpawnFlags>(G_SPAWN_SEARCH_PATH),
-                  nullptr, nullptr, nullptr, nullptr);
+    spawn_child(reinterpret_cast<gchar**>(scoped->pdata), env);
     return;
   }
-  g_spawn_async(nullptr,
-                reinterpret_cast<gchar**>(argv->pdata), env,
-                static_cast<GSpawnFlags>(G_SPAWN_SEARCH_PATH),
-                nullptr, nullptr, nullptr, nullptr);
+  spawn_child(reinterpret_cast<gchar**>(argv->pdata), env);
 }
 
 static Surface* surface_by_id(OasisCompositor* c, FlValue* args) {
