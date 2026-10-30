@@ -2,6 +2,22 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.7.0 - 2026-10-30
+#### Features
+- 新增 KMS 直出运行目标与 CI wlroots 依赖 - (be65cf0) - calico
+- 用 wlroots 重写合成器核心 - (e1bf86e) - calico
+#### Tests
+- 更新协议契约测试扫描新合成器目录 - (a3014e8) - calico
+#### Continuous Integration
+- wlroots 安装后刷新动态链接器缓存 - (baf01f7) - calico
+- 从源码构建 pixman 0.44 - (b6eb37f) - calico
+- 从源码构建 wayland 1.23 以满足 wlroots 版本要求 - (27875a6) - calico
+- 补齐 wayland 与 xkbcommon 开发包 - (14667b6) - calico
+- 移除无效的 meson tests 参数 - (b246933) - calico
+- 修正 wlroots 依赖安装与 meson 构建参数 - (bb06709) - calico
+
+- - -
+
 ## v0.6.0 - 2026-10-30
 #### Other changes
 - Merge branch 'fix/ci-regressions' [skip ci] - (4e76fd9) - calico

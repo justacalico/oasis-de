@@ -1,7 +1,7 @@
 name: oasis_ui
 description: The Oasis design system. Themes, glass surfaces, controls and window chrome shared by the desktop and every bundled app.
 resolution: workspace
-version: 0.6.0
+version: 0.7.0
 publish_to: none
 
 environment:
