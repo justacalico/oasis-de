@@ -105,6 +105,8 @@ class WaylandService extends ChangeNotifier {
   var socket = '';
   var started = false;
   bool _starting = false;
+  Timer? _retryTimer;
+  Completer<void>? _retryWait;
 
   Stream<WaylandRequest> get requests => _requests.stream;
   bool get available => socket.isNotEmpty;
@@ -129,7 +131,14 @@ class WaylandService extends ChangeNotifier {
           notifyListeners();
           return;
         }
-        await Future.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+        _retryWait = Completer<void>();
+        _retryTimer = Timer(
+          Duration(milliseconds: 400 * (attempt + 1)),
+          () => _retryWait?.complete(),
+        );
+        await _retryWait!.future;
+        _retryTimer = null;
+        _retryWait = null;
       }
     } finally {
       _starting = false;
@@ -393,6 +402,10 @@ class WaylandService extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _retryTimer?.cancel();
+    if (_retryWait != null && !_retryWait!.isCompleted) {
+      _retryWait!.complete();
+    }
     _sub?.cancel();
     _requests.close();
     super.dispose();
