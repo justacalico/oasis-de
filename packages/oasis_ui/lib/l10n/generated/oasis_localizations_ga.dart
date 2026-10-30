@@ -88,6 +88,27 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get ccDarkMode => 'Mód Dorcha';
 
   @override
+  String get aboutDeviceName => 'Ainm an ghléis';
+
+  @override
+  String get aboutOs => 'Córas oibriúcháin';
+
+  @override
+  String get aboutKernel => 'Eithne';
+
+  @override
+  String get aboutCpu => 'Próiseálaí';
+
+  @override
+  String get aboutMemory => 'Cuimhne';
+
+  @override
+  String get aboutDisk => 'Diosca';
+
+  @override
+  String get aboutGpu => 'Grafaicí';
+
+  @override
   String get aboutTagline =>
       'Timpeallacht deisce shochréatach ghloineach do Linux.';
 

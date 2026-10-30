@@ -88,6 +88,27 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get ccDarkMode => 'Тёмная тема';
 
   @override
+  String get aboutDeviceName => 'Имя устройства';
+
+  @override
+  String get aboutOs => 'Операционная система';
+
+  @override
+  String get aboutKernel => 'Ядро';
+
+  @override
+  String get aboutCpu => 'Процессор';
+
+  @override
+  String get aboutMemory => 'Память';
+
+  @override
+  String get aboutDisk => 'Диск';
+
+  @override
+  String get aboutGpu => 'Графика';
+
+  @override
   String get aboutTagline =>
       'Спокойная стеклянная среда рабочего стола для Linux.';
 

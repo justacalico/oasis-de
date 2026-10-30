@@ -88,6 +88,27 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get ccDarkMode => 'Dark Mode';
 
   @override
+  String get aboutDeviceName => 'Device name';
+
+  @override
+  String get aboutOs => 'Operating system';
+
+  @override
+  String get aboutKernel => 'Kernel';
+
+  @override
+  String get aboutCpu => 'Processor';
+
+  @override
+  String get aboutMemory => 'Memory';
+
+  @override
+  String get aboutDisk => 'Disk';
+
+  @override
+  String get aboutGpu => 'Graphics';
+
+  @override
   String get aboutTagline => 'A calm, glassy desktop environment for Linux.';
 
   @override

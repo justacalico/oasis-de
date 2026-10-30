@@ -252,6 +252,48 @@ abstract class OasisLocalizations {
   /// **'Dark Mode'**
   String get ccDarkMode;
 
+  /// No description provided for @aboutDeviceName.
+  ///
+  /// In en, this message translates to:
+  /// **'Device name'**
+  String get aboutDeviceName;
+
+  /// No description provided for @aboutOs.
+  ///
+  /// In en, this message translates to:
+  /// **'Operating system'**
+  String get aboutOs;
+
+  /// No description provided for @aboutKernel.
+  ///
+  /// In en, this message translates to:
+  /// **'Kernel'**
+  String get aboutKernel;
+
+  /// No description provided for @aboutCpu.
+  ///
+  /// In en, this message translates to:
+  /// **'Processor'**
+  String get aboutCpu;
+
+  /// No description provided for @aboutMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory'**
+  String get aboutMemory;
+
+  /// No description provided for @aboutDisk.
+  ///
+  /// In en, this message translates to:
+  /// **'Disk'**
+  String get aboutDisk;
+
+  /// No description provided for @aboutGpu.
+  ///
+  /// In en, this message translates to:
+  /// **'Graphics'**
+  String get aboutGpu;
+
   /// No description provided for @aboutTagline.
   ///
   /// In en, this message translates to:
