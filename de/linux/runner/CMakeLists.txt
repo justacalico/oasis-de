@@ -32,6 +32,7 @@ set(VENDORED_PROTOCOLS
   "idle-inhibit-unstable-v1"
   "presentation-time"
   "primary-selection-unstable-v1"
+  "tablet-unstable-v2"
   "text-input-unstable-v3"
   "xdg-activation-v1"
 )

@@ -45,6 +45,8 @@
 #include "xdg-shell-server-protocol.h"
 
 
+struct Surface;
+extern const struct xdg_toplevel_interface toplevel_impl;
 static bool is_dmabuf_buffer(wl_resource* b);
 static void emit_cursor(struct _OasisCompositor* c);
 static void emit_toplevel(struct _OasisCompositor* c, Surface* s);
@@ -552,7 +554,10 @@ static void surface_set_dmabuf(Surface* s, DmabufBuf* db) {
 }
 
 static void pending_buffer_destroyed(wl_listener* listener, void* data) {
+  _Pragma("GCC diagnostic push")
+  _Pragma("GCC diagnostic ignored \"-Winvalid-offsetof\"")
   Surface* s = wl_container_of(listener, s, pending_buffer_destroy);
+  _Pragma("GCC diagnostic pop")
   wl_list_remove(&s->pending_buffer_destroy.link);
   wl_list_init(&s->pending_buffer_destroy.link);
   s->pending_buffer = nullptr;
@@ -3439,7 +3444,7 @@ static void deco_manager_get_decoration(wl_client* client,
   if (s == nullptr) return;
   if (s->deco_res != nullptr) {
     wl_resource_post_error(
-        res, ZXDG_DECORATION_MANAGER_V1_ERROR_ALREADY_CONSTRUCTED,
+        res, ZXDG_TOPLEVEL_DECORATION_V1_ERROR_ALREADY_CONSTRUCTED,
         "toplevel already has a decoration object");
     return;
   }
@@ -4265,25 +4270,26 @@ static void method_call_cb(FlMethodChannel* channel,
     if (state > WL_KEYBOARD_KEY_STATE_RELEASED) {
       response = FL_METHOD_RESPONSE(
           fl_method_error_response_new("invalidArgs", "bad key state", nullptr));
-      break;
-    }
-    uint32_t before = mods_mask(c);
-    if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-      c->pressed.insert(code);
     } else {
-      c->pressed.erase(code);
-    }
-    if (c->kb_focus != nullptr) {
-      SeatRes* st = seat_for(c, c->kb_focus->client, false);
-      if (st != nullptr && st->keyboard != nullptr) {
-        wl_keyboard_send_key(st->keyboard,
-                             wl_display_next_serial(c->display), now_ms(),
-                             code, state);
-        if (mods_mask(c) != before) send_modifiers(c);
+      uint32_t before = mods_mask(c);
+      if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        c->pressed.insert(code);
+      } else {
+        c->pressed.erase(code);
       }
+      if (c->kb_focus != nullptr) {
+        SeatRes* st = seat_for(c, c->kb_focus->client, false);
+        if (st != nullptr && st->keyboard != nullptr) {
+          wl_keyboard_send_key(st->keyboard,
+                               wl_display_next_serial(c->display), now_ms(),
+                               code, state);
+          if (mods_mask(c) != before) send_modifiers(c);
+        }
+      }
+      comp_flush(c);
+      response =
+          FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
     }
-    comp_flush(c);
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (g_strcmp0(name, "stop") == 0) {
     if (c->ping_timer != 0) g_source_remove(c->ping_timer);
     c->ping_timer = 0;

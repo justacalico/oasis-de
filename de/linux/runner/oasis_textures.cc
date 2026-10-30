@@ -214,7 +214,10 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
   }
   glBindTexture(GL_TEXTURE_2D, self->gl_name);
   image_target(GL_TEXTURE_2D, self->image);
-  if (glGetError() == GL_CONTEXT_LOST) {
+#ifndef EGL_CONTEXT_LOST
+#define EGL_CONTEXT_LOST 0x300E
+#endif
+  if (eglGetError() == EGL_CONTEXT_LOST) {
     self->gl_name = 0;
     self->image = EGL_NO_IMAGE;
     oasis_dmabuf_unref(self->img_buf);
