@@ -111,6 +111,7 @@
   "landingLoadingReleases": "Loading releases…",
   "landingNoReleases": "No releases yet",
   "landingReleasesFailed": "Couldn't load releases",
+  "landingRetry": "Retry",
   "landingAllReleases": "All releases on GitLab",
   "landingSource": "Source code",
   "landingFooter": "Free and open source, forever.",

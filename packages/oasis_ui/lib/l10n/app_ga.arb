@@ -111,6 +111,7 @@
   "landingLoadingReleases": "Eisiúintí á lódáil…",
   "landingNoReleases": "Eisiúint ar bith go fóil",
   "landingReleasesFailed": "Níorbh fhéidir eisiúintí a lódáil",
+  "landingRetry": "Atriail",
   "landingAllReleases": "Gach eisiúint ar GitLab",
   "landingSource": "Cód foinse",
   "landingFooter": "Saor in aisce agus foinse oscailte, go deo.",

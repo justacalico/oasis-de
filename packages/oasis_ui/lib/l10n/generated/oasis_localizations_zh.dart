@@ -266,6 +266,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get landingReleasesFailed => '无法加载发布';
 
   @override
+  String get landingRetry => '重试';
+
+  @override
   String get landingAllReleases => 'GitLab 上的所有发布';
 
   @override
