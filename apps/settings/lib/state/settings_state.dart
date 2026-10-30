@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
@@ -12,6 +14,16 @@ class SettingsState extends ChangeNotifier {
       : _store = store ?? MemorySettingsStore() {
     wifiOn = _store.read('shell.wifi') != '0';
     bluetoothOn = _store.read('shell.bluetooth') != '0';
+    unawaited(_hydrate());
+  }
+
+  Future<void> _hydrate() async {
+    final b = backend;
+    if (b == null) return;
+    final s = await b.read();
+    if (s.wifi != null) wifiOn = s.wifi!;
+    if (s.bluetooth != null) bluetoothOn = s.bluetooth!;
+    notifyListeners();
   }
 
   final SettingsStore _store;
