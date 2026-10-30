@@ -342,7 +342,9 @@ static void apply_buffer(Surface* s, wl_resource* buffer_res) {
   int h = wl_shm_buffer_get_height(b);
   int stride = wl_shm_buffer_get_stride(b);
   uint32_t fmt = wl_shm_buffer_get_format(b);
-  if (w <= 0 || h <= 0) {
+  if (w <= 0 || h <= 0 ||
+      (fmt != WL_SHM_FORMAT_ARGB8888 && fmt != WL_SHM_FORMAT_XRGB8888) ||
+      stride < w * 4) {
     s->pending_damage.clear();
     return;
   }
@@ -353,8 +355,8 @@ static void apply_buffer(Surface* s, wl_resource* buffer_res) {
     s->iw = w;
     s->ih = h;
   }
-  const uint8_t* src = static_cast<const uint8_t*>(wl_shm_buffer_get_data(b));
   wl_shm_buffer_begin_access(b);
+  const uint8_t* src = static_cast<const uint8_t*>(wl_shm_buffer_get_data(b));
   bool copied = false;
   if (!fresh && s->transform == 0 && !s->pending_damage.empty()) {
     for (const auto& d : s->pending_damage) {
