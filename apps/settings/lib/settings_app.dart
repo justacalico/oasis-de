@@ -14,6 +14,7 @@ class OasisSettingsApp extends StatefulWidget {
     this.appearance,
     this.wallpaper,
     this.state,
+    this.locale,
   });
 
   final String version;
@@ -22,6 +23,7 @@ class OasisSettingsApp extends StatefulWidget {
   final OasisAppearance? appearance;
   final OasisWallpaperService? wallpaper;
   final SettingsState? state;
+  final Locale? locale;
 
   @override
   State<OasisSettingsApp> createState() => _OasisSettingsAppState();
@@ -42,6 +44,7 @@ class _OasisSettingsAppState extends State<OasisSettingsApp> {
       checker: widget.updateChecker,
       currentVersion: () async => widget.version,
     );
+    _locale = widget.locale;
   }
 
   @override

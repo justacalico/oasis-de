@@ -123,6 +123,37 @@ void main() {
       isNull,
     );
     expect((await NoopSystemBackend().battery()).level, isNull);
+    expect(
+      (await NoopSystemBackend().systemInfo()).kernel,
+      isEmpty,
+    );
+  });
+
+  test('cli backend reads system info', () async {
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async {
+      return ProcessResult(
+        0,
+        0,
+        '/dev/sda1  512G  120G  392G  24% /',
+        '',
+      );
+    }
+
+    final i = await CliSystemBackend(run: fakeRun).systemInfo();
+    expect(i.kernel, contains('Linux'));
+    expect(i.cpu, isNotEmpty);
+    expect(i.memory, endsWith('GB'));
+    expect(i.disk, '512G (120G used)');
+    expect(i.osName, isNotEmpty);
+  });
+
+  test('cli backend system info tolerates df failure', () async {
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async {
+      throw ProcessException('df', args);
+    }
+
+    final i = await CliSystemBackend(run: fakeRun).systemInfo();
+    expect(i.disk, isEmpty);
   });
 
   test('settings state writes shared keys and calls backend', () {

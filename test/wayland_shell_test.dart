@@ -506,7 +506,10 @@ void main() {
     final pointer = TestPointer(1, PointerDeviceKind.mouse);
     final center = tester.getCenter(find.byType(WaylandSurfaceView));
     await tester.sendEventToBinding(pointer.hover(center));
-    final gesture = await tester.startGesture(center);
+    final gesture = await tester.startGesture(
+      center,
+      kind: PointerDeviceKind.mouse,
+    );
     await gesture.moveBy(const Offset(10, 0));
     await gesture.up();
     await tester.sendEventToBinding(pointer.scroll(const Offset(0, -20)));
@@ -1419,10 +1422,15 @@ void main() {
     final c = st.controller as ShellController;
     final win = c.windowForSurface(1)!;
     final base = win.position + const Offset(0, kOasisWindowTitleBarHeight);
-    await tester.tapAt(base + const Offset(300, 200));
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(
+      pointer.hover(base + const Offset(300, 200)),
+    );
     await tester.pump();
     expect(host.calls.where((c) => c.startsWith('motion:1:')), isEmpty);
-    await tester.tapAt(base + const Offset(50, 50));
+    await tester.sendEventToBinding(
+      pointer.hover(base + const Offset(50, 50)),
+    );
     await tester.pump();
     expect(host.calls.where((c) => c.startsWith('motion:1:')), isNotEmpty);
   });
