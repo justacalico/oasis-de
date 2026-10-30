@@ -183,8 +183,8 @@ struct OasisPrivate {
 
   wlr_keyboard* vkb = nullptr;
   xkb_context* xkb_ctx = nullptr;
-  xkb_keymap* xkb_keymap = nullptr;
-  xkb_state* xkb_state = nullptr;
+  xkb_keymap* kmap = nullptr;
+  xkb_state* kstate = nullptr;
 
   wl_listener new_surface = {};
   wl_listener new_toplevel = {};

@@ -227,11 +227,11 @@ void build_keymap(OasisPrivate* c) {
   c->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
   if (c->xkb_ctx == nullptr) return;
   xkb_rule_names names = {};
-  c->xkb_keymap = xkb_keymap_new_from_names(c->xkb_ctx, &names,
+  c->kmap = xkb_keymap_new_from_names(c->xkb_ctx, &names,
                                             XKB_KEYMAP_COMPILE_NO_FLAGS);
-  if (c->xkb_keymap == nullptr) {
+  if (c->kmap == nullptr) {
     xkb_rule_names fallback = {"evdev", "pc105", "us", "", ""};
-    c->xkb_keymap = xkb_keymap_new_from_names(c->xkb_ctx, &fallback,
+    c->kmap = xkb_keymap_new_from_names(c->xkb_ctx, &fallback,
                                               XKB_KEYMAP_COMPILE_NO_FLAGS);
   }
 }
@@ -584,8 +584,8 @@ bool OasisCore::start(std::string* error) {
 
   p->vkb = static_cast<wlr_keyboard*>(calloc(1, sizeof(wlr_keyboard)));
   wlr_keyboard_init(p->vkb, &vkb_impl, "oasis-virtual");
-  if (p->xkb_keymap != nullptr) {
-    wlr_keyboard_set_keymap(p->vkb, p->xkb_keymap);
+  if (p->kmap != nullptr) {
+    wlr_keyboard_set_keymap(p->vkb, p->kmap);
   }
   wlr_keyboard_set_repeat_info(p->vkb, 25, 600);
   wlr_seat_set_keyboard(p->seat, p->vkb);
@@ -731,13 +731,13 @@ void OasisCore::stop() {
     free(p->vkb);
     p->vkb = nullptr;
   }
-  if (p->xkb_state != nullptr) {
-    xkb_state_unref(p->xkb_state);
-    p->xkb_state = nullptr;
+  if (p->kstate != nullptr) {
+    xkb_state_unref(p->kstate);
+    p->kstate = nullptr;
   }
-  if (p->xkb_keymap != nullptr) {
-    xkb_keymap_unref(p->xkb_keymap);
-    p->xkb_keymap = nullptr;
+  if (p->kmap != nullptr) {
+    xkb_keymap_unref(p->kmap);
+    p->kmap = nullptr;
   }
   if (p->xkb_ctx != nullptr) {
     xkb_context_unref(p->xkb_ctx);
