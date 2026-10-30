@@ -318,6 +318,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get dockUnpin => 'Unpin';
 
   @override
+  String get dockQuit => 'Quit';
+
+  @override
   String get wallpaperPeaks => 'Peaks';
 
   @override

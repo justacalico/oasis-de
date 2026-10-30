@@ -404,6 +404,12 @@ class ShellController extends ChangeNotifier {
     closeOverlays();
   }
 
+  void launchAction(List<String> argv) {
+    final service = wayland;
+    if (service == null) return;
+    unawaited(service.launch(argv).catchError((Object _) {}));
+  }
+
   void closeWindow(int id) {
     final window = _byId(id);
     final surface = window?.surface;

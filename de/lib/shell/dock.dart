@@ -52,15 +52,46 @@ class _ShellDockState extends State<ShellDock> {
   }) {
     final l10n = OasisLocalizations.of(context);
     final c = widget.controller;
+    final appWindows = [
+      for (final w in c.windows)
+        if (w.app.id == app.id) w,
+    ];
+    final canPin = c.apps.any((a) => a.id == app.id);
     return GestureDetector(
       onSecondaryTapUp: (e) => showShellContextMenu(
         context,
         e.globalPosition,
         [
-          ShellMenuItem(
-            label: pinned ? l10n.dockUnpin : l10n.dockPin,
-            action: (_) => pinned ? c.unpinApp(app.id) : c.pinApp(app.id),
-          ),
+          for (final w in appWindows)
+            ShellMenuItem(
+              label: w.displayTitle,
+              checked: c.focusedId == w.id,
+              action: (_) =>
+                  w.minimized ? c.restoreWindow(w.id) : c.focusWindow(w.id),
+              separatorAfter: w == appWindows.last,
+            ),
+          for (final a in app.actions)
+            ShellMenuItem(
+              label: a.name,
+              action: (_) => c.launchAction(a.exec),
+              separatorAfter: a == app.actions.last,
+            ),
+          if (canPin)
+            ShellMenuItem(
+              label: pinned ? l10n.dockUnpin : l10n.dockPin,
+              action: (_) =>
+                  pinned ? c.unpinApp(app.id) : c.pinApp(app.id),
+              separatorAfter: appWindows.isNotEmpty,
+            ),
+          if (appWindows.isNotEmpty)
+            ShellMenuItem(
+              label: l10n.dockQuit,
+              action: (_) {
+                for (final w in appWindows) {
+                  c.closeWindow(w.id);
+                }
+              },
+            ),
         ],
       ),
       child: child,

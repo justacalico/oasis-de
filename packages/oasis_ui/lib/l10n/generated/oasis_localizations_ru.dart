@@ -319,6 +319,9 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get dockUnpin => 'Открепить';
 
   @override
+  String get dockQuit => 'Выйти';
+
+  @override
   String get wallpaperPeaks => 'Вершины';
 
   @override

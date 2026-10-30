@@ -464,6 +464,10 @@ OasisApp desktopAppToOasis(DesktopAppEntry entry) => OasisApp(
         ]
       : entry.argv,
   builder: (_) => const SizedBox.shrink(),
+  actions: [
+    for (final a in entry.actions)
+      OasisAppAction(name: a.name, exec: a.argv),
+  ],
 );
 
 Stream<void> watchDesktopDirs({

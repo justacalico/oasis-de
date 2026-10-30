@@ -690,6 +690,12 @@ abstract class OasisLocalizations {
   /// **'Unpin'**
   String get dockUnpin;
 
+  /// No description provided for @dockQuit.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit'**
+  String get dockQuit;
+
   /// No description provided for @wallpaperPeaks.
   ///
   /// In en, this message translates to:
