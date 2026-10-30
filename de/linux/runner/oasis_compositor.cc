@@ -946,10 +946,16 @@ static void subsurface_place_above(wl_client* client,
   if (s == nullptr) return;
   Surface* sibling =
       static_cast<Surface*>(wl_resource_get_user_data(sibling_res));
+  if (s == sibling) {
+    wl_resource_post_error(res, WL_SUBSURFACE_ERROR_BAD_SURFACE,
+                           "cannot place surface relative to itself");
+    return;
+  }
   if (s->parent == nullptr || s->parent != sibling->parent) return;
   auto& ch = s->parent->children;
   ch.erase(std::remove(ch.begin(), ch.end(), s), ch.end());
   auto it = std::find(ch.begin(), ch.end(), sibling);
+  if (it == ch.end()) return;
   ch.insert(it + 1, s);
 }
 
@@ -960,10 +966,16 @@ static void subsurface_place_below(wl_client* client,
   if (s == nullptr) return;
   Surface* sibling =
       static_cast<Surface*>(wl_resource_get_user_data(sibling_res));
+  if (s == sibling) {
+    wl_resource_post_error(res, WL_SUBSURFACE_ERROR_BAD_SURFACE,
+                           "cannot place surface relative to itself");
+    return;
+  }
   if (s->parent == nullptr || s->parent != sibling->parent) return;
   auto& ch = s->parent->children;
   ch.erase(std::remove(ch.begin(), ch.end(), s), ch.end());
   auto it = std::find(ch.begin(), ch.end(), sibling);
+  if (it == ch.end()) return;
   ch.insert(it, s);
 }
 
