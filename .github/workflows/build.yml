@@ -59,6 +59,8 @@ jobs:
           ninja -C /tmp/wayland/build && sudo ninja -C /tmp/wayland/build install && sudo ldconfig
           git clone --depth 1 --branch 1.41 https://gitlab.freedesktop.org/wayland/wayland-protocols.git /tmp/wayland-protocols
           meson setup /tmp/wproto/build /tmp/wayland-protocols -Dtests=false && ninja -C /tmp/wproto/build && sudo ninja -C /tmp/wproto/build install
+          git clone --depth 1 --branch pixman-0.44.2 https://gitlab.freedesktop.org/pixman/pixman.git /tmp/pixman
+          meson setup /tmp/pixman/build /tmp/pixman -Dtests=disabled -Ddemos=disabled -Dgtk=disabled && ninja -C /tmp/pixman/build && sudo ninja -C /tmp/pixman/build install && sudo ldconfig
           export PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:$PKG_CONFIG_PATH
           git clone --depth 1 --branch 0.19.3 https://gitlab.freedesktop.org/wlroots/wlroots.git /tmp/wlroots
           meson setup /tmp/wlroots/build /tmp/wlroots -Dxwayland=enabled -Dexamples=false -Drenderers=gles2 -Dallocators=gbm -Dsession=disabled -Dwerror=false
@@ -124,6 +126,8 @@ jobs:
           ninja -C /tmp/wayland/build && sudo ninja -C /tmp/wayland/build install && sudo ldconfig
           git clone --depth 1 --branch 1.41 https://gitlab.freedesktop.org/wayland/wayland-protocols.git /tmp/wayland-protocols
           meson setup /tmp/wproto/build /tmp/wayland-protocols -Dtests=false && ninja -C /tmp/wproto/build && sudo ninja -C /tmp/wproto/build install
+          git clone --depth 1 --branch pixman-0.44.2 https://gitlab.freedesktop.org/pixman/pixman.git /tmp/pixman
+          meson setup /tmp/pixman/build /tmp/pixman -Dtests=disabled -Ddemos=disabled -Dgtk=disabled && ninja -C /tmp/pixman/build && sudo ninja -C /tmp/pixman/build install && sudo ldconfig
           export PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:$PKG_CONFIG_PATH
           git clone --depth 1 --branch 0.19.3 https://gitlab.freedesktop.org/wlroots/wlroots.git /tmp/wlroots
           meson setup /tmp/wlroots/build /tmp/wlroots -Dxwayland=enabled -Dexamples=false -Drenderers=gles2 -Dallocators=gbm -Dsession=disabled -Dwerror=false
