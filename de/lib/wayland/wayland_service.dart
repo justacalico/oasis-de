@@ -30,6 +30,7 @@ class WaylandSurface {
   Size bufferSize = Size.zero;
   Offset geoOffset = Offset.zero;
   Rect? vpSrc;
+  int ackedSerial = 0;
   double scale = 1;
   int transform = 0;
   List<Rect>? inputRegion;
@@ -346,6 +347,9 @@ class WaylandService extends ChangeNotifier {
         );
       case 'minimize':
         _requests.add(WaylandRequest(WaylandRequestType.minimize, id));
+      case 'configureAcked':
+        surfaces[id]?.ackedSerial =
+            (e['serial'] as num?)?.toInt() ?? 0;
       case 'activate':
         _requests.add(WaylandRequest(WaylandRequestType.activate, id));
       case 'windowMenu':
