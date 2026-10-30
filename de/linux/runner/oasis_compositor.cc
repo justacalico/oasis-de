@@ -1969,14 +1969,6 @@ static void popup_position(Positioner* p, int* out_x, int* out_y) {
   }
   x += p->offx;
   y += p->offy;
-  if ((p->constraint & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X) &&
-      x < 0) {
-    x = 0;
-  }
-  if ((p->constraint & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y) &&
-      y < 0) {
-    y = 0;
-  }
   *out_x = x;
   *out_y = y;
 }
