@@ -35,6 +35,7 @@ Future<void> pumpDesktop(
   OasisSystemBackend? backend,
   NotificationDaemon? notificationDaemon,
   WaylandService? wayland,
+  OasisStore? store,
 }) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
@@ -42,6 +43,7 @@ Future<void> pumpDesktop(
   await tester.pumpWidget(
     OasisDesktopApp(
       wayland: wayland,
+      store: store,
       backend: backend ?? const NoopSystemBackend(),
       notificationDaemon: notificationDaemon,
       version: '1.0.0',
@@ -317,6 +319,24 @@ void main() {
       OasisSessionAction.reboot,
       OasisSessionAction.poweroff,
     ]);
+  });
+
+  testWidgets('persisted hardware prefs replay through the backend', (
+    tester,
+  ) async {
+    final store = MemoryOasisStore();
+    await store.write('shell.wifi', '0');
+    await store.write('shell.bluetooth', '1');
+    await store.write('shell.nightLight', '1');
+    await store.write('shell.brightness', '0.3');
+    await store.write('shell.volume', '0.7');
+    final calls = <String>[];
+    await pumpDesktop(
+      tester,
+      backend: _ReplayBackend(calls),
+      store: store,
+    );
+    expect(calls, ['wifi', 'bluetooth', 'nightLight', 'brightness', 'volume']);
   });
 
   testWidgets('lock screen blocks the desktop and unlocks', (tester) async {
@@ -870,6 +890,27 @@ class _BatteryBackend extends NoopSystemBackend {
   @override
   Future<OasisBattery> battery() async =>
       OasisBattery(level: level, charging: charging);
+}
+
+class _ReplayBackend extends NoopSystemBackend {
+  _ReplayBackend(this.calls);
+
+  final List<String> calls;
+
+  @override
+  void wifi(bool enabled) => calls.add('wifi');
+
+  @override
+  void bluetooth(bool enabled) => calls.add('bluetooth');
+
+  @override
+  void nightLight(bool enabled) => calls.add('nightLight');
+
+  @override
+  void brightness(double level) => calls.add('brightness');
+
+  @override
+  void volume(double level) => calls.add('volume');
 }
 
 class _LockBackend extends NoopSystemBackend {
