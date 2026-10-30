@@ -85,7 +85,28 @@ const _iconSizes = [
   '16x16',
 ];
 
-const _iconExts = ['png', 'svg', 'xpm'];
+const _iconExts = ['png'];
+
+String? _systemIconTheme() {
+  final home = Platform.environment['HOME'];
+  if (home == null) return null;
+  for (final p in [
+    '$home/.config/gtk-3.0/settings.ini',
+    '$home/.config/gtk-4.0/settings.ini',
+  ]) {
+    try {
+      final contents = File(p).readAsStringSync();
+      final m = RegExp(
+        r'^gtk-icon-theme-name\s*=\s*(.+)$',
+        multiLine: true,
+      ).firstMatch(contents);
+      if (m != null && m.group(1)!.trim().isNotEmpty) {
+        return m.group(1)!.trim();
+      }
+    } catch (_) {}
+  }
+  return null;
+}
 
 class _IconThemeDir {
   const _IconThemeDir({
@@ -187,13 +208,14 @@ int _themeDirDistance(_IconThemeDir dir, int size) {
 String? findIconPath(
   String icon, {
   List<String>? roots,
-  String theme = 'hicolor',
+  String? theme,
   int size = 48,
 }) {
   if (icon.isEmpty) return null;
   if (icon.startsWith('/')) {
     return File(icon).existsSync() ? icon : null;
   }
+  theme ??= _systemIconTheme() ?? 'hicolor';
   final searchRoots = roots ?? _iconSearchRoots();
   final visited = <String>{};
   String? result;
