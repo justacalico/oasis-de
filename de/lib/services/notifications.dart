@@ -125,6 +125,15 @@ class NotificationDaemon {
     );
   }
 
+  Future<void> notifyClosed(int id, int reason) async {
+    await _bus?.emitSignal(
+      path: DBusObjectPath('/org/freedesktop/Notifications'),
+      interface: 'org.freedesktop.Notifications',
+      name: 'NotificationClosed',
+      values: [DBusUint32(id), DBusUint32(reason)],
+    );
+  }
+
   Future<void> stop() async {
     await _bus?.releaseName('org.freedesktop.Notifications');
     final server = _server;
