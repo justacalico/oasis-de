@@ -14,6 +14,8 @@ class LandingApp extends StatefulWidget {
     this.onOpenUrl,
     this.appearance,
     this.onThemeChanged,
+    this.locale,
+    this.onLocaleChanged,
     this.showcaseImages = const [],
   });
 
@@ -23,6 +25,8 @@ class LandingApp extends StatefulWidget {
   final ValueChanged<String>? onOpenUrl;
   final OasisAppearance? appearance;
   final ValueChanged<OasisThemeMode>? onThemeChanged;
+  final Locale? locale;
+  final ValueChanged<Locale?>? onLocaleChanged;
   final List<ImageProvider> showcaseImages;
 
   @override
@@ -32,6 +36,7 @@ class LandingApp extends StatefulWidget {
 class _LandingAppState extends State<LandingApp> {
   late final OasisAppearance _appearance;
   late final ReleaseClient _client;
+  late Locale? _locale = widget.locale;
 
   @override
   void initState() {
@@ -39,6 +44,11 @@ class _LandingAppState extends State<LandingApp> {
     _appearance = widget.appearance ?? OasisAppearance();
     _appearance.addListener(_onAppearanceChanged);
     _client = widget.client ?? ReleaseClient();
+  }
+
+  void _setLocale(Locale? locale) {
+    setState(() => _locale = locale);
+    widget.onLocaleChanged?.call(locale);
   }
 
   void _onAppearanceChanged() =>
@@ -63,6 +73,7 @@ class _LandingAppState extends State<LandingApp> {
           onGenerateTitle: (context) =>
               OasisLocalizations.of(context).appName,
           theme: _appearance.themeForBrightness(platformDark),
+          locale: _locale,
           supportedLocales: OasisLocalizations.supportedLocales,
           localizationsDelegates: const [
             OasisLocalizations.delegate,
@@ -72,7 +83,8 @@ class _LandingAppState extends State<LandingApp> {
           ],
           home: OasisHost(
             appearance: _appearance,
-            setLocale: (_) {},
+            setLocale: _setLocale,
+            locale: _locale,
             openUrl: widget.onOpenUrl,
             child: LandingPage(
               client: _client,

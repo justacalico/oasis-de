@@ -17,9 +17,18 @@ Future<void> main() async {
       if (mode.name == saved) appearance.themeMode = mode;
     }
   }
+  final savedLocale = prefs.getString('locale');
   runApp(LandingApp(
     appearance: appearance,
     onThemeChanged: (mode) => prefs.setString('theme', mode.name),
+    locale: savedLocale == null ? null : Locale(savedLocale),
+    onLocaleChanged: (locale) {
+      if (locale == null) {
+        prefs.remove('locale');
+      } else {
+        prefs.setString('locale', locale.languageCode);
+      }
+    },
     appUrl: 'app/',
     onOpenUrl: (url) async {
       final uri = Uri.tryParse(url);
