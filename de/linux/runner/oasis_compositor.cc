@@ -278,6 +278,7 @@ struct _OasisCompositor {
   std::vector<SelectionQuery*> sel_queries;
   DataSource* selection_source = nullptr;
   std::vector<WmBase*> wm_bases;
+  std::vector<struct KillCheck*> kill_checks;
   guint ping_timer = 0;
   std::vector<wl_resource*> outputs;
   int out_w = 1920;
@@ -1684,6 +1685,10 @@ static void clipboard_targets_cb(GtkClipboard* clipboard,
                                  gpointer data) {
   SelectionQuery* q = static_cast<SelectionQuery*>(data);
   OasisCompositor* c = q->comp;
+  if (c == nullptr) {
+    delete q;
+    return;
+  }
   auto it = std::find(c->sel_queries.begin(), c->sel_queries.end(), q);
   if (it != c->sel_queries.end()) {
     std::set<std::string> sent;
@@ -3859,6 +3864,7 @@ struct KillCheck {
   OasisCompositor* comp;
   int64_t id;
   int sig;
+  guint source = 0;
 };
 
 static gboolean kill_check(gpointer data) {
@@ -3868,10 +3874,14 @@ static gboolean kill_check(gpointer data) {
     kill(it->second->pid, k->sig);
     if (k->sig == SIGTERM) {
       k->sig = SIGKILL;
-      g_timeout_add(2500, kill_check, k);
+      k->source = g_timeout_add(2500, kill_check, k);
       return G_SOURCE_REMOVE;
     }
   }
+  k->comp->kill_checks.erase(
+      std::remove(k->comp->kill_checks.begin(),
+                  k->comp->kill_checks.end(), k),
+      k->comp->kill_checks.end());
   delete k;
   return G_SOURCE_REMOVE;
 }
@@ -3917,8 +3927,9 @@ static void method_call_cb(FlMethodChannel* channel,
       if (s->role == SURFACE_TOPLEVEL && s->role_res != nullptr) {
         xdg_toplevel_send_close(s->role_res);
         comp_flush(c);
-        g_timeout_add(5000, kill_check,
-                      new KillCheck{c, s->public_id, SIGTERM});
+        KillCheck* k = new KillCheck{c, s->public_id, SIGTERM};
+        k->source = g_timeout_add(5000, kill_check, k);
+        c->kill_checks.push_back(k);
       } else if (s->role == SURFACE_POPUP && s->role_res != nullptr) {
         xdg_popup_send_popup_done(s->role_res);
         comp_flush(c);
@@ -4160,6 +4171,17 @@ void oasis_compositor_free(OasisCompositor* c) {
   if (c->watch != 0) g_source_remove(c->watch);
   if (c->ping_timer != 0) g_source_remove(c->ping_timer);
   if (c->resize_idle != 0) g_source_remove(c->resize_idle);
+  for (KillCheck* k : c->kill_checks) {
+    g_source_remove(k->source);
+    delete k;
+  }
+  c->kill_checks.clear();
+  for (auto* q : c->sel_queries) {
+    q->comp = nullptr;
+  }
+  if (c->view != nullptr) {
+    g_signal_handlers_disconnect_by_data(c->view, c);
+  }
   if (c->watch_channel != nullptr) g_io_channel_unref(c->watch_channel);
   if (c->display != nullptr) {
     wl_display_destroy_clients(c->display);
