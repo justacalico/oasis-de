@@ -282,6 +282,7 @@ struct _OasisCompositor {
   std::vector<wl_resource*> outputs;
   int out_w = 1920;
   int out_h = 1080;
+  guint resize_idle = 0;
   int out_scale = 1;
   Surface* cursor_surface = nullptr;
   int cursor_hx = 0;
@@ -1507,10 +1508,23 @@ static void output_resend_all(OasisCompositor* c) {
   comp_flush(c);
 }
 
+static gboolean view_resized_idle(gpointer data) {
+  OasisCompositor* c = static_cast<OasisCompositor*>(data);
+  c->resize_idle = 0;
+  output_resend_all(c);
+  return G_SOURCE_REMOVE;
+}
+
 static void view_resized(GtkWidget* widget,
                          GdkRectangle* allocation,
                          OasisCompositor* c) {
-  output_resend_all(c);
+  int scale = gtk_widget_get_scale_factor(widget);
+  int w = allocation->width * (scale > 0 ? scale : 1);
+  int h = allocation->height * (scale > 0 ? scale : 1);
+  if (w == c->out_w && h == c->out_h && scale == c->out_scale) return;
+  if (c->resize_idle == 0) {
+    c->resize_idle = g_idle_add(view_resized_idle, c);
+  }
 }
 
 // wl_data_device family
@@ -4144,6 +4158,8 @@ OasisCompositor* oasis_compositor_new(FlPluginRegistrar* registrar,
 void oasis_compositor_free(OasisCompositor* c) {
   if (c == nullptr) return;
   if (c->watch != 0) g_source_remove(c->watch);
+  if (c->ping_timer != 0) g_source_remove(c->ping_timer);
+  if (c->resize_idle != 0) g_source_remove(c->resize_idle);
   if (c->watch_channel != nullptr) g_io_channel_unref(c->watch_channel);
   if (c->display != nullptr) {
     wl_display_destroy_clients(c->display);
