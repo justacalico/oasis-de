@@ -219,11 +219,12 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   }
 
   Offset _surfaceCoords(Offset local, Size box) {
-    final s = logicalSurfaceSize(surface);
+    final src = surface.vpSrc;
+    final s = src != null ? src.size : logicalSurfaceSize(surface);
     if (s.width <= 0 || s.height <= 0) return local;
     return Offset(
-      local.dx * s.width / box.width,
-      local.dy * s.height / box.height,
+      (src?.left ?? 0) + local.dx * s.width / box.width,
+      (src?.top ?? 0) + local.dy * s.height / box.height,
     );
   }
 
@@ -433,11 +434,14 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
 
   void _motion(PointerEvent e) {
     final size = widget.surface.size;
-    final logical = logicalSurfaceSize(widget.surface);
+    final src = widget.surface.vpSrc;
+    final logical = src != null ? src.size : logicalSurfaceSize(widget.surface);
     final p = size.width > 0 && size.height > 0
         ? Offset(
-            e.localPosition.dx * logical.width / size.width,
-            e.localPosition.dy * logical.height / size.height,
+            (src?.left ?? 0) +
+                e.localPosition.dx * logical.width / size.width,
+            (src?.top ?? 0) +
+                e.localPosition.dy * logical.height / size.height,
           )
         : e.localPosition;
     final hit = _subHit(widget.surface, p);

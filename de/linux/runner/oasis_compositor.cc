@@ -107,6 +107,14 @@ struct Surface {
   int pending_vp_h = -1;
   int vp_w = -1;
   int vp_h = -1;
+  double pending_vp_sx = -1;
+  double pending_vp_sy = -1;
+  double pending_vp_sw = -1;
+  double pending_vp_sh = -1;
+  double vp_sx = -1;
+  double vp_sy = -1;
+  double vp_sw = -1;
+  double vp_sh = -1;
   std::vector<wl_resource*> fractional_scales;
   std::vector<wl_resource*> viewports;
   std::vector<std::array<int32_t, 4>> pending_input;
@@ -167,6 +175,8 @@ struct Surface {
   int rep_bh = 0;
   int rep_gx = 0;
   int rep_gy = 0;
+  double rep_vsw = -1;
+  double rep_vsh = -1;
   int min_w = 0;
   int min_h = 0;
   int max_w = 0;
@@ -425,11 +435,18 @@ static void emit_size(Surface* s) {
   const bool swap = (s->transform & 1) != 0;
   int bw = (swap ? s->ih : s->iw) / scale;
   int bh = (swap ? s->iw : s->ih) / scale;
-  int w = s->geo_w > 0 ? s->geo_w : s->vp_w > 0 ? s->vp_w : bw;
-  int h = s->geo_h > 0 ? s->geo_h : s->vp_h > 0 ? s->vp_h : bh;
+  int w = s->geo_w > 0 ? s->geo_w
+                      : s->vp_w > 0  ? s->vp_w
+                      : s->vp_sw > 0 ? (int)s->vp_sw
+                                     : bw;
+  int h = s->geo_h > 0 ? s->geo_h
+                      : s->vp_h > 0  ? s->vp_h
+                      : s->vp_sh > 0 ? (int)s->vp_sh
+                                     : bh;
   if (s->rep_w == w && s->rep_h == h && s->rep_bw == s->iw &&
       s->rep_bh == s->ih && s->rep_gx == s->geo_x &&
-      s->rep_gy == s->geo_y) {
+      s->rep_gy == s->geo_y && s->rep_vsw == s->vp_sw &&
+      s->rep_vsh == s->vp_sh) {
     return;
   }
   s->rep_w = w;
@@ -438,6 +455,8 @@ static void emit_size(Surface* s) {
   s->rep_bh = s->ih;
   s->rep_gx = s->geo_x;
   s->rep_gy = s->geo_y;
+  s->rep_vsw = s->vp_sw;
+  s->rep_vsh = s->vp_sh;
   FlValue* m = new_event("size");
   ev_id(m, s->public_id);
   fl_value_set_string_take(m, "w", fl_value_new_int(w));
@@ -447,6 +466,10 @@ static void emit_size(Surface* s) {
   fl_value_set_string_take(m, "bw", fl_value_new_int(s->iw));
   fl_value_set_string_take(m, "bh", fl_value_new_int(s->ih));
   fl_value_set_string_take(m, "scale", fl_value_new_int(scale));
+  fl_value_set_string_take(m, "vsx", fl_value_new_float(s->vp_sx));
+  fl_value_set_string_take(m, "vsy", fl_value_new_float(s->vp_sy));
+  fl_value_set_string_take(m, "vsw", fl_value_new_float(s->vp_sw));
+  fl_value_set_string_take(m, "vsh", fl_value_new_float(s->vp_sh));
   fl_value_set_string_take(m, "transform",
                          fl_value_new_int(s->transform));
   send_event(s->comp, m);
@@ -607,6 +630,10 @@ static void surface_commit(Surface* s) {
   s->transform = s->pending_transform;
   s->vp_w = s->pending_vp_w;
   s->vp_h = s->pending_vp_h;
+  s->vp_sx = s->pending_vp_sx;
+  s->vp_sy = s->pending_vp_sy;
+  s->vp_sw = s->pending_vp_sw;
+  s->vp_sh = s->pending_vp_sh;
   if (s->pending_input_set) {
     s->input_region = s->pending_input;
     s->input_null = s->pending_input_null;
@@ -2646,7 +2673,14 @@ static void viewport_set_source(wl_client* client,
                                 wl_fixed_t x,
                                 wl_fixed_t y,
                                 wl_fixed_t w,
-                                wl_fixed_t h) {}
+                                wl_fixed_t h) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
+  s->pending_vp_sx = wl_fixed_to_double(x);
+  s->pending_vp_sy = wl_fixed_to_double(y);
+  s->pending_vp_sw = wl_fixed_to_double(w);
+  s->pending_vp_sh = wl_fixed_to_double(h);
+}
 
 static void viewport_set_destination(wl_client* client,
                                      wl_resource* res,
