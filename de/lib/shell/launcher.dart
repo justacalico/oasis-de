@@ -161,6 +161,7 @@ class _ShellLauncherState extends State<ShellLauncher> {
                                         OasisAppIcon(
                                           icon: app.icon,
                                           colors: app.iconColors,
+                                          iconPath: app.iconPath,
                                           size: 30,
                                         ),
                                         const SizedBox(width: 10),
