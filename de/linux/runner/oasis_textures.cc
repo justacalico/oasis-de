@@ -181,7 +181,7 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
   }
   if (self->gl_name == 0) glGenTextures(1, &self->gl_name);
   if (self->img_buf != self->dmabuf) {
-    if (self->image != EGL_NO_IMAGE && self->img_dpy != EGL_NO_DISPLAY) {
+    if (self->image != EGL_NO_IMAGE && self->img_dpy == dpy) {
       eglDestroyImage(self->img_dpy, self->image);
     }
     self->image = EGL_NO_IMAGE;
@@ -192,6 +192,7 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
     self->image = dmabuf_import(dpy, self->dmabuf);
     self->img_dpy = dpy;
     if (self->image == EGL_NO_IMAGE) {
+      if (eglGetError() == EGL_CONTEXT_LOST) self->gl_name = 0;
       g_mutex_unlock(&self->mutex);
       g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
                   "dmabuf import failed");
@@ -213,6 +214,15 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
   }
   glBindTexture(GL_TEXTURE_2D, self->gl_name);
   image_target(GL_TEXTURE_2D, self->image);
+  if (glGetError() == GL_CONTEXT_LOST) {
+    self->gl_name = 0;
+    self->image = EGL_NO_IMAGE;
+    oasis_dmabuf_unref(self->img_buf);
+    self->img_buf = nullptr;
+    g_mutex_unlock(&self->mutex);
+    g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "gl context lost");
+    return FALSE;
+  }
   *target = GL_TEXTURE_2D;
   *name = self->gl_name;
   *width = self->w;
@@ -240,6 +250,10 @@ void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, DmabufBuf* db) {
 static void oasis_gl_texture_dispose(GObject* object) {
   OasisGLTexture* self = OASIS_GL_TEXTURE(object);
   g_mutex_lock(&self->mutex);
+  if (self->gl_name != 0) {
+    glDeleteTextures(1, &self->gl_name);
+    self->gl_name = 0;
+  }
   if (self->image != EGL_NO_IMAGE && self->img_dpy != EGL_NO_DISPLAY) {
     eglDestroyImage(self->img_dpy, self->image);
     self->image = EGL_NO_IMAGE;
