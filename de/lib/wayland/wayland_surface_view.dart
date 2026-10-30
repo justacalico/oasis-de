@@ -333,20 +333,43 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                       _buttons = e.buttons;
                     },
                     onPointerMove: (e) {
+                      if (e.kind == PointerDeviceKind.touch) {
+                        final p = _surfaceCoords(e.localPosition, box);
+                        service.touchMotion(e.pointer, p.dx, p.dy);
+                        return;
+                      }
                       _motion(e, box);
                       _buttons = e.buttons;
                     },
                     onPointerDown: (e) {
+                      final p = _surfaceCoords(e.localPosition, box);
+                      if (e.kind == PointerDeviceKind.touch) {
+                        service.touchDown(
+                          surface.id,
+                          e.pointer,
+                          p.dx,
+                          p.dy,
+                        );
+                        return;
+                      }
                       _motion(e, box);
                       forwardButtonDiff(service, _buttons, e.buttons);
                       _buttons = e.buttons;
                     },
                     onPointerUp: (e) {
+                      if (e.kind == PointerDeviceKind.touch) {
+                        service.touchUp(e.pointer);
+                        return;
+                      }
                       _motion(e, box);
                       forwardButtonDiff(service, _buttons, e.buttons);
                       _buttons = e.buttons;
                     },
                     onPointerCancel: (e) {
+                      if (e.kind == PointerDeviceKind.touch) {
+                        service.touchUp(e.pointer);
+                        return;
+                      }
                       forwardButtonDiff(service, _buttons, e.buttons);
                       _buttons = e.buttons;
                     },
