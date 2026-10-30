@@ -453,6 +453,43 @@ List<DesktopAppEntry> loadDesktopEntriesSync({List<String>? dirs}) {
   return found.values.toList();
 }
 
+String? _which(String name) {
+  for (final p in (Platform.environment['PATH'] ?? '').split(':')) {
+    if (p.isNotEmpty && File('$p/$name').existsSync()) return name;
+  }
+  return null;
+}
+
+const _terminalProbes = {
+  'xdg-terminal-exec': <String>[],
+  'kgx': ['-e'],
+  'gnome-console': ['-e'],
+  'alacritty': ['-e'],
+  'foot': <String>[],
+  'kitty': <String>[],
+  'wezterm': ['start', '--'],
+  'konsole': ['-e'],
+  'gnome-terminal': ['--'],
+  'weston-terminal': <String>[],
+  'xterm': ['-e'],
+};
+
+List<String>? _terminalArgv;
+
+List<String> _terminalPrefix() {
+  if (_terminalArgv != null) return _terminalArgv!;
+  final envTerm = Platform.environment['TERMINAL'];
+  if (envTerm != null && envTerm.isNotEmpty) {
+    return _terminalArgv = [envTerm, '-e'];
+  }
+  for (final probe in _terminalProbes.entries) {
+    if (_which(probe.key) != null) {
+      return _terminalArgv = [probe.key, ...probe.value];
+    }
+  }
+  return _terminalArgv = ['x-terminal-emulator', '-e'];
+}
+
 OasisApp desktopAppToOasis(DesktopAppEntry entry) => OasisApp(
   id: 'desktop:${entry.id}',
   name: entry.name,
@@ -460,11 +497,7 @@ OasisApp desktopAppToOasis(DesktopAppEntry entry) => OasisApp(
   iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
   iconPath: entry.iconPath,
   exec: entry.terminal
-      ? [
-          Platform.environment['TERMINAL'] ?? 'x-terminal-emulator',
-          '-e',
-          ...entry.argv,
-        ]
+      ? [..._terminalPrefix(), ...entry.argv]
       : entry.argv,
   builder: (_) => const SizedBox.shrink(),
   actions: [
