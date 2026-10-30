@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import 'package:oasis_ui/oasis_ui.dart';
 
@@ -18,11 +20,39 @@ class ShellLockScreen extends StatefulWidget {
 
 class _ShellLockScreenState extends State<ShellLockScreen> {
   final _password = TextEditingController();
+  late DateTime _now;
+  Timer? _clockTimer;
   var _wrong = false;
   var _busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    _now = clock.now();
+    _scheduleTick();
+  }
+
+  void _scheduleTick() {
+    final next = DateTime(
+      _now.year,
+      _now.month,
+      _now.day,
+      _now.hour,
+      _now.minute + 1,
+    );
+    _clockTimer = Timer(next.difference(_now), _tick);
+  }
+
+  void _tick() {
+    if (mounted) {
+      setState(() => _now = clock.now());
+      _scheduleTick();
+    }
+  }
+
+  @override
   void dispose() {
+    _clockTimer?.cancel();
     _password.dispose();
     super.dispose();
   }
@@ -46,7 +76,8 @@ class _ShellLockScreenState extends State<ShellLockScreen> {
     final style = OasisStyle.of(context);
     final p = style.palette;
     final text = Theme.of(context).textTheme;
-    final now = clock.now();
+    final now = _now;
+    final locale = Localizations.localeOf(context).toString();
     final hour = '${now.hour}'.padLeft(2, '0');
     final minute = '${now.minute}'.padLeft(2, '0');
 
@@ -73,6 +104,11 @@ class _ShellLockScreenState extends State<ShellLockScreen> {
                     color: p.textPrimary,
                     fontWeight: FontWeight.w300,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat.MEd(locale).format(now),
+                  style: text.bodyMedium?.copyWith(color: p.textSecondary),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
