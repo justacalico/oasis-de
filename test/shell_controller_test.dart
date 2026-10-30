@@ -292,7 +292,7 @@ void main() {
     c.dispose();
   });
 
-  test('toggles notify the system backend', () {
+  test('toggles notify the system backend and reconcile', () async {
     final calls = <String>[];
     final c = ShellController(
       apps: const [],
@@ -303,6 +303,7 @@ void main() {
     c.brightnessValue = 0.5;
     c.volumeValue = 0.5;
     expect(calls, ['wifi', 'bluetooth', 'brightness', 'volume']);
+    await pumpEventQueue();
     c.dispose();
   });
 
@@ -564,19 +565,19 @@ class _BatteryBackend implements OasisSystemBackend {
   Future<OasisSystemState> read() async => const OasisSystemState();
 
   @override
-  void wifi(bool enabled) {}
+  Future<void> wifi(bool enabled) async {}
 
   @override
-  void bluetooth(bool enabled) {}
+  Future<void> bluetooth(bool enabled) async {}
 
   @override
-  void brightness(double level) {}
+  Future<void> brightness(double level) async {}
 
   @override
-  void volume(double level) {}
+  Future<void> volume(double level) async {}
 
   @override
-  void nightLight(bool enabled) {}
+  Future<void> nightLight(bool enabled) async {}
 
   @override
   void session(OasisSessionAction action) {}
@@ -591,19 +592,19 @@ class _RecordingBackend implements OasisSystemBackend {
   final List<String> calls;
 
   @override
-  void wifi(bool enabled) => calls.add('wifi');
+  Future<void> wifi(bool enabled) async => calls.add('wifi');
 
   @override
-  void bluetooth(bool enabled) => calls.add('bluetooth');
+  Future<void> bluetooth(bool enabled) async => calls.add('bluetooth');
 
   @override
-  void brightness(double level) => calls.add('brightness');
+  Future<void> brightness(double level) async => calls.add('brightness');
 
   @override
-  void volume(double level) => calls.add('volume');
+  Future<void> volume(double level) async => calls.add('volume');
 
   @override
-  void nightLight(bool enabled) => calls.add('nightLight');
+  Future<void> nightLight(bool enabled) async => calls.add('nightLight');
 
   @override
   Future<OasisSystemState> read() async => const OasisSystemState();

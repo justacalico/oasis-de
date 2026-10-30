@@ -28,11 +28,11 @@ class OasisBattery {
 enum OasisSessionAction { lock, logout, suspend, reboot, poweroff }
 
 abstract class OasisSystemBackend {
-  void wifi(bool enabled);
-  void bluetooth(bool enabled);
-  void brightness(double level);
-  void volume(double level);
-  void nightLight(bool enabled);
+  Future<void> wifi(bool enabled);
+  Future<void> bluetooth(bool enabled);
+  Future<void> brightness(double level);
+  Future<void> volume(double level);
+  Future<void> nightLight(bool enabled);
   Future<OasisSystemState> read();
   Future<OasisBattery> battery();
   void session(OasisSessionAction action);
@@ -43,19 +43,19 @@ class NoopSystemBackend implements OasisSystemBackend {
   const NoopSystemBackend();
 
   @override
-  void wifi(bool enabled) {}
+  Future<void> wifi(bool enabled) async {}
 
   @override
-  void bluetooth(bool enabled) {}
+  Future<void> bluetooth(bool enabled) async {}
 
   @override
-  void brightness(double level) {}
+  Future<void> brightness(double level) async {}
 
   @override
-  void volume(double level) {}
+  Future<void> volume(double level) async {}
 
   @override
-  void nightLight(bool enabled) {}
+  Future<void> nightLight(bool enabled) async {}
 
   @override
   Future<OasisSystemState> read() async => const OasisSystemState();
@@ -77,35 +77,38 @@ class CliSystemBackend implements OasisSystemBackend {
   final Future<ProcessResult> Function(String, List<String>)? run;
   final Directory? powerSupplyDir;
 
-  void _exec(String exe, List<String> args) {
+  Future<void> _exec(String exe, List<String> args) async {
     if (kIsWeb) return;
-    final r = run ?? Process.run;
-    r(exe, args).ignore();
+    try {
+      await (run ?? Process.run)(exe, args);
+    } on ProcessException {
+      return;
+    }
   }
 
   @override
-  void wifi(bool enabled) =>
+  Future<void> wifi(bool enabled) =>
       _exec('nmcli', ['radio', 'wifi', enabled ? 'on' : 'off']);
 
   @override
-  void bluetooth(bool enabled) =>
+  Future<void> bluetooth(bool enabled) =>
       _exec('bluetoothctl', ['power', enabled ? 'on' : 'off']);
 
   @override
-  void brightness(double level) {
+  Future<void> brightness(double level) {
     final pct = (level.clamp(0.0, 1.0) * 100).round();
-    _exec('brightnessctl', ['set', '$pct%']);
+    return _exec('brightnessctl', ['set', '$pct%']);
   }
 
   @override
-  void volume(double level) {
+  Future<void> volume(double level) {
     final v = level.clamp(0.0, 1.0);
-    _exec('wpctl', ['set-volume', '@DEFAULT_AUDIO_SINK@', '$v']);
+    return _exec('wpctl', ['set-volume', '@DEFAULT_AUDIO_SINK@', '$v']);
   }
 
   @override
-  void nightLight(bool enabled) {
-    _exec('gammastep', enabled ? ['-O', '3500'] : ['-x']);
+  Future<void> nightLight(bool enabled) {
+    return _exec('gammastep', enabled ? ['-O', '3500'] : ['-x']);
   }
 
   Future<String?> _read(String exe, List<String> args) async {
