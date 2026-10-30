@@ -375,8 +375,17 @@ class WaylandService extends ChangeNotifier {
   Future<void> pointerButton(int button, bool pressed) =>
       available ? _host.pointerButton(button, pressed) : Future.value();
 
-  Future<void> pointerAxis(double dx, double dy) =>
-      available ? _host.pointerAxis(dx, dy) : Future.value();
+  Future<void> pointerAxis(
+    double dx,
+    double dy, {
+    int source = 0,
+    int discrete = 0,
+  }) => available
+      ? _host.pointerAxis(dx, dy, source: source, discrete: discrete)
+      : Future.value();
+
+  Future<void> pointerAxisStop() =>
+      available ? _host.pointerAxisStop() : Future.value();
 
   Future<void> key(int code, bool pressed) =>
       available ? _host.key(code, pressed) : Future.value();
