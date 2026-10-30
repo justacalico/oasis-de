@@ -2350,6 +2350,7 @@ static void xdg_surface_ack_configure(wl_client* client,
   s->acked_serial = serial;
   FlValue* m = new_event("configureAcked");
   ev_id(m, s->public_id);
+  fl_value_set_string_take(m, "serial", fl_value_new_int(serial));
   send_event(s->comp, m);
 }
 
