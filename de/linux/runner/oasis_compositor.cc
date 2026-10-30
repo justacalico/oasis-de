@@ -187,6 +187,7 @@ struct DataSource {
 struct DataDevice {
   wl_resource* res;
   wl_client* client;
+  wl_resource* offer = nullptr;
 };
 
 struct DataOffer {
@@ -1628,6 +1629,9 @@ static const struct wl_data_offer_interface offer_impl = {
 static void data_offer_destroyed(wl_resource* res) {
   OasisCompositor* c =
       static_cast<OasisCompositor*>(wl_resource_get_user_data(res));
+  for (auto* d : c->devices) {
+    if (d->offer == res) d->offer = nullptr;
+  }
   for (auto it = c->sel_queries.begin(); it != c->sel_queries.end();) {
     if ((*it)->offer == res) {
       it = c->sel_queries.erase(it);
@@ -1689,9 +1693,13 @@ static void offer_selection(OasisCompositor* c, wl_client* client) {
     if (d->client == client) dev = d;
   }
   if (dev == nullptr) return;
+  if (dev->offer != nullptr) {
+    wl_resource_destroy(dev->offer);
+  }
   wl_resource* offer = wl_resource_create(client, &wl_data_offer_interface,
                                           wl_resource_get_version(dev->res),
                                           0);
+  dev->offer = offer;
   DataOffer* o = new DataOffer{offer, nullptr};
   c->offers.push_back(o);
   wl_resource_set_implementation(offer, &offer_impl, c,
