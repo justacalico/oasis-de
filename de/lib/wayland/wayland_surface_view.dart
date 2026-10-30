@@ -211,16 +211,11 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
   @override
   void didUpdateWidget(WaylandSurfaceView old) {
     super.didUpdateWidget(old);
-    if (widget.focused && !old.focused) {
-      _grabFocus();
-    } else if (!widget.focused && old.focused) {
-      service.focus(null);
-    }
+    if (widget.focused && !old.focused) _grabFocus();
   }
 
   void _grabFocus() {
     _keys.requestFocus();
-    service.focus(surface.id);
   }
 
   Offset _surfaceCoords(Offset local, Size box) {
