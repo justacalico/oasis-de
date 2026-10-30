@@ -13,94 +13,42 @@ pkg_check_modules(WAYLAND REQUIRED IMPORTED_TARGET
   egl
   glesv2
   libdrm
-  wayland-protocols
+  pixman-1
 )
 
-find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
-pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
-
-set(WAYLAND_PROTOCOLS
-  "stable/xdg-shell/xdg-shell.xml"
-  "unstable/xdg-decoration/xdg-decoration-unstable-v1.xml"
-  "stable/linux-dmabuf/linux-dmabuf-v1.xml"
+pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET
+  wlroots-0.19
 )
 
-set(VENDORED_PROTOCOLS
-  "viewporter"
-  "fractional-scale-v1"
-  "cursor-shape-v1"
-  "idle-inhibit-unstable-v1"
-  "presentation-time"
-  "primary-selection-unstable-v1"
-  "tablet-unstable-v2"
-  "text-input-unstable-v3"
-  "xdg-activation-v1"
-)
-
-set(GENERATED_SOURCES "")
-set(GENERATED_HEADERS "")
-foreach(proto ${WAYLAND_PROTOCOLS})
-  get_filename_component(proto_name ${proto} NAME_WE)
-  set(xml "${WAYLAND_PROTOCOLS_DIR}/${proto}")
-  set(header "${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-server-protocol.h")
-  set(code "${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-protocol.c")
-  add_custom_command(
-    OUTPUT ${header}
-    COMMAND ${WAYLAND_SCANNER} server-header ${xml} ${header}
-    DEPENDS ${xml}
-  )
-  add_custom_command(
-    OUTPUT ${code}
-    COMMAND ${WAYLAND_SCANNER} private-code ${xml} ${code}
-    DEPENDS ${xml}
-  )
-  list(APPEND GENERATED_HEADERS ${header})
-  list(APPEND GENERATED_SOURCES ${code})
-endforeach()
-
-foreach(proto_name ${VENDORED_PROTOCOLS})
-  set(xml "${CMAKE_CURRENT_SOURCE_DIR}/../protocols/${proto_name}.xml")
-  set(header "${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-server-protocol.h")
-  set(code "${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-protocol.c")
-  add_custom_command(
-    OUTPUT ${header}
-    COMMAND ${WAYLAND_SCANNER} server-header ${xml} ${header}
-    DEPENDS ${xml}
-  )
-  add_custom_command(
-    OUTPUT ${code}
-    COMMAND ${WAYLAND_SCANNER} private-code ${xml} ${code}
-    DEPENDS ${xml}
-  )
-  list(APPEND GENERATED_HEADERS ${header})
-  list(APPEND GENERATED_SOURCES ${code})
-endforeach()
-
-set_source_files_properties(${GENERATED_SOURCES}
-  PROPERTIES COMPILE_OPTIONS "-w")
+set(COMPOSITOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../compositor")
 
 add_executable(${BINARY_NAME}
   "main.cc"
   "my_application.cc"
   "oasis_compositor.cc"
   "oasis_textures.cc"
+  "${COMPOSITOR_DIR}/oasis_core.cc"
+  "${COMPOSITOR_DIR}/oasis_input.cc"
+  "${COMPOSITOR_DIR}/oasis_surface.cc"
+  "${COMPOSITOR_DIR}/oasis_xdg.cc"
+  "${COMPOSITOR_DIR}/oasis_xwayland.cc"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
-  ${GENERATED_SOURCES}
-  ${GENERATED_HEADERS}
 )
 
 # Apply the standard set of build settings. This can be removed for applications
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
 
-target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(${BINARY_NAME} PRIVATE "${COMPOSITOR_DIR}")
 
 # Add preprocessor definitions for the application ID.
 add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
+add_definitions(-DWLR_USE_UNSTABLE)
 
 # Add dependency libraries. Add any application-specific dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::WAYLAND)
+target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::WLROOTS)
 
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
