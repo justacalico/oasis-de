@@ -5,10 +5,17 @@ import 'package:flutter/foundation.dart';
 import 'system_backend.dart';
 
 class CliSystemBackend implements OasisSystemBackend {
-  const CliSystemBackend({this.run, this.powerSupplyDir});
+  const CliSystemBackend({
+    this.run,
+    this.powerSupplyDir,
+    this.startProcess,
+    this.userName,
+  });
 
   final Future<ProcessResult> Function(String, List<String>)? run;
   final Directory? powerSupplyDir;
+  final Future<Process> Function(String, List<String>)? startProcess;
+  final String Function()? userName;
 
   Future<void> _exec(String exe, List<String> args) async {
     if (kIsWeb) return;
@@ -143,15 +150,18 @@ class CliSystemBackend implements OasisSystemBackend {
   @override
   Future<bool> verifyPassword(String password) async {
     if (kIsWeb) return true;
-    final user = Platform.environment['USER'];
-    if (user == null || user.isEmpty) return true;
+    final user = (userName ?? () => Platform.environment['USER'] ?? '')();
+    if (user.isEmpty) return false;
     try {
-      final p = await Process.start('unix_chkpwd', [user]);
+      final p = await (startProcess ?? Process.start)(
+        'unix_chkpwd',
+        [user],
+      );
       p.stdin.writeln(password);
       await p.stdin.close();
       return await p.exitCode == 0;
     } catch (_) {
-      return true;
+      return false;
     }
   }
 

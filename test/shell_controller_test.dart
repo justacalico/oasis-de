@@ -577,6 +577,34 @@ void main() {
     expect(await c.tryUnlock('bad'), isFalse);
     expect(c.locked, isTrue);
   });
+
+  test('tryUnlock throttles repeated attempts', () async {
+    var calls = 0;
+    final c = ShellController(
+      apps: const [],
+      backend: _CountDenyBackend(() => calls++),
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    c.session(OasisSessionAction.lock);
+    expect(await c.tryUnlock('bad'), isFalse);
+    expect(calls, 1);
+    expect(await c.tryUnlock('pw'), isFalse);
+    expect(calls, 1);
+    expect(c.locked, isTrue);
+  });
+}
+
+class _CountDenyBackend extends NoopSystemBackend {
+  _CountDenyBackend(this.onDeny);
+
+  final void Function() onDeny;
+
+  @override
+  Future<bool> verifyPassword(String password) async {
+    onDeny();
+    return false;
+  }
 }
 
 class _DenyBackend extends NoopSystemBackend {

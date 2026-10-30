@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:clock/clock.dart';
+
 export 'shell_constants.dart';
 
 import 'package:flutter/material.dart';
@@ -1049,12 +1051,22 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
+  int _failedUnlocks = 0;
+  DateTime? _unlockLockedUntil;
+
   Future<bool> tryUnlock(String password) async {
+    final until = _unlockLockedUntil;
+    if (until != null && clock.now().isBefore(until)) return false;
     if (await backend.verifyPassword(password)) {
       locked = false;
+      _failedUnlocks = 0;
       notifyListeners();
       return true;
     }
+    _failedUnlocks++;
+    _unlockLockedUntil = clock.now().add(
+      Duration(milliseconds: 500 * _failedUnlocks),
+    );
     return false;
   }
 
