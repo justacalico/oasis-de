@@ -260,7 +260,7 @@ void main() {
       currentVersion: () async => '1.0.0',
       downloader: (uri) async =>
           uri.path.endsWith('sums') ? utf8.encode(hex) : bytes,
-      writeFile: (_, __) async {},
+      writeFile: (file, bytes) async {},
       installer: (_) async => true,
     );
     await pumpOasis(
