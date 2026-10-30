@@ -161,6 +161,59 @@
   "wallpaperAurora": "Aurora",
   "wallpaperEmber": "Ember",
   "appCalculator": "Calculator",
+  "appFiles": "Files",
+  "filesBookmarkHome": "Home",
+  "filesBookmarkDocuments": "Documents",
+  "filesBookmarkDownloads": "Downloads",
+  "filesBookmarkPictures": "Pictures",
+  "filesBookmarkMusic": "Music",
+  "filesBookmarkVideos": "Videos",
+  "filesBookmarkTrash": "Trash",
+  "filesBookmarkRoot": "File System",
+  "filesUp": "Up",
+  "filesLocation": "Location",
+  "filesSearch": "Search this folder",
+  "filesShowHidden": "Show hidden files",
+  "filesListView": "List view",
+  "filesGridView": "Grid view",
+  "filesItems": "{count} items",
+  "@filesItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesSelected": "{count} selected",
+  "@filesSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesFolder": "Folder",
+  "filesClearSearch": "Clear search",
+  "filesNewFolder": "New folder",
+  "filesPaste": "Paste",
+  "filesCopy": "Copy",
+  "filesCut": "Cut",
+  "filesDelete": "Move to trash",
+  "filesRename": "Rename",
+  "filesOpen": "Open",
+  "filesName": "Name",
+  "filesCancel": "Cancel",
+  "filesCreate": "Create",
+  "filesEmpty": "This folder is empty",
+  "filesNoResults": "No matching files",
+  "filesError": "Can't open {path}",
+  "@filesError": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "ctxMoveToDesktop": "Move to desktop {n}",
   "@ctxMoveToDesktop": {
     "placeholders": {

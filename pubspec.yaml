@@ -7,6 +7,7 @@ workspace:
   - packages/oasis_ui
   - de
   - apps/settings
+  - apps/files
   - landing
 
 environment:
@@ -29,6 +30,8 @@ dependencies:
     path: de
   oasis_settings:
     path: apps/settings
+  oasis_files:
+    path: apps/files
   oasis_landing:
     path: landing
 

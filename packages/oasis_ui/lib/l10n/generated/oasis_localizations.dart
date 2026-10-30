@@ -900,6 +900,198 @@ abstract class OasisLocalizations {
   /// **'Calculator'**
   String get appCalculator;
 
+  /// No description provided for @appFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get appFiles;
+
+  /// No description provided for @filesBookmarkHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get filesBookmarkHome;
+
+  /// No description provided for @filesBookmarkDocuments.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents'**
+  String get filesBookmarkDocuments;
+
+  /// No description provided for @filesBookmarkDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get filesBookmarkDownloads;
+
+  /// No description provided for @filesBookmarkPictures.
+  ///
+  /// In en, this message translates to:
+  /// **'Pictures'**
+  String get filesBookmarkPictures;
+
+  /// No description provided for @filesBookmarkMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get filesBookmarkMusic;
+
+  /// No description provided for @filesBookmarkVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get filesBookmarkVideos;
+
+  /// No description provided for @filesBookmarkTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get filesBookmarkTrash;
+
+  /// No description provided for @filesBookmarkRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'File System'**
+  String get filesBookmarkRoot;
+
+  /// No description provided for @filesUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Up'**
+  String get filesUp;
+
+  /// No description provided for @filesLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get filesLocation;
+
+  /// No description provided for @filesSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search this folder'**
+  String get filesSearch;
+
+  /// No description provided for @filesShowHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Show hidden files'**
+  String get filesShowHidden;
+
+  /// No description provided for @filesListView.
+  ///
+  /// In en, this message translates to:
+  /// **'List view'**
+  String get filesListView;
+
+  /// No description provided for @filesGridView.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid view'**
+  String get filesGridView;
+
+  /// No description provided for @filesItems.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String filesItems(int count);
+
+  /// No description provided for @filesSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String filesSelected(int count);
+
+  /// No description provided for @filesFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder'**
+  String get filesFolder;
+
+  /// No description provided for @filesClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get filesClearSearch;
+
+  /// No description provided for @filesNewFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'New folder'**
+  String get filesNewFolder;
+
+  /// No description provided for @filesPaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get filesPaste;
+
+  /// No description provided for @filesCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get filesCopy;
+
+  /// No description provided for @filesCut.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut'**
+  String get filesCut;
+
+  /// No description provided for @filesDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to trash'**
+  String get filesDelete;
+
+  /// No description provided for @filesRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get filesRename;
+
+  /// No description provided for @filesOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get filesOpen;
+
+  /// No description provided for @filesName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get filesName;
+
+  /// No description provided for @filesCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get filesCancel;
+
+  /// No description provided for @filesCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get filesCreate;
+
+  /// No description provided for @filesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This folder is empty'**
+  String get filesEmpty;
+
+  /// No description provided for @filesNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching files'**
+  String get filesNoResults;
+
+  /// No description provided for @filesError.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t open {path}'**
+  String filesError(String path);
+
   /// No description provided for @ctxMoveToDesktop.
   ///
   /// In en, this message translates to:

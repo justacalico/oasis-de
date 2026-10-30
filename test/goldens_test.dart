@@ -10,6 +10,7 @@ import 'package:http/testing.dart';
 import 'package:oasis_de/app.dart';
 import 'package:oasis_de/services/notifications.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
+import 'package:oasis_files/oasis_files.dart';
 import 'package:oasis_landing/landing_app.dart';
 import 'package:oasis_landing/services/release_client.dart';
 import 'package:oasis_settings/oasis_settings.dart';
@@ -563,4 +564,100 @@ void main() {
       matchesGoldenFile('goldens/landing_error.png'),
     );
   });
+
+  testWidgets('files light', (tester) async {
+    final when = DateTime(2024, 3, 2, 14, 30);
+    final s = FilesState(
+      backend: _FilesBackend({
+        '/home/u': [
+          FileItem(
+            path: '/home/u/docs',
+            name: 'docs',
+            isDir: true,
+            modified: when,
+          ),
+          FileItem(
+            path: '/home/u/report.pdf',
+            name: 'report.pdf',
+            isDir: false,
+            size: 42000,
+            modified: when,
+          ),
+          FileItem(
+            path: '/home/u/photo.png',
+            name: 'photo.png',
+            isDir: false,
+            size: 3000000,
+            modified: when,
+          ),
+          FileItem(
+            path: '/home/u/song.mp3',
+            name: 'song.mp3',
+            isDir: false,
+            size: 7000000,
+            modified: when,
+          ),
+        ],
+      }),
+    );
+    await _size(tester, const Size(900, 600));
+    await tester.pumpWidget(
+      wrapOasis(
+        FilesHome(state: s, startDir: '/home/u'),
+        theme: OasisThemeMode.light,
+        size: const Size(900, 600),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/files_light.png'),
+    );
+  });
+}
+
+class _FilesBackend extends FilesBackend {
+  _FilesBackend(this.tree);
+
+  final Map<String, List<FileItem>> tree;
+
+  @override
+  Future<List<FileItem>> list(String dir, {bool showHidden = false}) async =>
+      tree[dir] ?? [];
+
+  @override
+  Future<List<FileItem>> search(
+    String root,
+    String query, {
+    int limit = 200,
+  }) async =>
+      [];
+
+  @override
+  Future<List<FileBookmark>> bookmarks() async => const [
+        FileBookmark(kind: BookmarkKind.home, path: '/home/u'),
+        FileBookmark(kind: BookmarkKind.documents, path: '/home/u/docs'),
+        FileBookmark(kind: BookmarkKind.downloads, path: '/home/u/dl'),
+        FileBookmark(kind: BookmarkKind.trash, path: '/trash'),
+        FileBookmark(kind: BookmarkKind.root, path: '/'),
+      ];
+
+  @override
+  Future<void> mkdir(String parent, String name) async {}
+
+  @override
+  Future<void> rename(String path, String newName) async {}
+
+  @override
+  Future<void> paste(
+    List<String> paths,
+    String destDir, {
+    required bool move,
+  }) async {}
+
+  @override
+  Future<void> trash(List<String> paths) async {}
+
+  @override
+  Future<void> open(String path) async {}
 }

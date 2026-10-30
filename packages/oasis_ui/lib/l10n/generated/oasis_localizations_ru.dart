@@ -424,6 +424,108 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get appCalculator => 'Калькулятор';
 
   @override
+  String get appFiles => 'Файлы';
+
+  @override
+  String get filesBookmarkHome => 'Домашняя папка';
+
+  @override
+  String get filesBookmarkDocuments => 'Документы';
+
+  @override
+  String get filesBookmarkDownloads => 'Загрузки';
+
+  @override
+  String get filesBookmarkPictures => 'Изображения';
+
+  @override
+  String get filesBookmarkMusic => 'Музыка';
+
+  @override
+  String get filesBookmarkVideos => 'Видео';
+
+  @override
+  String get filesBookmarkTrash => 'Корзина';
+
+  @override
+  String get filesBookmarkRoot => 'Файловая система';
+
+  @override
+  String get filesUp => 'Вверх';
+
+  @override
+  String get filesLocation => 'Расположение';
+
+  @override
+  String get filesSearch => 'Поиск в папке';
+
+  @override
+  String get filesShowHidden => 'Показать скрытые файлы';
+
+  @override
+  String get filesListView => 'Список';
+
+  @override
+  String get filesGridView => 'Сетка';
+
+  @override
+  String filesItems(int count) {
+    return 'Объектов: $count';
+  }
+
+  @override
+  String filesSelected(int count) {
+    return 'Выбрано: $count';
+  }
+
+  @override
+  String get filesFolder => 'Папка';
+
+  @override
+  String get filesClearSearch => 'Очистить поиск';
+
+  @override
+  String get filesNewFolder => 'Новая папка';
+
+  @override
+  String get filesPaste => 'Вставить';
+
+  @override
+  String get filesCopy => 'Копировать';
+
+  @override
+  String get filesCut => 'Вырезать';
+
+  @override
+  String get filesDelete => 'В корзину';
+
+  @override
+  String get filesRename => 'Переименовать';
+
+  @override
+  String get filesOpen => 'Открыть';
+
+  @override
+  String get filesName => 'Имя';
+
+  @override
+  String get filesCancel => 'Отмена';
+
+  @override
+  String get filesCreate => 'Создать';
+
+  @override
+  String get filesEmpty => 'Папка пуста';
+
+  @override
+  String get filesNoResults => 'Ничего не найдено';
+
+  @override
+  String filesError(String path) {
+    return 'Не удалось открыть $path';
+  }
+
+  @override
   String ctxMoveToDesktop(int n) {
     return 'Переместить на стол $n';
   }
