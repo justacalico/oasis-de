@@ -104,6 +104,7 @@ void oasis_texture_push(OasisTexture* self,
 
 struct _OasisGLTexture {
   FlTextureGL parent_instance;
+  GMutex mutex = {};
   DmabufBuf* dmabuf = nullptr;
   DmabufBuf* img_buf = nullptr;
   EGLImage image = EGL_NO_IMAGE;
@@ -169,9 +170,11 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
                                           uint32_t* height,
                                           GError** error) {
   OasisGLTexture* self = OASIS_GL_TEXTURE(texture);
+  g_mutex_lock(&self->mutex);
   EGLDisplay dpy = eglGetCurrentDisplay();
   if (self->dmabuf == nullptr || dpy == EGL_NO_DISPLAY ||
       eglGetCurrentContext() == EGL_NO_CONTEXT) {
+    g_mutex_unlock(&self->mutex);
     g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
                 "no dmabuf or no egl context");
     return FALSE;
@@ -189,6 +192,7 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
     self->image = dmabuf_import(dpy, self->dmabuf);
     self->img_dpy = dpy;
     if (self->image == EGL_NO_IMAGE) {
+      g_mutex_unlock(&self->mutex);
       g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
                   "dmabuf import failed");
       return FALSE;
@@ -202,6 +206,7 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
         eglGetProcAddress("glEGLImageTargetTexture2DOES"));
   }
   if (image_target == nullptr) {
+    g_mutex_unlock(&self->mutex);
     g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
                 "glEGLImageTargetTexture2DOES unavailable");
     return FALSE;
@@ -212,11 +217,16 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
   *name = self->gl_name;
   *width = self->w;
   *height = self->h;
+  g_mutex_unlock(&self->mutex);
   return TRUE;
 }
 
 void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, DmabufBuf* db) {
-  if (self->dmabuf == db) return;
+  g_mutex_lock(&self->mutex);
+  if (self->dmabuf == db) {
+    g_mutex_unlock(&self->mutex);
+    return;
+  }
   if (self->dmabuf != nullptr) oasis_dmabuf_unref(self->dmabuf);
   self->dmabuf = db;
   if (db != nullptr) {
@@ -224,10 +234,12 @@ void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, DmabufBuf* db) {
     self->w = static_cast<uint32_t>(db->w);
     self->h = static_cast<uint32_t>(db->h);
   }
+  g_mutex_unlock(&self->mutex);
 }
 
 static void oasis_gl_texture_dispose(GObject* object) {
   OasisGLTexture* self = OASIS_GL_TEXTURE(object);
+  g_mutex_lock(&self->mutex);
   if (self->image != EGL_NO_IMAGE && self->img_dpy != EGL_NO_DISPLAY) {
     eglDestroyImage(self->img_dpy, self->image);
     self->image = EGL_NO_IMAGE;
@@ -236,6 +248,7 @@ static void oasis_gl_texture_dispose(GObject* object) {
   self->img_buf = nullptr;
   oasis_dmabuf_unref(self->dmabuf);
   self->dmabuf = nullptr;
+  g_mutex_unlock(&self->mutex);
   G_OBJECT_CLASS(oasis_gl_texture_parent_class)->dispose(object);
 }
 
