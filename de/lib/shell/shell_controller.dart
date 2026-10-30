@@ -873,7 +873,7 @@ class ShellController extends ChangeNotifier {
     _focusedId = null;
     final visible = [
       for (final w in windows)
-        if (w.workspace == i) w,
+        if (w.workspace == i && !w.minimized) w,
     ];
     if (visible.isNotEmpty) _focus(visible.last.id);
     notifyListeners();
