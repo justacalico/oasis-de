@@ -255,6 +255,8 @@ struct _OasisCompositor {
   Surface* ptr_focus = nullptr;
   Surface* grab_surface = nullptr;
   int grab_buttons = 0;
+  uint32_t ptr_enter_serial = 0;
+  uint32_t last_button_serial = 0;
   Surface* ptr_entered = nullptr;
   wl_resource* ptr_entered_res = nullptr;
   double ptr_x = 0;
@@ -1202,10 +1204,11 @@ static void pointer_enter(OasisCompositor* c, Surface* s, double x, double y) {
   }
   if (st->pointer != nullptr) {
     if (c->ptr_entered != s || c->ptr_entered_res != st->pointer) {
-      wl_pointer_send_enter(st->pointer,
-                            wl_display_next_serial(c->display),
-                            s->wl_surface, wl_fixed_from_double(x),
+      uint32_t ser = wl_display_next_serial(c->display);
+      wl_pointer_send_enter(st->pointer, ser, s->wl_surface,
+                            wl_fixed_from_double(x),
                             wl_fixed_from_double(y));
+      c->ptr_enter_serial = ser;
       c->ptr_entered = s;
       c->ptr_entered_res = st->pointer;
     }
@@ -1271,6 +1274,19 @@ static void pointer_set_cursor(wl_client* client,
   }
   Surface* s = surface_of(surface_res);
   if (s == nullptr) return;
+  if (s->role != SURFACE_NONE && s->role != SURFACE_CURSOR) {
+    wl_resource_post_error(res, WL_POINTER_ERROR_ROLE,
+                           "surface with a role cannot be the cursor");
+    return;
+  }
+  if (serial != c->ptr_enter_serial &&
+      serial != c->last_button_serial) {
+    return;
+  }
+  if (c->cursor_surface != nullptr &&
+      c->cursor_surface->role == SURFACE_CURSOR) {
+    c->cursor_surface->role = SURFACE_NONE;
+  }
   if (s->role == SURFACE_NONE) s->role = SURFACE_CURSOR;
   c->cursor_surface = s;
   emit_cursor(c);
@@ -3861,9 +3877,9 @@ static void method_call_cb(FlMethodChannel* channel,
     if (target != nullptr) {
       SeatRes* st = seat_for(c, target->client, false);
       if (st != nullptr && st->pointer != nullptr) {
-        wl_pointer_send_button(st->pointer,
-                               wl_display_next_serial(c->display),
-                               now_ms(), button, state);
+        uint32_t ser = wl_display_next_serial(c->display);
+        wl_pointer_send_button(st->pointer, ser, now_ms(), button, state);
+        if (state == 1) c->last_button_serial = ser;
         if (wl_resource_get_version(st->pointer) >=
             WL_POINTER_FRAME_SINCE_VERSION) {
           wl_pointer_send_frame(st->pointer);
