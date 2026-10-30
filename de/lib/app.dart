@@ -172,6 +172,10 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   }
 
   Future<void> _init() async {
+    _controller.notificationActionHandler = (id, action) => unawaited(
+          widget.notificationDaemon?.invokeAction(id, action) ??
+              Future.value(),
+        );
     unawaited(
       widget.notificationDaemon?.start(
             onNotify: _controller.pushNotification,
