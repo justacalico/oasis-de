@@ -475,6 +475,12 @@ class _DesktopShellState extends State<DesktopShell> {
         maximized: w.zoomed,
         fullscreen: w.fullscreen,
         resizing: controller.surfaceResize?.id == w.id,
+        escReserved:
+            controller.openMenu != null ||
+            controller.launcherOpen ||
+            controller.launchPadOpen ||
+            controller.controlCenterOpen ||
+            controller.switcherIndex != null,
       );
     } else if (w.launching) {
       body = Center(
