@@ -101,7 +101,9 @@ MouseCursor waylandMouseCursor(WaylandService service) {
     case 29:
       return SystemMouseCursors.resizeUpLeftDownRight;
     case 30:
+      return SystemMouseCursors.resizeLeftRight;
     case 31:
+      return SystemMouseCursors.resizeUpDown;
     case 32:
       return SystemMouseCursors.move;
     case 33:
