@@ -111,11 +111,16 @@ class CliSystemBackend implements OasisSystemBackend {
     return _exec('gammastep', enabled ? ['-O', '3500'] : ['-x']);
   }
 
-  Future<String?> _read(String exe, List<String> args) async {
+  Future<String?> _read(
+    String exe,
+    List<String> args, {
+    bool stderr = false,
+  }) async {
     if (kIsWeb) return null;
     try {
       final r = await (run ?? Process.run)(exe, args);
-      return r.exitCode == 0 ? r.stdout.toString() : null;
+      if (r.exitCode != 0) return null;
+      return stderr ? '${r.stdout}${r.stderr}' : r.stdout.toString();
     } on ProcessException {
       return null;
     }
@@ -123,17 +128,19 @@ class CliSystemBackend implements OasisSystemBackend {
 
   @override
   Future<OasisSystemState> read() async {
-    final wifiOut = await _read('nmcli', ['radio', 'wifi']);
-    final btOut = await _read('bluetoothctl', ['show']);
-    final brightOut = await _read('brightnessctl', ['-m']);
-    final volOut = await _read('wpctl', [
-      'get-volume',
-      '@DEFAULT_AUDIO_SINK@',
+    final results = await Future.wait([
+      _read('nmcli', ['radio', 'wifi']),
+      _read('bluetoothctl', ['show']),
+      _read('brightnessctl', ['-m']),
+      _read('wpctl', ['get-volume', '@DEFAULT_AUDIO_SINK@']),
+      _read('gammastep', ['-p'], stderr: true),
     ]);
-    final nlOut = await _read('gammastep', ['-p']);
+    final [wifiOut, btOut, brightOut, volOut, nlOut] = results;
     return OasisSystemState(
       wifi: wifiOut?.contains('enabled'),
-      bluetooth: btOut?.contains('Powered: yes'),
+      bluetooth: btOut != null &&
+          RegExp(r'Powered:\s*(yes|on|1|true)', caseSensitive: false)
+              .hasMatch(btOut),
       brightness: _parseBrightness(brightOut),
       volume: _parseVolume(volOut),
       nightLight: nlOut?.contains('3500'),
