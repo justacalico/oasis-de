@@ -17,6 +17,7 @@ cp -a "$BUNDLE"/. "$TOP/oasis/opt/oasis/"
 
 for so in "$TOP/oasis/opt/oasis/lib/"*.so; do
   [ -e "$so" ] || continue
+  head -c4 "$so" | grep -q ELF || continue
   patchelf --set-rpath '$ORIGIN' "$so"
 done
 

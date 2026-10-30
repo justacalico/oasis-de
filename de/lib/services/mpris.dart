@@ -55,7 +55,7 @@ class MprisService extends ChangeNotifier {
             bus,
             interface: 'org.freedesktop.DBus',
             name: 'NameOwnerChanged',
-          ).listen(_onOwnerChanged);
+          ).listen(_onOwnerChanged, onError: (_) {});
       final root = DBusRemoteObject(
         bus,
         name: 'org.freedesktop.DBus',
@@ -118,13 +118,16 @@ class MprisService extends ChangeNotifier {
           path: DBusObjectPath('/mpris/MediaPlayer2'),
           interface: 'org.freedesktop.DBus.Properties',
           name: 'PropertiesChanged',
-        ).listen((signal) {
-          for (final e
-              in (signal.values[1] as DBusDict).children.entries) {
-            _apply(e.key as DBusString, e.value);
-          }
-          notifyListeners();
-        });
+        ).listen(
+          (signal) {
+            for (final e
+                in (signal.values[1] as DBusDict).children.entries) {
+              _apply(e.key as DBusString, e.value);
+            }
+            notifyListeners();
+          },
+          onError: (_) {},
+        );
     notifyListeners();
   }
 
