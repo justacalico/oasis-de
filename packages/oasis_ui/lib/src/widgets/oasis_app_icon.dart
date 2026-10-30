@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class OasisAppIcon extends StatelessWidget {
   const OasisAppIcon({
@@ -64,22 +65,30 @@ class OasisAppIcon extends StatelessWidget {
               ),
             ),
           ),
-          if (!kIsWeb &&
-              iconPath != null &&
-              File(iconPath!).existsSync())
+          if (!kIsWeb && iconPath != null && File(iconPath!).existsSync())
             Padding(
               padding: EdgeInsets.all(size * 0.12),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(size * 0.16),
-                child: Image(
-                  image: image ?? FileImage(File(iconPath!)),
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stack) => Icon(
-                    icon,
-                    size: size * 0.55,
-                    color: const Color(0xFFFFFFFF),
-                  ),
-                ),
+                child: iconPath!.endsWith('.svg')
+                    ? SvgPicture.file(
+                        File(iconPath!),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stack) => Icon(
+                          icon,
+                          size: size * 0.55,
+                          color: const Color(0xFFFFFFFF),
+                        ),
+                      )
+                    : Image(
+                        image: image ?? FileImage(File(iconPath!)),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stack) => Icon(
+                          icon,
+                          size: size * 0.55,
+                          color: const Color(0xFFFFFFFF),
+                        ),
+                      ),
               ),
             )
           else

@@ -85,7 +85,7 @@ const _iconSizes = [
   '16x16',
 ];
 
-const _iconExts = ['png'];
+const _iconExts = ['png', 'svg'];
 
 String? _systemIconTheme() {
   final home = Platform.environment['HOME'];
@@ -162,9 +162,12 @@ _IconThemeIndex? _loadIconIndex(String root, String theme) {
     final meta = sections['Icon Theme'];
     if (meta != null) {
       index = _IconThemeIndex([
-        for (final name in _splitList(meta['Directories']))
+        for (final name in [
+          ..._splitCsv(meta['Directories']),
+          ..._splitCsv(meta['ScaledDirectories']),
+        ])
           _parseThemeDir(name, sections[name] ?? const {}),
-      ], _splitList(meta['Inherits']));
+      ], _splitCsv(meta['Inherits']));
     }
   }
   return _iconIndexCache[key] = index;
@@ -222,6 +225,9 @@ String? findIconPath(
   String? loose;
 
   String? probe(String path) {
+    if (_iconExts.any(path.endsWith) && File(path).existsSync()) {
+      return path;
+    }
     for (final ext in _iconExts) {
       final p = '$path.$ext';
       if (File(p).existsSync()) return p;
@@ -338,6 +344,11 @@ List<String> parseExecLine(String exec, String name, String? icon) {
 
 List<String> _splitList(String? value) => [
   for (final part in (value ?? '').split(';'))
+    if (part.trim().isNotEmpty) part.trim(),
+];
+
+List<String> _splitCsv(String? value) => [
+  for (final part in (value ?? '').split(','))
     if (part.trim().isNotEmpty) part.trim(),
 ];
 

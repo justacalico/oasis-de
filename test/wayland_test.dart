@@ -648,6 +648,7 @@ TryExec=/bin/sh
     }
     final pix = File('${dir.path}/pix.png')..writeAsBytesSync(const [0x89]);
     expect(findIconPath('pix', roots: [dir.path]), pix.path);
+    expect(findIconPath('pix.png', roots: [dir.path]), pix.path);
   });
 
   test('findIconPath honours index.theme', () {
@@ -662,8 +663,9 @@ TryExec=/bin/sh
       ..createSync(recursive: true)
       ..writeAsStringSync('''
 [Icon Theme]
-Directories=16x16/apps;48x48/apps;scalable/apps;64x64/apps
-Inherits=base-theme
+Directories=16x16/apps,48x48/apps,scalable/apps,64x64/apps
+ScaledDirectories=48x48/apps@2
+Inherits=base-theme,other-theme
 [16x16/apps]
 Size=16
 Type=Fixed
@@ -693,6 +695,8 @@ Size=32
     png('base-theme/32x32/apps/inherited.png');
     png('adwaita/scalable/apps/second.svg');
     png('adwaita/64x64/apps/second.png');
+    png('adwaita/48x48/apps@2/retina.png');
+    png('other-theme/32x32/apps/fallback.png');
 
     expect(
       findIconPath('exact', roots: [dir.path], theme: 'adwaita'),
@@ -700,7 +704,7 @@ Size=32
     );
     expect(
       findIconPath('scaled', roots: [dir.path], theme: 'adwaita'),
-      isNull,
+      endsWith('scalable/apps/scaled.svg'),
     );
     expect(
       findIconPath('near', roots: [dir.path], theme: 'adwaita'),
@@ -711,16 +715,24 @@ Size=32
       endsWith('32x32/apps/inherited.png'),
     );
     expect(
+      findIconPath('fallback', roots: [dir.path], theme: 'adwaita'),
+      endsWith('32x32/apps/fallback.png'),
+    );
+    expect(
+      findIconPath('retina', roots: [dir.path], theme: 'adwaita'),
+      endsWith('48x48/apps@2/retina.png'),
+    );
+    expect(
       findIconPath('second', roots: [dir.path], theme: 'adwaita'),
-      endsWith('64x64/apps/second.png'),
+      endsWith('scalable/apps/second.svg'),
     );
     expect(
       findIconPath('scaled', roots: [dir.path], theme: 'adwaita', size: 16),
-      isNull,
+      endsWith('scalable/apps/scaled.svg'),
     );
     expect(
       findIconPath('scaled', roots: [dir.path], theme: 'adwaita', size: 300),
-      isNull,
+      endsWith('scalable/apps/scaled.svg'),
     );
     expect(
       findIconPath('near', roots: [dir.path], theme: 'adwaita', size: 62),
