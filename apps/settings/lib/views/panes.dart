@@ -349,7 +349,8 @@ class AboutPane extends StatelessWidget {
         const SizedBox(height: 16),
         OasisSection(
           children: [
-            UpdateCheckTile(service: host.updates, onOpenUrl: host.openUrl),
+            if (host.updates != null)
+              UpdateCheckTile(service: host.updates!, onOpenUrl: host.openUrl),
           ],
         ),
       ],

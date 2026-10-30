@@ -31,24 +31,22 @@ class LandingApp extends StatefulWidget {
 
 class _LandingAppState extends State<LandingApp> {
   late final OasisAppearance _appearance;
-  late final UpdateService _updates;
   late final ReleaseClient _client;
 
   @override
   void initState() {
     super.initState();
     _appearance = widget.appearance ?? OasisAppearance();
-    if (widget.onThemeChanged != null) {
-      _appearance.addListener(
-          () => widget.onThemeChanged!(_appearance.themeMode));
-    }
-    _updates = UpdateService(currentVersion: () async => '0.0.0');
+    _appearance.addListener(_onAppearanceChanged);
     _client = widget.client ?? ReleaseClient();
   }
 
+  void _onAppearanceChanged() =>
+      widget.onThemeChanged?.call(_appearance.themeMode);
+
   @override
   void dispose() {
-    _updates.dispose();
+    _appearance.removeListener(_onAppearanceChanged);
     super.dispose();
   }
 
@@ -74,7 +72,6 @@ class _LandingAppState extends State<LandingApp> {
           ],
           home: OasisHost(
             appearance: _appearance,
-            updates: _updates,
             setLocale: (_) {},
             openUrl: widget.onOpenUrl,
             child: LandingPage(
