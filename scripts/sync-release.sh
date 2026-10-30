@@ -1,8 +1,12 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 TAG="${1:?tag required}"
-REPO="justacalico/oasis-de"
-RESP=$(curl -fsS -H "Authorization: token ${GH_TOKEN:-}" \
+REPO="${GITHUB_REPO:-justacalico/oasis-de}"
+AUTH=()
+if [ -n "${GH_TOKEN:-}" ]; then
+  AUTH=(-H "Authorization: token $GH_TOKEN")
+fi
+RESP=$(curl -fsS "${AUTH[@]}" \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/$REPO/releases/tags/$TAG")
 LINKS=$(echo "$RESP" | python3 -c "
