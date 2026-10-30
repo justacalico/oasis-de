@@ -132,8 +132,11 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
                   focusNode: _fieldFocus,
                   autofocus: true,
                   fontSize: 15,
-                  onChanged: (_) =>
-                      setState(() => _selected = -1),
+                  onChanged: (_) => setState(() {
+                    _selected = -1;
+                    _page = 0;
+                    if (_pages.hasClients) _pages.jumpToPage(0);
+                  }),
                 ),
               ),
               const SizedBox(height: 20),
