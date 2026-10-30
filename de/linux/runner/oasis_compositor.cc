@@ -138,6 +138,8 @@ struct Surface {
   std::string title;
   std::string app_id;
   std::vector<wl_resource*> frames;
+  wl_resource* deco_res = nullptr;
+  int deco_mode = 0;
 
   int geo_x = 0;
   int geo_y = 0;
@@ -863,6 +865,9 @@ static void free_surface(Surface* s) {
   s->frames.clear();
   for (wl_resource* vp : s->viewports) {
     wl_resource_set_user_data(vp, nullptr);
+  }
+  if (s->deco_res != nullptr) {
+    wl_resource_set_user_data(s->deco_res, nullptr);
   }
   if (s->xdg_surface != nullptr) {
     wl_resource_set_user_data(s->xdg_surface, nullptr);
@@ -3233,14 +3238,31 @@ static void bind_primary_manager(wl_client* client,
 // xdg decoration
 
 static void deco_destroy(wl_client* client, wl_resource* res) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s != nullptr && s->deco_res == res) s->deco_res = nullptr;
   wl_resource_destroy(res);
 }
 
 static void deco_set_mode(wl_client* client,
                           wl_resource* res,
-                          uint32_t mode) {}
+                          uint32_t mode) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
+  if (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE ||
+      mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE) {
+    s->deco_mode = (int)mode;
+  }
+  zxdg_toplevel_decoration_v1_send_configure(
+      res, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+}
 
-static void deco_unset_mode(wl_client* client, wl_resource* res) {}
+static void deco_unset_mode(wl_client* client, wl_resource* res) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(res));
+  if (s == nullptr) return;
+  s->deco_mode = 0;
+  zxdg_toplevel_decoration_v1_send_configure(
+      res, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+}
 
 static const struct zxdg_toplevel_decoration_v1_interface deco_impl = {
     deco_destroy, deco_set_mode, deco_unset_mode};
@@ -3253,10 +3275,19 @@ static void deco_manager_get_decoration(wl_client* client,
                                         wl_resource* res,
                                         uint32_t id,
                                         wl_resource* toplevel) {
+  Surface* s = static_cast<Surface*>(wl_resource_get_user_data(toplevel));
+  if (s == nullptr) return;
+  if (s->deco_res != nullptr) {
+    wl_resource_post_error(
+        res, ZXDG_DECORATION_MANAGER_V1_ERROR_ALREADY_CONSTRUCTED,
+        "toplevel already has a decoration object");
+    return;
+  }
   wl_resource* deco =
       wl_resource_create(client, &zxdg_toplevel_decoration_v1_interface,
                          wl_resource_get_version(res), id);
-  wl_resource_set_implementation(deco, &deco_impl, nullptr, nullptr);
+  wl_resource_set_implementation(deco, &deco_impl, s, nullptr);
+  s->deco_res = deco;
   zxdg_toplevel_decoration_v1_send_configure(
       deco, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
 }
