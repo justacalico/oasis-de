@@ -7,12 +7,18 @@ export OASIS_SESSION=1
 
 OASIS_CRASH_LOG="${XDG_STATE_HOME:-$HOME/.local/state}/oasis/crashes.log"
 OASIS_MAX_CRASHES=5
+OASIS_BIN="${OASIS_BIN:-/opt/oasis/oasis}"
+
+if ! command -v cage >/dev/null 2>&1; then
+  echo "oasis-session: cage not found" >&2
+  exit 1
+fi
 
 run_oasis() {
   mkdir -p "$(dirname "$OASIS_CRASH_LOG")"
   crashes=0
   while true; do
-    cage -- /opt/oasis/oasis "$@"
+    cage -- "$OASIS_BIN" "$@"
     code=$?
     [ "$code" -eq 0 ] && exit 0
     crashes=$((crashes + 1))
@@ -21,10 +27,9 @@ run_oasis() {
       >> "$OASIS_CRASH_LOG"
     if [ "$crashes" -ge "$OASIS_MAX_CRASHES" ]; then
       if command -v weston-terminal >/dev/null 2>&1; then
-        exec weston-terminal --shell=/bin/sh \
-          -c "echo 'Oasis failed to start; see $OASIS_CRASH_LOG'; exec /bin/sh"
+        exec cage -- weston-terminal
       fi
-      sleep infinity
+      exit 1
     fi
     sleep 1
   done
