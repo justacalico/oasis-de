@@ -373,6 +373,7 @@ class ShellController extends ChangeNotifier {
       window = ShellWindowData(
         id: _nextId++,
         app: app,
+        workspace: activeWorkspace,
         position: Offset(
           56 + windows.length * 28.0,
           52 + windows.length * 24.0,
@@ -393,6 +394,7 @@ class ShellController extends ChangeNotifier {
         ShellWindowData(
           id: _nextId++,
           app: app,
+          workspace: activeWorkspace,
           position: Offset(
             56 + windows.length * 28.0,
             52 + windows.length * 24.0,
@@ -718,6 +720,7 @@ class ShellController extends ChangeNotifier {
         final w = ShellWindowData(
           id: _nextId++,
           app: _appForSurface(s),
+          workspace: activeWorkspace,
           position: Offset(
             56 + windows.length * 28.0,
             52 + windows.length * 24.0,
