@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oasis_ui/oasis_ui.dart';
 
+import '../services/mpris.dart';
 import '../services/notifications.dart';
 
 import '../wayland/wayland_service.dart';
@@ -71,9 +72,11 @@ class ShellController extends ChangeNotifier {
     required List<OasisApp> apps,
     this.wayland,
     this.backend = const NoopSystemBackend(),
+    this.mpris,
     this.batteryPollInterval = const Duration(seconds: 60),
   }) : apps = List.of(apps) {
     wayland?.addListener(_syncSurfaces);
+    mpris?.addListener(notifyListeners);
     _requestSub = wayland?.requests.listen(_onWaylandRequest);
     _refreshSystemState();
     if (batteryPollInterval != null) {
@@ -109,6 +112,7 @@ class ShellController extends ChangeNotifier {
   final List<OasisApp> pinned = [];
   final List<ShellWindowData> windows = [];
   final WaylandService? wayland;
+  final MprisService? mpris;
   final Duration? batteryPollInterval;
 
   String Function() unknownAppName =
@@ -1075,6 +1079,7 @@ class ShellController extends ChangeNotifier {
     }
     _requestSub?.cancel();
     wayland?.removeListener(_syncSurfaces);
+    mpris?.removeListener(notifyListeners);
     super.dispose();
   }
 }

@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import 'apps/shell_apps.dart';
+import 'services/mpris.dart';
 import 'services/notifications.dart';
 import 'shell/desktop_shell.dart';
 import 'shell/shell_controller.dart';
@@ -31,6 +32,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.wayland,
     this.externalAppsLoader = loadExternalApps,
     this.notificationDaemon,
+    this.mpris,
     this.appDirWatcher,
     this.store,
     this.backend,
@@ -45,6 +47,7 @@ class OasisDesktopApp extends StatefulWidget {
   final WaylandService? wayland;
   final Future<List<OasisApp>> Function() externalAppsLoader;
   final NotificationDaemon? notificationDaemon;
+  final MprisService? mpris;
   final Stream<void> Function()? appDirWatcher;
   final OasisStore? store;
   final OasisSystemBackend? backend;
@@ -60,6 +63,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final UpdateService _updates;
   late final ShellController _controller;
   late final WaylandService _wayland;
+  late final MprisService _mpris;
   List<OasisApp> _externalApps = const [];
   late final String? _savedPins = widget.store?.read('shell.pinned');
   Locale? _locale;
@@ -78,10 +82,12 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       currentVersion: () async => widget.version,
     );
     _wayland = widget.wayland ?? WaylandService();
+    _mpris = widget.mpris ?? MprisService();
     _controller = ShellController(
       apps: const [],
       wayland: _wayland,
       backend: widget.backend ?? const CliSystemBackend(),
+      mpris: _mpris,
     );
     _controller.unknownAppName = () =>
         lookupOasisLocalizations(_locale ?? const Locale('en')).appUnknown;
@@ -191,6 +197,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
           Future.value(),
     );
     unawaited(_wayland.start());
+    unawaited(_mpris.start());
     if (!mounted) return;
     Future<void> reload() async {
       final apps = await widget.externalAppsLoader();
@@ -212,6 +219,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _controller.removeListener(_persistState);
     _controller.dispose();
     _wayland.dispose();
+    _mpris.dispose();
     _updates.dispose();
     super.dispose();
   }

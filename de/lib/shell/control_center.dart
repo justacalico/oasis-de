@@ -196,7 +196,9 @@ class ShellControlCenter extends StatelessWidget {
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 Text(
-                                  l10n.ccNothingPlaying,
+                                  _mediaLabel(l10n, c),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: OasisStyle.of(
@@ -207,6 +209,22 @@ class ShellControlCenter extends StatelessWidget {
                               ],
                             ),
                           ),
+                          if (c.mpris != null && c.mpris!.hasPlayer) ...[
+                            _MediaButton(
+                              icon: Icons.skip_previous,
+                              onTap: c.mpris!.previous,
+                            ),
+                            _MediaButton(
+                              icon: c.mpris!.playing
+                                  ? Icons.pause
+                                  : Icons.play_arrow,
+                              onTap: c.mpris!.playPause,
+                            ),
+                            _MediaButton(
+                              icon: Icons.skip_next,
+                              onTap: c.mpris!.next,
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -309,6 +327,34 @@ class _CcCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: child,
+    );
+  }
+}
+
+String _mediaLabel(OasisLocalizations l10n, ShellController c) {
+  final m = c.mpris;
+  if (m == null || !m.hasPlayer) return l10n.ccNothingPlaying;
+  final track = [m.artist, m.title]
+      .where((s) => s.isNotEmpty)
+      .join(' - ');
+  return track.isEmpty ? l10n.ccNothingPlaying : track;
+}
+
+class _MediaButton extends StatelessWidget {
+  const _MediaButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = OasisStyle.of(context).palette;
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(icon, size: 18, color: p.textSecondary),
+      ),
     );
   }
 }
