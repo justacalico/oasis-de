@@ -150,38 +150,74 @@ class NotificationBanner extends StatelessWidget {
     if (n == null) return const SizedBox.shrink();
     return Align(
       alignment: Alignment.topCenter,
-      child: Padding(
-        padding: const EdgeInsets.only(top: kCcTopOffset + 4),
-        child: SizedBox(
-          width: 380,
-          child: OasisGlass(
-            borderRadius: 14,
-            blur: 40,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 10,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  n.summary,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
+      child: TweenAnimationBuilder<double>(
+        key: ValueKey(n.id),
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 250),
+        builder: (context, v, child) => Opacity(
+          opacity: v,
+          child: Transform.translate(
+            offset: Offset(0, -10 * (1 - v)),
+            child: child,
+          ),
+        ),
+        child: MouseRegion(
+          onEnter: (_) => controller.pauseBannerDismiss(),
+          onExit: (_) => controller.resumeBannerDismiss(),
+          child: SizedBox(
+            width: 380,
+            child: GestureDetector(
+              onTap: () {
+                controller.dismissBanner();
+                if (!controller.notificationCenterOpen) {
+                  controller.toggleNotificationCenter();
+                }
+              },
+              child: OasisGlass(
+                borderRadius: 14,
+                blur: 40,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
                 ),
-                if (n.body.isNotEmpty)
-                  Text(
-                    n.body,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-              ],
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            n.summary,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (n.body.isNotEmpty)
+                            Text(
+                              n.body,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => controller.dismissNotification(n.id),
+                      child: Icon(
+                        Icons.close,
+                        size: 15,
+                        color: OasisStyle.of(context).palette.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
