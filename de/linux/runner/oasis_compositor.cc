@@ -156,6 +156,8 @@ struct Surface {
   bool cfg_max = false;
   bool cfg_fs = false;
   bool cfg_resizing = false;
+  bool cfg_active = false;
+  bool cfg_pending = false;
   std::unordered_set<uint32_t> pending_serials;
   uint32_t acked_serial = 0;
   uint32_t grab_serial = 0;
@@ -285,6 +287,7 @@ struct _OasisCompositor {
   int out_w = 1920;
   int out_h = 1080;
   guint resize_idle = 0;
+  guint config_flush = 0;
   int out_scale = 1;
   Surface* cursor_surface = nullptr;
   int cursor_hx = 0;
@@ -2087,6 +2090,47 @@ static void popup_position(Positioner* p, int* out_x, int* out_y) {
   *out_y = y;
 }
 
+static void send_toplevel_configure(OasisCompositor* c, Surface* s) {
+  wl_array states;
+  wl_array_init(&states);
+  if (s->cfg_active) {
+    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
+        XDG_TOPLEVEL_STATE_ACTIVATED;
+  }
+  if (s->cfg_max) {
+    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
+        XDG_TOPLEVEL_STATE_MAXIMIZED;
+  }
+  if (s->cfg_fs) {
+    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
+        XDG_TOPLEVEL_STATE_FULLSCREEN;
+  }
+  if (s->cfg_resizing) {
+    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
+        XDG_TOPLEVEL_STATE_RESIZING;
+  }
+  xdg_toplevel_send_configure(s->role_res, std::max(s->cfg_w, 0),
+                              std::max(s->cfg_h, 0), &states);
+  wl_array_release(&states);
+  uint32_t ser = wl_display_next_serial(c->display);
+  s->pending_serials.insert(ser);
+  xdg_surface_send_configure(s->xdg_surface, ser);
+}
+
+static gboolean config_flush_idle(gpointer data) {
+  OasisCompositor* c = static_cast<OasisCompositor*>(data);
+  c->config_flush = 0;
+  for (Surface* s : c->surfaces) {
+    if (!s->cfg_pending) continue;
+    s->cfg_pending = false;
+    if (s->role_res != nullptr && s->xdg_surface != nullptr) {
+      send_toplevel_configure(c, s);
+    }
+  }
+  comp_flush(c);
+  return G_SOURCE_REMOVE;
+}
+
 static void toplevel_configure(OasisCompositor* c,
                                Surface* s,
                                int w,
@@ -2101,31 +2145,11 @@ static void toplevel_configure(OasisCompositor* c,
   s->cfg_max = maximized;
   s->cfg_fs = fullscreen;
   s->cfg_resizing = resizing;
-  wl_array states;
-  wl_array_init(&states);
-  if (active) {
-    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
-        XDG_TOPLEVEL_STATE_ACTIVATED;
+  s->cfg_active = active;
+  s->cfg_pending = true;
+  if (c->config_flush == 0) {
+    c->config_flush = g_idle_add(config_flush_idle, c);
   }
-  if (maximized) {
-    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
-        XDG_TOPLEVEL_STATE_MAXIMIZED;
-  }
-  if (fullscreen) {
-    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
-        XDG_TOPLEVEL_STATE_FULLSCREEN;
-  }
-  if (resizing) {
-    *static_cast<uint32_t*>(wl_array_add(&states, sizeof(uint32_t))) =
-        XDG_TOPLEVEL_STATE_RESIZING;
-  }
-  xdg_toplevel_send_configure(s->role_res, std::max(w, 0), std::max(h, 0),
-                              &states);
-  wl_array_release(&states);
-  uint32_t ser = wl_display_next_serial(c->display);
-  s->pending_serials.insert(ser);
-  xdg_surface_send_configure(s->xdg_surface, ser);
-  comp_flush(c);
 }
 
 static void xdg_surface_destroy_req(wl_client* client, wl_resource* res) {
@@ -2174,13 +2198,6 @@ static void toplevel_created(OasisCompositor* c,
   s->role = SURFACE_TOPLEVEL;
   s->public_id = c->next_id++;
   c->by_id[s->public_id] = s;
-  wl_array states;
-  wl_array_init(&states);
-  xdg_toplevel_send_configure(tl, 0, 0, &states);
-  wl_array_release(&states);
-  xdg_surface_send_configure(s->xdg_surface,
-                             wl_display_next_serial(c->display));
-  comp_flush(c);
 }
 
 static Surface* xdg_surface_of(wl_resource* r);
@@ -4203,6 +4220,7 @@ void oasis_compositor_free(OasisCompositor* c) {
   if (c->watch != 0) g_source_remove(c->watch);
   if (c->ping_timer != 0) g_source_remove(c->ping_timer);
   if (c->resize_idle != 0) g_source_remove(c->resize_idle);
+  if (c->config_flush != 0) g_source_remove(c->config_flush);
   for (KillCheck* k : c->kill_checks) {
     g_source_remove(k->source);
     delete k;
