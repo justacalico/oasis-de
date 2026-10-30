@@ -4,7 +4,6 @@
 
 ```sh
 flutter pub get
-for p in packages/oasis_ui de apps/settings landing; do (cd $p && flutter pub get); done
 git config core.hooksPath .githooks
 ```
 
