@@ -1,5 +1,7 @@
 export 'src/services/oasis_store.dart';
 export 'src/services/system_backend.dart';
+export 'src/services/system_backend_cli_stub.dart'
+    if (dart.library.io) 'src/services/system_backend_cli_io.dart';
 export 'src/theme/oasis_colors.dart';
 export 'src/theme/oasis_theme.dart';
 export 'src/wallpaper/wallpaper_service.dart';
