@@ -6,6 +6,7 @@ abstract class WaylandHost {
   Stream<Map<String, Object?>> get events;
 
   Future<String?> start();
+  Future<void> stop();
   Future<void> launch(List<String> argv);
   Future<void> configure(
     int id,
@@ -40,6 +41,9 @@ class ChannelWaylandHost extends WaylandHost {
     final result = await _methods.invokeMapMethod<String, dynamic>('start');
     return result?['socket'] as String?;
   }
+
+  @override
+  Future<void> stop() => _methods.invokeMethod('stop');
 
   @override
   Future<void> launch(List<String> argv) =>

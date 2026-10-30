@@ -104,26 +104,45 @@ class WaylandService extends ChangeNotifier {
 
   var socket = '';
   var started = false;
+  bool _starting = false;
 
   Stream<WaylandRequest> get requests => _requests.stream;
   bool get available => socket.isNotEmpty;
 
   Future<void> start() async {
-    if (started) return;
-    started = true;
-    String? name;
+    if (started || _starting) return;
+    _starting = true;
     try {
-      name = await _host.start();
-    } on MissingPluginException {
-      name = null;
-    } on PlatformException {
-      name = null;
+      for (var attempt = 0; attempt < 5 && !_disposed; attempt++) {
+        String? name;
+        try {
+          name = await _host.start();
+        } on MissingPluginException {
+          name = null;
+        } on PlatformException {
+          name = null;
+        }
+        if (name != null && name.isNotEmpty) {
+          socket = name;
+          started = true;
+          _sub = _host.events.listen(_onEvent);
+          notifyListeners();
+          return;
+        }
+        await Future.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+      }
+    } finally {
+      _starting = false;
     }
-    socket = name ?? '';
-    if (available) {
-      _sub = _host.events.listen(_onEvent);
-    }
-    notifyListeners();
+  }
+
+  Future<void> stop() async {
+    await _sub?.cancel();
+    _sub = null;
+    if (available) await _host.stop();
+    socket = '';
+    started = false;
+    if (!_disposed) notifyListeners();
   }
 
   List<WaylandSurface> get toplevels => surfaces.values
