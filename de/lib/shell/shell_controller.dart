@@ -371,8 +371,8 @@ class ShellController extends ChangeNotifier {
         app: app,
         workspace: activeWorkspace,
         position: Offset(
-          56 + windows.length * 28.0,
-          52 + windows.length * 24.0,
+          56 + _cascadeCount * 28.0,
+          52 + _cascadeCount * 24.0,
         ),
       );
       unawaited(
@@ -392,8 +392,8 @@ class ShellController extends ChangeNotifier {
           app: app,
           workspace: activeWorkspace,
           position: Offset(
-            56 + windows.length * 28.0,
-            52 + windows.length * 24.0,
+            56 + _cascadeCount * 28.0,
+            52 + _cascadeCount * 24.0,
           ),
         );
     w.launching = app.isExternal;
@@ -749,8 +749,8 @@ class ShellController extends ChangeNotifier {
           app: _appForSurface(s),
           workspace: activeWorkspace,
           position: Offset(
-            56 + windows.length * 28.0,
-            52 + windows.length * 24.0,
+            56 + _cascadeCount * 28.0,
+            52 + _cascadeCount * 24.0,
           ),
         );
         windows.add(w);
@@ -893,6 +893,10 @@ class ShellController extends ChangeNotifier {
   int? _switcherIndex;
   List<ShellWindowData>? _switcherList;
   int? get switcherIndex => _switcherIndex;
+
+  int get _cascadeCount => windows
+      .where((w) => w.workspace == activeWorkspace && !w.minimized)
+      .length;
 
   List<ShellWindowData> get switcherWindows {
     final src = _switcherList ?? windows;
