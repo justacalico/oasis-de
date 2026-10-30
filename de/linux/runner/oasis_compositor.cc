@@ -243,6 +243,8 @@ struct _OasisCompositor {
   Surface* kb_focus = nullptr;
   Surface* activated = nullptr;
   Surface* ptr_focus = nullptr;
+  Surface* grab_surface = nullptr;
+  int grab_buttons = 0;
   Surface* ptr_entered = nullptr;
   wl_resource* ptr_entered_res = nullptr;
   double ptr_x = 0;
@@ -763,6 +765,10 @@ static void free_surface(Surface* s) {
   if (c->kb_focus == s) c->kb_focus = nullptr;
   if (c->activated == s) c->activated = nullptr;
   if (c->ptr_focus == s) c->ptr_focus = nullptr;
+  if (c->grab_surface == s) {
+    c->grab_surface = nullptr;
+    c->grab_buttons = 0;
+  }
   if (c->cursor_surface == s) {
     c->cursor_surface = nullptr;
     emit_cursor(c);
@@ -1141,9 +1147,10 @@ static void set_kb_focus(OasisCompositor* c, Surface* s) {
 }
 
 static void pointer_enter(OasisCompositor* c, Surface* s, double x, double y) {
-  SeatRes* st = seat_for(c, s->client, true);
   c->ptr_x = x;
   c->ptr_y = y;
+  if (c->grab_surface != nullptr) return;
+  SeatRes* st = seat_for(c, s->client, true);
   if (c->ptr_focus != s) {
     if (c->ptr_focus != nullptr) {
       SeatRes* old = seat_for(c, c->ptr_focus->client, false);
@@ -1179,7 +1186,7 @@ static void pointer_enter(OasisCompositor* c, Surface* s, double x, double y) {
 }
 
 static void pointer_exit(OasisCompositor* c) {
-  if (c->ptr_focus == nullptr) return;
+  if (c->grab_surface != nullptr || c->ptr_focus == nullptr) return;
   SeatRes* st = seat_for(c, c->ptr_focus->client, false);
   if (st != nullptr && st->pointer != nullptr &&
       c->ptr_focus->wl_surface != nullptr) {
@@ -3802,18 +3809,29 @@ static void method_call_cb(FlMethodChannel* channel,
     comp_flush(c);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (g_strcmp0(name, "pointerButton") == 0) {
-    if (c->ptr_focus != nullptr) {
-      SeatRes* st = seat_for(c, c->ptr_focus->client, false);
+    uint32_t state = (uint32_t)arg_int(args, "state");
+    uint32_t button = (uint32_t)arg_int(args, "button");
+    if (state == 1 && c->grab_buttons == 0) {
+      c->grab_surface = c->ptr_focus;
+    }
+    Surface* target =
+        c->grab_surface != nullptr ? c->grab_surface : c->ptr_focus;
+    if (target != nullptr) {
+      SeatRes* st = seat_for(c, target->client, false);
       if (st != nullptr && st->pointer != nullptr) {
         wl_pointer_send_button(st->pointer,
                                wl_display_next_serial(c->display),
-                               now_ms(), (uint32_t)arg_int(args, "button"),
-                               (uint32_t)arg_int(args, "state"));
+                               now_ms(), button, state);
         if (wl_resource_get_version(st->pointer) >=
             WL_POINTER_FRAME_SINCE_VERSION) {
           wl_pointer_send_frame(st->pointer);
         }
       }
+    }
+    if (state == 1) {
+      c->grab_buttons++;
+    } else if (c->grab_buttons > 0 && --c->grab_buttons == 0) {
+      c->grab_surface = nullptr;
     }
     comp_flush(c);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
