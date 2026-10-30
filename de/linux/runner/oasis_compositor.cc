@@ -1268,6 +1268,10 @@ static void pointer_exit(OasisCompositor* c) {
   c->ptr_focus = nullptr;
   c->ptr_entered = nullptr;
   c->ptr_entered_res = nullptr;
+  if (c->cursor_surface != nullptr) {
+    c->cursor_surface = nullptr;
+    emit_cursor(c);
+  }
 }
 
 static void emit_cursor(OasisCompositor* c) {
