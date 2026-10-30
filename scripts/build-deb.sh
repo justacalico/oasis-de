@@ -30,10 +30,11 @@ install -Dm644 "$ROOT/de/linux/data/gitlab.httpanimations.oasisde.png" \
   "$TOP/oasis/usr/share/icons/hicolor/1024x1024/apps/gitlab.httpanimations.oasisde.png"
 
 mkdir -p "$TOP/oasis/DEBIAN"
-sed "s/PKG_VERSION/$VERSION/" "$ROOT/packaging/debian/DEBIAN/control" \
+ARCH="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
+sed "s/PKG_VERSION/$VERSION/; s/PKG_ARCH/$ARCH/" "$ROOT/packaging/debian/DEBIAN/control" \
   > "$TOP/oasis/DEBIAN/control"
 cp "$ROOT/packaging/debian/DEBIAN/postinst" "$ROOT/packaging/debian/DEBIAN/postrm" \
   "$TOP/oasis/DEBIAN/"
 
-dpkg-deb --root-owner-group --build "$TOP/oasis" "$OUT/oasis_${VERSION}_amd64.deb"
+dpkg-deb --root-owner-group --build "$TOP/oasis" "$OUT/oasis_${VERSION}_${ARCH}.deb"
 ls -la "$OUT"

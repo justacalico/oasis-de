@@ -18,4 +18,5 @@ web/favicon.png.bak
 test/failures/
 *.keystore
 rpmbuild/
+debbuild/
 dist/

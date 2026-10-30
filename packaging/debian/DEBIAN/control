@@ -2,9 +2,9 @@ Package: oasis
 Version: PKG_VERSION
 Section: x11
 Priority: optional
-Architecture: amd64
+Architecture: PKG_ARCH
 Maintainer: Oasis <ci@oasis.local>
-Depends: dbus, cage
+Depends: dbus, cage, libwayland-client0, libxkbcommon0, libegl1, libgtk-3-0
 Description: A calm, glassy desktop environment for Linux
  Oasis is a desktop environment for people, not nerds. A floating dock,
  a translucent menu bar, a quiet launcher, a control center that stays
