@@ -396,12 +396,42 @@ class WaylandPopupView extends StatefulWidget {
 class _WaylandPopupViewState extends State<WaylandPopupView> {
   var _buttons = 0;
 
+  (WaylandSurface, Offset)? _subHit(WaylandSurface root, Offset p) {
+    for (final id in root.children.reversed) {
+      final sub = widget.service.surfaces[id];
+      if (sub == null) continue;
+      final lp = p - sub.offset;
+      final size = logicalSurfaceSize(sub);
+      if (lp.dx < 0 ||
+          lp.dy < 0 ||
+          lp.dx >= size.width ||
+          lp.dy >= size.height) {
+        continue;
+      }
+      final region = sub.inputRegion;
+      if (region != null && !region.any((r) => r.contains(lp))) {
+        continue;
+      }
+      return _subHit(sub, lp) ?? (sub, lp);
+    }
+    return null;
+  }
+
   void _motion(PointerEvent e) {
-    widget.service.pointerMotion(
-      widget.surface.id,
-      e.localPosition.dx,
-      e.localPosition.dy,
-    );
+    final size = widget.surface.size;
+    final logical = logicalSurfaceSize(widget.surface);
+    final p = size.width > 0 && size.height > 0
+        ? Offset(
+            e.localPosition.dx * logical.width / size.width,
+            e.localPosition.dy * logical.height / size.height,
+          )
+        : e.localPosition;
+    final hit = _subHit(widget.surface, p);
+    if (hit != null) {
+      widget.service.pointerMotion(hit.$1.id, hit.$2.dx, hit.$2.dy);
+      return;
+    }
+    widget.service.pointerMotion(widget.surface.id, p.dx, p.dy);
   }
 
   @override
