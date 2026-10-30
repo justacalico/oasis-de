@@ -254,6 +254,14 @@ class WaylandService extends ChangeNotifier {
         }
         final adoptees = _pendingSubs.remove(id);
         if (adoptees != null) surfaces[id]!.children.addAll(adoptees);
+      case 'childrenReordered':
+        final s = surfaces[id];
+        final order = e['children'] as List<Object?>?;
+        if (s != null && order != null) {
+          s.children
+            ..clear()
+            ..addAll(order.map((v) => (v as num).toInt()));
+        }
       case 'subsurfaceClosed':
         final s = surfaces.remove(id);
         if (s?.parentId != null) {
