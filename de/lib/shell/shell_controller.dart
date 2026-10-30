@@ -882,8 +882,11 @@ class ShellController extends ChangeNotifier {
   void moveWindowToWorkspace(int id, int i) {
     final w = _byId(id);
     if (w == null || i == w.workspace) return;
-    w.workspace = i;
-    if (_focusedId == id) _focusedId = null;
+    final family = [w, ...transientFamily(w)];
+    for (final m in family) {
+      m.workspace = i;
+    }
+    if (family.any((m) => m.id == _focusedId)) _focusedId = null;
     notifyListeners();
   }
 
