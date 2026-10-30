@@ -5,6 +5,7 @@ import 'package:oasis_settings/state/settings_state.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 void main() {
+  verifyPasswordCoverage();
   test('cli backend runs system commands', () {
     final calls = <String>[];
     Future<ProcessResult> fakeRun(String exe, List<String> args) async {
@@ -207,4 +208,51 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<OasisSystemInfo> systemInfo() async => const OasisSystemInfo();
+}
+
+class _FakeChkProc extends Fake implements Process {
+  _FakeChkProc(this.code);
+
+  final int code;
+
+  @override
+  Future<int> get exitCode async => code;
+
+  @override
+  IOSink get stdin => _FakeSink();
+}
+
+class _FakeSink extends Fake implements IOSink {
+  @override
+  void writeln([Object? obj = '']) {}
+
+  @override
+  Future<void> close() async {}
+}
+
+void verifyPasswordCoverage() {
+  test('verifyPassword fails closed without a check helper', () async {
+    expect(
+      await CliSystemBackend(userName: () => '').verifyPassword('x'),
+      isFalse,
+    );
+    expect(
+      await CliSystemBackend(
+        startProcess: (e, a) => throw Exception('no unix_chkpwd'),
+      ).verifyPassword('x'),
+      isFalse,
+    );
+    expect(
+      await CliSystemBackend(
+        startProcess: (e, a) async => _FakeChkProc(0),
+      ).verifyPassword('x'),
+      isTrue,
+    );
+    expect(
+      await CliSystemBackend(
+        startProcess: (e, a) async => _FakeChkProc(1),
+      ).verifyPassword('x'),
+      isFalse,
+    );
+  });
 }
