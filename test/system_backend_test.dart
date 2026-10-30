@@ -254,18 +254,21 @@ void verifyPasswordCoverage() {
     );
     expect(
       await CliSystemBackend(
+        userName: () => 'u',
         startProcess: (e, a) => throw Exception('no unix_chkpwd'),
       ).verifyPassword('x'),
       isFalse,
     );
     expect(
       await CliSystemBackend(
+        userName: () => 'u',
         startProcess: (e, a) async => _FakeChkProc(0),
       ).verifyPassword('x'),
       isTrue,
     );
     expect(
       await CliSystemBackend(
+        userName: () => 'u',
         startProcess: (e, a) async => _FakeChkProc(1),
       ).verifyPassword('x'),
       isFalse,

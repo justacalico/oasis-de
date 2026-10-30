@@ -1056,7 +1056,10 @@ class ShellController extends ChangeNotifier {
 
   Future<bool> tryUnlock(String password) async {
     final until = _unlockLockedUntil;
-    if (until != null && clock.now().isBefore(until)) return false;
+    if (until != null) {
+      final wait = until.difference(clock.now());
+      if (wait > Duration.zero) await Future.delayed(wait);
+    }
     if (await backend.verifyPassword(password)) {
       locked = false;
       _failedUnlocks = 0;

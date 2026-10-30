@@ -589,8 +589,10 @@ void main() {
     c.session(OasisSessionAction.lock);
     expect(await c.tryUnlock('bad'), isFalse);
     expect(calls, 1);
+    final sw = Stopwatch()..start();
     expect(await c.tryUnlock('pw'), isFalse);
-    expect(calls, 1);
+    expect(sw.elapsedMilliseconds, greaterThanOrEqualTo(400));
+    expect(calls, 2);
     expect(c.locked, isTrue);
   });
 }
