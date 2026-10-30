@@ -297,4 +297,152 @@ void main() {
     expect(wallpaper.preset, 'aurora');
     expect(wallpaper.hasCustomImage, isFalse);
   });
+
+  test('SettingsState brightness, volume, night light and search', () async {
+    final store = MemorySettingsStore();
+    final calls = <String>[];
+    final s = SettingsState(
+      store: store,
+      backend: _StubBackend(
+        calls,
+        state: const OasisSystemState(
+          brightness: 0.5,
+          volume: 0.25,
+          nightLight: true,
+        ),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(s.brightness, 0.5);
+    expect(s.volume, 0.25);
+    expect(s.nightLightOn, isTrue);
+
+    s.brightnessLevel = 0.4;
+    s.volumeLevel = 0.3;
+    s.nightLightEnabled = false;
+    expect(store.read('shell.brightness'), '0.4');
+    expect(store.read('shell.volume'), '0.3');
+    expect(store.read('shell.nightLight'), '0');
+    expect(calls, containsAllInOrder(['brightness', 'volume', 'nightLight']));
+
+    s.searchQuery = 'wi';
+    expect(s.query, 'wi');
+    s.searchQuery = 'wi';
+    s.searchQuery = '';
+    expect(s.query, isEmpty);
+
+    await s.battery();
+    s.session(OasisSessionAction.suspend);
+    expect(calls, contains('session'));
+
+    final plain = SettingsState();
+    expect((await plain.battery()).level, isNull);
+    plain.session(OasisSessionAction.lock);
+    s.dispose();
+    plain.dispose();
+  });
+
+  testWidgets('settings sidebar search filters panes', (tester) async {
+    await pumpOasis(
+      tester,
+      _host(child: const SettingsHome()),
+      size: const Size(900, 620),
+    );
+    expect(find.text('Displays'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, 'dis');
+    await tester.pumpAndSettle();
+    expect(find.text('Displays'), findsOneWidget);
+    expect(find.byType(OasisNavRow), findsNWidgets(1));
+    await tester.enterText(find.byType(TextField).first, '');
+    await tester.pumpAndSettle();
+    expect(find.byType(OasisNavRow), findsNWidgets(11));
+  });
+
+  testWidgets('new panes drive backend and render', (tester) async {
+    final calls = <String>[];
+    final s = SettingsState(
+      store: MemorySettingsStore(),
+      backend: _StubBackend(
+        calls,
+        state: const OasisSystemState(brightness: 0.5, volume: 0.4),
+        batteryValue: const OasisBattery(level: 0.72, charging: true),
+      ),
+    );
+    await pumpOasis(
+      tester,
+      _host(child: SettingsHome(state: s)),
+      size: const Size(900, 620),
+    );
+
+    await tester.tap(find.text('Displays'));
+    await tester.pumpAndSettle();
+    expect(find.byType(OasisSlider), findsOneWidget);
+    await tester.tap(find.byType(OasisSlider));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(OasisToggle));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Sound'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(OasisSlider));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Power'));
+    await tester.pumpAndSettle();
+    expect(find.text('72%'), findsOneWidget);
+    await tester.tap(find.text('Suspend'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Restart'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Power off'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Date & Time'));
+    await tester.pumpAndSettle();
+    expect(find.text('Time zone'), findsOneWidget);
+
+    await tester.tap(find.text('Users'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Log out'));
+    await tester.pumpAndSettle();
+    expect(
+      calls.where((c) => c == 'session').length,
+      greaterThanOrEqualTo(4),
+    );
+  });
+}
+
+class _StubBackend extends NoopSystemBackend {
+  _StubBackend(this.calls, {this.state = const OasisSystemState(), this.batteryValue});
+
+  final List<String> calls;
+  final OasisSystemState state;
+  final OasisBattery? batteryValue;
+
+  @override
+  Future<OasisSystemState> read() async => state;
+
+  @override
+  Future<void> brightness(double level) async {
+    calls.add('brightness');
+  }
+
+  @override
+  Future<void> volume(double level) async {
+    calls.add('volume');
+  }
+
+  @override
+  Future<void> nightLight(bool enabled) async {
+    calls.add('nightLight');
+  }
+
+  @override
+  Future<OasisBattery> battery() async =>
+      batteryValue ?? const OasisBattery(level: null, charging: false);
+
+  @override
+  void session(OasisSessionAction action) {
+    calls.add('session');
+  }
 }

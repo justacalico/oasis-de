@@ -159,6 +159,60 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get settingsBluetooth => 'Bluetooth';
 
   @override
+  String get settingsDisplays => 'Taispeántais';
+
+  @override
+  String get settingsSound => 'Fuaim';
+
+  @override
+  String get settingsPower => 'Cumhacht';
+
+  @override
+  String get settingsDateTime => 'Dáta agus Am';
+
+  @override
+  String get settingsUsers => 'Úsáideoirí';
+
+  @override
+  String get settingsBrightness => 'Gile';
+
+  @override
+  String get settingsNightLight => 'Solas oíche';
+
+  @override
+  String get settingsVolume => 'Airde';
+
+  @override
+  String get settingsBattery => 'Cadhnra';
+
+  @override
+  String get settingsSuspend => 'Cuir ar fionraí';
+
+  @override
+  String get settingsReboot => 'Atosaigh';
+
+  @override
+  String get settingsPowerOff => 'Múch';
+
+  @override
+  String get settingsLogout => 'Logáil amach';
+
+  @override
+  String get settingsCurrentUser => 'Úsáideoir reatha';
+
+  @override
+  String get settingsDate => 'Dáta';
+
+  @override
+  String get settingsTime => 'Am';
+
+  @override
+  String get settingsTimezone => 'Crios ama';
+
+  @override
+  String get settingsSearchHint => 'Cuardaigh socruithe';
+
+  @override
   String get settingsAbout => 'Faoi';
 
   @override

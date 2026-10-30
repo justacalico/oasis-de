@@ -151,7 +151,7 @@ void main() {
     expect(find.text('Fit'), findsNothing);
 
     await tester.enterText(
-        find.byType(TextField), '/pics/missing.png');
+        find.byType(TextField).last, '/pics/missing.png');
     await tester.tap(find.text('Apply'));
     await tester.pumpAndSettle();
     expect(wallpaper.imagePath, isNull);
@@ -164,7 +164,7 @@ void main() {
     });
     addTearDown(() => file.deleteSync());
 
-    await tester.enterText(find.byType(TextField), file.path);
+    await tester.enterText(find.byType(TextField).last, file.path);
     await tester.tap(find.text('Apply'));
     await tester.pumpAndSettle();
     expect(wallpaper.imagePath, file.path);
@@ -177,7 +177,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(wallpaper.fit, BoxFit.contain);
 
-    await tester.enterText(find.byType(TextField), '   ');
+    await tester.enterText(find.byType(TextField).last, '   ');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(wallpaper.imagePath, file.path);
@@ -199,6 +199,6 @@ void main() {
     state.selectPane(SettingsPane.wallpaper);
     await tester.pumpAndSettle();
     expect(find.text('Custom image'), findsOneWidget);
-    expect(find.byType(OasisSearchField), findsOneWidget);
+    expect(find.byType(OasisSearchField), findsNWidgets(2));
   });
 }

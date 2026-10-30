@@ -158,6 +158,60 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get settingsBluetooth => '蓝牙';
 
   @override
+  String get settingsDisplays => '显示器';
+
+  @override
+  String get settingsSound => '声音';
+
+  @override
+  String get settingsPower => '电源';
+
+  @override
+  String get settingsDateTime => '日期与时间';
+
+  @override
+  String get settingsUsers => '用户';
+
+  @override
+  String get settingsBrightness => '亮度';
+
+  @override
+  String get settingsNightLight => '夜览';
+
+  @override
+  String get settingsVolume => '音量';
+
+  @override
+  String get settingsBattery => '电池';
+
+  @override
+  String get settingsSuspend => '睡眠';
+
+  @override
+  String get settingsReboot => '重新启动';
+
+  @override
+  String get settingsPowerOff => '关机';
+
+  @override
+  String get settingsLogout => '退出登录';
+
+  @override
+  String get settingsCurrentUser => '当前用户';
+
+  @override
+  String get settingsDate => '日期';
+
+  @override
+  String get settingsTime => '时间';
+
+  @override
+  String get settingsTimezone => '时区';
+
+  @override
+  String get settingsSearchHint => '搜索设置';
+
+  @override
   String get settingsAbout => '关于';
 
   @override

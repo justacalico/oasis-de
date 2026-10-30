@@ -250,6 +250,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(appearance.themeMode, OasisThemeMode.dark);
 
+    await tester.dragUntilVisible(
+      find.text('关于'),
+      find.byType(ListView).first,
+      const Offset(0, -60),
+    );
     await tester.tap(find.text('关于').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('无线局域网').first);
@@ -588,7 +593,9 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.settings));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('About').first);
+    await tester.enterText(find.byType(TextField).first, 'abo');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('About'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Check now'));
     await tester.pumpAndSettle();
