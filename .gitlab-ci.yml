@@ -37,6 +37,7 @@ test:
     when: always
     paths:
       - coverage/lcov.info
+      - test/failures/
 
 github-sync:
   stage: sync
