@@ -1401,8 +1401,10 @@ static void seat_get_keyboard(wl_client* client,
   st->keyboard = k;
   int fd = keymap_fd(c);
   if (fd >= 0) {
-    wl_keyboard_send_keymap(k, WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1, fd,
-                            c->keymap_len);
+    if (c->keymap_len > 0) {
+      wl_keyboard_send_keymap(k, WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1, fd,
+                              c->keymap_len);
+    }
     close(fd);
   }
   if (wl_resource_get_version(k) >=
@@ -3699,8 +3701,6 @@ static bool display_start(OasisCompositor* c, GError** error) {
   }
   build_keymap(c);
   wl_display_init_shm(c->display);
-  wl_display_add_shm_format(c->display, WL_SHM_FORMAT_ARGB8888);
-  wl_display_add_shm_format(c->display, WL_SHM_FORMAT_XRGB8888);
   wl_global_create(c->display, &wl_compositor_interface, 5, c,
                    bind_compositor);
   wl_global_create(c->display, &wl_subcompositor_interface, 1, c,
