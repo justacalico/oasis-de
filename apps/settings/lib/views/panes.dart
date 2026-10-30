@@ -109,46 +109,50 @@ class _ThemeCard extends StatelessWidget {
     final host = OasisStyle.of(context).palette;
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 74,
-            height: 50,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: selected ? host.accent : host.divider,
-                width: selected ? 2.5 : 0.5,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 74,
+              height: 50,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: selected ? host.accent : host.divider,
+                  width: selected ? 2.5 : 0.5,
+                ),
               ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Column(
-                children: [
-                  Container(
-                    height: 12,
-                    color: p.sidebarBackground,
-                  ),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Column(
+                  children: [
+                    Container(height: 12, color: p.sidebarBackground),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
                             flex: 2,
-                            child: Container(color: p.sidebarBackground)),
-                        Expanded(
+                            child: Container(color: p.sidebarBackground),
+                          ),
+                          Expanded(
                             flex: 5,
-                            child: Container(color: p.windowBackground)),
-                      ],
+                            child: Container(color: p.windowBackground),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 5),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-        ],
+            const SizedBox(height: 5),
+            Text(label, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
       ),
     );
   }
@@ -174,28 +178,37 @@ class _AccentSwatch extends StatelessWidget {
     final p = OasisStyle.of(context).palette;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(
-            color: selected ? ring ?? color : p.divider,
-            width: selected ? 3 : 0.5,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+              border: Border.all(
+                color: selected ? ring ?? color : p.divider,
+                width: selected ? 3 : 0.5,
+              ),
+            ),
+            child: label == null
+                ? null
+                : Center(
+                    child: Text(
+                      label!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFFFFFFF),
+                      ),
+                    ),
+                  ),
           ),
         ),
-        child: label == null
-            ? null
-            : Center(
-                child: Text(
-                  label!,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFFFFFFF)),
-                ),
-              ),
       ),
     );
   }
@@ -238,9 +251,11 @@ class GeneralPane extends StatelessWidget {
               OasisRow(
                 title: entry.$2,
                 trailing: selected(entry.$1)
-                    ? Icon(Icons.check,
+                    ? Icon(
+                        Icons.check,
                         size: 16,
-                        color: OasisStyle.of(context).palette.accent)
+                        color: OasisStyle.of(context).palette.accent,
+                      )
                     : const SizedBox.shrink(),
                 onTap: () => host.setLocale(entry.$1),
               ),
@@ -327,13 +342,14 @@ class AboutPane extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Text(l10n.aboutTagline,
-            style: text.bodyMedium?.copyWith(color: p.textSecondary)),
+        Text(
+          l10n.aboutTagline,
+          style: text.bodyMedium?.copyWith(color: p.textSecondary),
+        ),
         const SizedBox(height: 16),
         OasisSection(
           children: [
-            UpdateCheckTile(
-                service: host.updates, onOpenUrl: host.openUrl),
+            UpdateCheckTile(service: host.updates, onOpenUrl: host.openUrl),
           ],
         ),
       ],

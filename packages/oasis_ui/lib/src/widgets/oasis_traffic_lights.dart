@@ -81,7 +81,10 @@ class _Light extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: onTap,
+      onTap: onTap,
+      child: Semantics(
+        button: true,
+        label: semantic,
         child: Container(
           width: size,
           height: size,
@@ -89,13 +92,15 @@ class _Light extends StatelessWidget {
             shape: BoxShape.circle,
             color: onTap == null ? color.withValues(alpha: 0.35) : color,
             border: Border.all(
-                color: const Color(0xFF000000).withValues(alpha: 0.12),
-                width: 0.5),
+              color: const Color(0xFF000000).withValues(alpha: 0.12),
+              width: 0.5,
+            ),
           ),
           child: showGlyph && onTap != null
               ? Icon(glyph, size: size * 0.75, color: const Color(0x8A000000))
               : null,
         ),
+      ),
     );
   }
 }
