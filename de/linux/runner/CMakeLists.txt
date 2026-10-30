@@ -34,7 +34,6 @@ set(VENDORED_PROTOCOLS
   "primary-selection-unstable-v1"
   "text-input-unstable-v3"
   "xdg-activation-v1"
-  "tablet-unstable-v2"
 )
 
 set(GENERATED_SOURCES "")
