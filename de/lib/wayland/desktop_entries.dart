@@ -438,13 +438,16 @@ List<DesktopAppEntry> loadDesktopEntriesSync({List<String>? dirs}) {
     final dir = Directory(dirPath);
     if (!dir.existsSync()) continue;
     for (final entity in dir.listSync()) {
-      if (entity is! File || !entity.path.endsWith('.desktop')) {
+      if (!FileSystemEntity.isFileSync(entity.path) ||
+          !entity.path.endsWith('.desktop')) {
         continue;
       }
       final id = entity.path.split('/').last.replaceAll('.desktop', '');
-      final contents = entity.readAsStringSync();
-      final entry = parseDesktopEntry(id, contents);
-      if (entry != null) found[id] = entry;
+      try {
+        final contents = File(entity.path).readAsStringSync();
+        final entry = parseDesktopEntry(id, contents);
+        if (entry != null) found.putIfAbsent(id, () => entry);
+      } catch (_) {}
     }
   }
   return found.values.toList();
