@@ -347,6 +347,10 @@ void main() {
     expect(c.focusedId, isNull);
     c.setWorkspace(2);
     expect(c.focusedId, w.id);
+    c.minimizeWindow(w.id);
+    c.setWorkspace(0);
+    c.setWorkspace(2);
+    expect(c.focusedId, isNull);
     c.dispose();
   });
 
