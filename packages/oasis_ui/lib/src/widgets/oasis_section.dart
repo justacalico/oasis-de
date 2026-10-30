@@ -7,12 +7,10 @@ class OasisSection extends StatelessWidget {
     super.key,
     this.title,
     required this.children,
-    this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
   });
 
   final String? title;
   final List<Widget> children;
-  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
@@ -32,8 +30,7 @@ class OasisSection extends StatelessWidget {
         if (title != null)
           Padding(
             padding: const EdgeInsets.only(left: 10, bottom: 6),
-            child: Text(title!,
-                style: Theme.of(context).textTheme.titleMedium),
+            child: Text(title!, style: Theme.of(context).textTheme.titleMedium),
           ),
         Material(
           color: p.cardBackground,
@@ -95,17 +92,13 @@ class OasisRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(title, style: text.bodyMedium),
-                if (subtitle != null)
-                  Text(subtitle!, style: text.bodySmall),
+                if (subtitle != null) Text(subtitle!, style: text.bodySmall),
               ],
             ),
           ),
           if (trailing != null) ...[
             const SizedBox(width: 10),
-            DefaultTextStyle(
-              style: text.bodySmall!,
-              child: trailing!,
-            ),
+            DefaultTextStyle(style: text.bodySmall!, child: trailing!),
           ],
         ],
       ),
