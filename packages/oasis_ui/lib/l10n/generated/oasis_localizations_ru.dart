@@ -159,6 +159,60 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get settingsBluetooth => 'Bluetooth';
 
   @override
+  String get settingsDisplays => 'Дисплеи';
+
+  @override
+  String get settingsSound => 'Звук';
+
+  @override
+  String get settingsPower => 'Питание';
+
+  @override
+  String get settingsDateTime => 'Дата и время';
+
+  @override
+  String get settingsUsers => 'Пользователи';
+
+  @override
+  String get settingsBrightness => 'Яркость';
+
+  @override
+  String get settingsNightLight => 'Ночная подсветка';
+
+  @override
+  String get settingsVolume => 'Громкость';
+
+  @override
+  String get settingsBattery => 'Батарея';
+
+  @override
+  String get settingsSuspend => 'Сон';
+
+  @override
+  String get settingsReboot => 'Перезагрузить';
+
+  @override
+  String get settingsPowerOff => 'Выключить';
+
+  @override
+  String get settingsLogout => 'Выйти';
+
+  @override
+  String get settingsCurrentUser => 'Текущий пользователь';
+
+  @override
+  String get settingsDate => 'Дата';
+
+  @override
+  String get settingsTime => 'Время';
+
+  @override
+  String get settingsTimezone => 'Часовой пояс';
+
+  @override
+  String get settingsSearchHint => 'Поиск настроек';
+
+  @override
   String get settingsAbout => 'О системе';
 
   @override

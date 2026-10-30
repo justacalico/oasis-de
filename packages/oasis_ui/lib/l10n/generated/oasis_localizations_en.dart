@@ -158,6 +158,60 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get settingsBluetooth => 'Bluetooth';
 
   @override
+  String get settingsDisplays => 'Displays';
+
+  @override
+  String get settingsSound => 'Sound';
+
+  @override
+  String get settingsPower => 'Power';
+
+  @override
+  String get settingsDateTime => 'Date & Time';
+
+  @override
+  String get settingsUsers => 'Users';
+
+  @override
+  String get settingsBrightness => 'Brightness';
+
+  @override
+  String get settingsNightLight => 'Night light';
+
+  @override
+  String get settingsVolume => 'Volume';
+
+  @override
+  String get settingsBattery => 'Battery';
+
+  @override
+  String get settingsSuspend => 'Suspend';
+
+  @override
+  String get settingsReboot => 'Restart';
+
+  @override
+  String get settingsPowerOff => 'Power off';
+
+  @override
+  String get settingsLogout => 'Log out';
+
+  @override
+  String get settingsCurrentUser => 'Current user';
+
+  @override
+  String get settingsDate => 'Date';
+
+  @override
+  String get settingsTime => 'Time';
+
+  @override
+  String get settingsTimezone => 'Time zone';
+
+  @override
+  String get settingsSearchHint => 'Search settings';
+
+  @override
   String get settingsAbout => 'About';
 
   @override

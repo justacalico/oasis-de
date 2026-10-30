@@ -384,6 +384,114 @@ abstract class OasisLocalizations {
   /// **'Bluetooth'**
   String get settingsBluetooth;
 
+  /// No description provided for @settingsDisplays.
+  ///
+  /// In en, this message translates to:
+  /// **'Displays'**
+  String get settingsDisplays;
+
+  /// No description provided for @settingsSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get settingsSound;
+
+  /// No description provided for @settingsPower.
+  ///
+  /// In en, this message translates to:
+  /// **'Power'**
+  String get settingsPower;
+
+  /// No description provided for @settingsDateTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date & Time'**
+  String get settingsDateTime;
+
+  /// No description provided for @settingsUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'Users'**
+  String get settingsUsers;
+
+  /// No description provided for @settingsBrightness.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get settingsBrightness;
+
+  /// No description provided for @settingsNightLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Night light'**
+  String get settingsNightLight;
+
+  /// No description provided for @settingsVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get settingsVolume;
+
+  /// No description provided for @settingsBattery.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery'**
+  String get settingsBattery;
+
+  /// No description provided for @settingsSuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend'**
+  String get settingsSuspend;
+
+  /// No description provided for @settingsReboot.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get settingsReboot;
+
+  /// No description provided for @settingsPowerOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Power off'**
+  String get settingsPowerOff;
+
+  /// No description provided for @settingsLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get settingsLogout;
+
+  /// No description provided for @settingsCurrentUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Current user'**
+  String get settingsCurrentUser;
+
+  /// No description provided for @settingsDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get settingsDate;
+
+  /// No description provided for @settingsTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get settingsTime;
+
+  /// No description provided for @settingsTimezone.
+  ///
+  /// In en, this message translates to:
+  /// **'Time zone'**
+  String get settingsTimezone;
+
+  /// No description provided for @settingsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings'**
+  String get settingsSearchHint;
+
   /// No description provided for @settingsAbout.
   ///
   /// In en, this message translates to:

@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
+
+import '../state/settings_state.dart';
 
 const kAccentChoices = <Color?>[
   null,
@@ -377,6 +381,222 @@ class AboutPane extends StatelessWidget {
               ],
             );
           },
+        ),
+      ],
+    );
+  }
+}
+
+class DisplaysPane extends StatelessWidget {
+  const DisplaysPane({super.key, required this.state});
+
+  final SettingsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    final b = state.backend;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsDisplays, style: text.titleLarge),
+        const SizedBox(height: 16),
+        OasisSection(
+          children: [
+            OasisRow(
+              leading: const Icon(Icons.brightness_6, size: 20),
+              title: l10n.settingsBrightness,
+              trailing: SizedBox(
+                width: 180,
+                child: OasisSlider(
+                  value: state.brightness,
+                  onChanged: b == null
+                      ? null
+                      : (v) => state.brightnessLevel = v,
+                ),
+              ),
+            ),
+            OasisRow(
+              leading: const Icon(Icons.nightlight, size: 20),
+              title: l10n.settingsNightLight,
+              trailing: OasisToggle(
+                value: state.nightLightOn,
+                onChanged:
+                    b == null ? null : (v) => state.nightLightEnabled = v,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class SoundPane extends StatelessWidget {
+  const SoundPane({super.key, required this.state});
+
+  final SettingsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    final b = state.backend;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsSound, style: text.titleLarge),
+        const SizedBox(height: 16),
+        OasisSection(
+          children: [
+            OasisRow(
+              leading: const Icon(Icons.volume_up, size: 20),
+              title: l10n.settingsVolume,
+              trailing: SizedBox(
+                width: 180,
+                child: OasisSlider(
+                  value: state.volume,
+                  onChanged:
+                      b == null ? null : (v) => state.volumeLevel = v,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class PowerPane extends StatelessWidget {
+  const PowerPane({super.key, required this.state});
+
+  final SettingsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    final b = state.backend;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsPower, style: text.titleLarge),
+        const SizedBox(height: 16),
+        OasisSection(
+          children: [
+            FutureBuilder<OasisBattery>(
+              future: state.battery(),
+              builder: (context, snap) {
+                final bat = snap.data;
+                return OasisRow(
+                  leading: const Icon(Icons.battery_std, size: 20),
+                  title: l10n.settingsBattery,
+                  subtitle: bat?.level == null
+                      ? null
+                      : '${(bat!.level! * 100).round()}%',
+                );
+              },
+            ),
+          ],
+        ),
+        if (b != null) ...[
+          const SizedBox(height: 16),
+          OasisSection(
+            children: [
+              for (final a in [
+                (l10n.settingsSuspend, OasisSessionAction.suspend),
+                (l10n.settingsReboot, OasisSessionAction.reboot),
+                (l10n.settingsPowerOff, OasisSessionAction.poweroff),
+              ])
+                OasisRow(
+                  leading: const Icon(Icons.power_settings_new, size: 20),
+                  title: a.$1,
+                  onTap: () => b.session(a.$2),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class DateTimePane extends StatelessWidget {
+  const DateTimePane({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    final now = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsDateTime, style: text.titleLarge),
+        const SizedBox(height: 16),
+        OasisSection(
+          children: [
+            OasisRow(
+              leading: const Icon(Icons.calendar_today, size: 20),
+              title: l10n.settingsDate,
+              subtitle: '${now.year}-${two(now.month)}-${two(now.day)}',
+            ),
+            OasisRow(
+              leading: const Icon(Icons.schedule, size: 20),
+              title: l10n.settingsTime,
+              subtitle:
+                  '${two(now.hour)}:${two(now.minute)}:${two(now.second)}',
+            ),
+            OasisRow(
+              leading: const Icon(Icons.public, size: 20),
+              title: l10n.settingsTimezone,
+              subtitle: now.timeZoneName,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class UsersPane extends StatelessWidget {
+  const UsersPane({super.key, required this.state});
+
+  final SettingsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    final b = state.backend;
+    final user = Platform.environment['USER'] ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsUsers, style: text.titleLarge),
+        const SizedBox(height: 16),
+        OasisSection(
+          children: [
+            OasisRow(
+              leading: const Icon(Icons.person, size: 20),
+              title: l10n.settingsCurrentUser,
+              subtitle: user.isEmpty ? null : user,
+            ),
+            if (b != null)
+              OasisRow(
+                leading: const Icon(Icons.logout, size: 20),
+                title: l10n.settingsLogout,
+                onTap: () => b.session(OasisSessionAction.logout),
+              ),
+          ],
         ),
       ],
     );

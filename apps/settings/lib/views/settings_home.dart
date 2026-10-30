@@ -47,12 +47,22 @@ class _SettingsHomeState extends State<SettingsHome> {
           Icons.brightness_6, const Color(0xFF5E5CE6)),
       (SettingsPane.wallpaper, l10n.settingsWallpaper,
           Icons.landscape, const Color(0xFF30B0C7)),
+      (SettingsPane.displays, l10n.settingsDisplays,
+          Icons.desktop_windows, const Color(0xFF0A84FF)),
+      (SettingsPane.sound, l10n.settingsSound, Icons.volume_up,
+          const Color(0xFFFF375F)),
       (SettingsPane.general, l10n.settingsGeneral, Icons.settings,
           const Color(0xFF8E8E93)),
       (SettingsPane.wifi, l10n.settingsWifi, Icons.wifi,
           const Color(0xFF0A84FF)),
       (SettingsPane.bluetooth, l10n.settingsBluetooth, Icons.bluetooth,
           const Color(0xFF0A84FF)),
+      (SettingsPane.power, l10n.settingsPower,
+          Icons.power_settings_new, const Color(0xFF32D74B)),
+      (SettingsPane.datetime, l10n.settingsDateTime, Icons.schedule,
+          const Color(0xFFBF5AF2)),
+      (SettingsPane.users, l10n.settingsUsers, Icons.person,
+          const Color(0xFFFF9F0A)),
       (SettingsPane.about, l10n.settingsAbout, Icons.water_drop,
           const Color(0xFF4FC3F7)),
     ];
@@ -60,6 +70,11 @@ class _SettingsHomeState extends State<SettingsHome> {
     return AnimatedBuilder(
       animation: s,
       builder: (context, _) {
+        final query = s.query.toLowerCase();
+        final visible = [
+          for (final e in entries)
+            if (query.isEmpty || e.$2.toLowerCase().contains(query)) e,
+        ];
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -69,7 +84,20 @@ class _SettingsHomeState extends State<SettingsHome> {
               padding: const EdgeInsets.only(top: 10, bottom: 10),
               child: ListView(
                 children: [
-                  for (final e in entries)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: OasisSearchField(
+                        hint: l10n.settingsSearchHint,
+                        onChanged: (v) => s.searchQuery = v,
+                      ),
+                    ),
+                  ),
+                  for (final e in visible)
                     OasisNavRow(
                       icon: e.$3,
                       label: e.$2,
@@ -91,6 +119,11 @@ class _SettingsHomeState extends State<SettingsHome> {
                     SettingsPane.wallpaper =>
                       WallpaperPane(wallpaper: wallpaper),
                     SettingsPane.general => const GeneralPane(),
+                    SettingsPane.displays => DisplaysPane(state: s),
+                    SettingsPane.sound => SoundPane(state: s),
+                    SettingsPane.power => PowerPane(state: s),
+                    SettingsPane.datetime => const DateTimePane(),
+                    SettingsPane.users => UsersPane(state: s),
                     SettingsPane.wifi => NetworkPane(
                         title: l10n.settingsWifi,
                         icon: Icons.wifi,
