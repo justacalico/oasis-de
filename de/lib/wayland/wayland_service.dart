@@ -85,6 +85,7 @@ class WaylandService extends ChangeNotifier {
 
   final WaylandHost _host;
   final Map<int, WaylandSurface> surfaces = {};
+  final Map<int, List<int>> _pendingSubs = {};
   final _requests = StreamController<WaylandRequest>.broadcast();
   StreamSubscription<Map<String, Object?>>? _sub;
   WaylandCursor? cursor;
@@ -132,6 +133,8 @@ class WaylandService extends ChangeNotifier {
           title: e['title'] as String? ?? '',
           appId: e['appId'] as String? ?? '',
         )..transientParentId = parentId >= 0 ? parentId : null;
+        final adoptees = _pendingSubs.remove(id);
+        if (adoptees != null) surfaces[id]!.children.addAll(adoptees);
       case 'toplevelParent':
         final parentId = (e['parent'] as num?)?.toInt() ?? -1;
         surfaces[id]?.transientParentId = parentId >= 0 ? parentId : null;
@@ -219,6 +222,8 @@ class WaylandService extends ChangeNotifier {
             (e['y'] as num).toDouble(),
           ),
         );
+        final adoptees = _pendingSubs.remove(id);
+        if (adoptees != null) surfaces[id]!.children.addAll(adoptees);
       case 'popupMoved':
       case 'subsurfaceMoved':
         final s = surfaces[id];
@@ -241,11 +246,21 @@ class WaylandService extends ChangeNotifier {
           ),
         );
         surfaces[id] = sub;
-        surfaces[sub.parentId]?.children.add(id);
+        final parent = surfaces[sub.parentId];
+        if (parent != null) {
+          parent.children.add(id);
+        } else {
+          (_pendingSubs[sub.parentId!] ??= []).add(id);
+        }
+        final adoptees = _pendingSubs.remove(id);
+        if (adoptees != null) surfaces[id]!.children.addAll(adoptees);
       case 'subsurfaceClosed':
         final s = surfaces.remove(id);
         if (s?.parentId != null) {
           surfaces[s!.parentId]?.children.remove(id);
+        }
+        for (final pending in _pendingSubs.values) {
+          pending.remove(id);
         }
       case 'texture':
         surfaces[id]?.textureId = (e['textureId'] as num?)?.toInt() ?? -1;
