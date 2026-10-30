@@ -13,6 +13,7 @@ abstract class WaylandHost {
     int height, {
     bool maximized = false,
     bool fullscreen = false,
+    bool resizing = false,
   });
   Future<void> close(int id);
   Future<void> focus(int? id);
@@ -51,12 +52,14 @@ class ChannelWaylandHost extends WaylandHost {
     int height, {
     bool maximized = false,
     bool fullscreen = false,
+    bool resizing = false,
   }) => _methods.invokeMethod('configure', {
     'id': id,
     'w': width,
     'h': height,
     'maximized': maximized ? 1 : 0,
     'fullscreen': fullscreen ? 1 : 0,
+    'resizing': resizing ? 1 : 0,
   });
 
   @override
