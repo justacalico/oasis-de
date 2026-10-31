@@ -819,6 +819,7 @@ bool OasisCore::start(std::string* error) {
 
   p->ping_timer = wl_event_loop_add_timer(p->loop, ping_tick, p);
   wl_event_source_timer_update(p->ping_timer, 5000);
+  idle_off_timer_start(p);
   comp_flush(p);
   return true;
 }
@@ -828,6 +829,10 @@ void OasisCore::stop() {
   if (p->ping_timer != nullptr) {
     wl_event_source_remove(p->ping_timer);
     p->ping_timer = nullptr;
+  }
+  if (p->idle_off_timer != nullptr) {
+    wl_event_source_remove(p->idle_off_timer);
+    p->idle_off_timer = nullptr;
   }
   for (KillCheck* k : p->kill_checks) {
     if (k->timer != nullptr) wl_event_source_remove(k->timer);

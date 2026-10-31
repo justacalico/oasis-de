@@ -19,6 +19,7 @@ abstract class WaylandHost {
   Future<void> configureLayer(int id, int width, int height);
   Future<void> close(int id);
   Future<void> sessionUnlock();
+  Future<void> activity();
   Future<void> focus(int? id);
   Future<void> pointerMotion(int id, double x, double y);
   Future<void> pointerExit(int id);
@@ -90,6 +91,9 @@ class ChannelWaylandHost extends WaylandHost {
 
   @override
   Future<void> sessionUnlock() => _methods.invokeMethod('sessionUnlock');
+
+  @override
+  Future<void> activity() => _methods.invokeMethod('activity');
 
   @override
   Future<void> focus(int? id) =>

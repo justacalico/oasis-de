@@ -378,9 +378,12 @@ class _DesktopShellState extends State<DesktopShell> {
                   ),
                 if (controller.wayland?.displayOff ?? false)
                   Positioned.fill(
-                    child: GestureDetector(
+                    child: Listener(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () {},
+                      onPointerDown: (_) =>
+                          controller.wayland?.activity(),
+                      onPointerHover: (_) =>
+                          controller.wayland?.activity(),
                       child: const ColoredBox(color: Color(0xFF000000)),
                     ),
                   ),

@@ -110,9 +110,10 @@ void seat_focus(OasisPrivate* c, Surface* s) {
 using namespace oasis;
 
 void OasisCore::pointerMotion(int64_t id, double x, double y) {
-  idle_activity(p);
+  if (idle_wake(p)) return;
   Surface* s = surface_by_id(p, id);
   if (s == nullptr || s->wlr == nullptr) return;
+  if (p->lock != nullptr && s->role != ROLE_LOCK) return;
   if (p->constraint != nullptr && s->wlr != p->constraint->surface) {
     s = surface_of(p, p->constraint->surface);
     if (s == nullptr || s->wlr == nullptr) {
@@ -173,7 +174,7 @@ void OasisCore::pointerExit() {
 }
 
 void OasisCore::pointerButton(uint32_t button, bool pressed) {
-  idle_activity(p);
+  if (idle_wake(p)) return;
   uint32_t serial = wlr_seat_pointer_notify_button(
       p->seat, now_ms(), button,
       pressed ? WL_POINTER_BUTTON_STATE_PRESSED
@@ -185,7 +186,7 @@ void OasisCore::pointerButton(uint32_t button, bool pressed) {
 
 void OasisCore::pointerAxis(double dx, double dy, uint32_t source,
                                   int32_t discrete) {
-  idle_activity(p);
+  if (idle_wake(p)) return;
   auto src = static_cast<wl_pointer_axis_source>(source);
   if (dx != 0) {
     wlr_seat_pointer_notify_axis(
@@ -215,9 +216,10 @@ void OasisCore::pointerAxisStop() {
 }
 
 void OasisCore::touchDown(int64_t id, int32_t tid, double x, double y) {
-  idle_activity(p);
+  if (idle_wake(p)) return;
   Surface* s = surface_by_id(p, id);
   if (s == nullptr || s->wlr == nullptr) return;
+  if (p->lock != nullptr && s->role != ROLE_LOCK) return;
   p->touch_id = tid;
   wlr_seat_touch_notify_down(p->seat, s->wlr, now_ms(), tid, x, y);
   wlr_seat_touch_notify_frame(p->seat);
@@ -225,22 +227,24 @@ void OasisCore::touchDown(int64_t id, int32_t tid, double x, double y) {
 }
 
 void OasisCore::touchMotion(int32_t tid, double x, double y) {
-  idle_activity(p);
+  if (idle_wake(p)) return;
   wlr_seat_touch_notify_motion(p->seat, now_ms(), tid, x, y);
   wlr_seat_touch_notify_frame(p->seat);
   comp_flush(p);
 }
 
 void OasisCore::touchUp(int32_t tid) {
-  idle_activity(p);
+  if (idle_wake(p)) return;
   wlr_seat_touch_notify_up(p->seat, now_ms(), tid);
   wlr_seat_touch_notify_frame(p->seat);
   p->touch_id = -1;
   comp_flush(p);
 }
 
+void OasisCore::activity() { idle_activity(p); }
+
 void OasisCore::key(uint32_t code, bool pressed_key) {
-  idle_activity(p);
+  if (idle_wake(p)) return;
   if (p->vkb == nullptr) return;
   if (pressed_key) {
     p->pressed.insert(code);

@@ -15,10 +15,36 @@ _Pragma("GCC diagnostic ignored \"-Winvalid-offsetof\"")
 
 namespace oasis {
 
+void idle_arm(OasisPrivate* c) {
+  if (c->idle_off_timer == nullptr) return;
+  if (c->power_on && c->active_inhibitors == 0) {
+    wl_event_source_timer_update(c->idle_off_timer, c->idle_off_ms);
+  } else {
+    wl_event_source_timer_update(c->idle_off_timer, 0);
+  }
+}
+
+void output_power_set(OasisPrivate* c, bool on) {
+  if (c->power_on == on) return;
+  c->power_on = on;
+  OEvent m;
+  m["on"] = on;
+  emit(c, "outputPower", std::move(m));
+}
+
 void idle_activity(OasisPrivate* c) {
+  if (c->display == nullptr) return;
   if (c->idle_notifier != nullptr && c->seat != nullptr) {
     wlr_idle_notifier_v1_notify_activity(c->idle_notifier, c->seat);
   }
+  output_power_set(c, true);
+  idle_arm(c);
+}
+
+bool idle_wake(OasisPrivate* c) {
+  const bool was_off = !c->power_on;
+  idle_activity(c);
+  return was_off;
 }
 
 void idle_resync_inhibit(OasisPrivate* c) {
@@ -26,6 +52,19 @@ void idle_resync_inhibit(OasisPrivate* c) {
     wlr_idle_notifier_v1_set_inhibited(c->idle_notifier,
                                      c->active_inhibitors > 0);
   }
+  idle_arm(c);
+}
+
+static int idle_off(void* data) {
+  auto* c = static_cast<OasisPrivate*>(data);
+  output_power_set(c, false);
+  idle_arm(c);
+  return 0;
+}
+
+void idle_off_timer_start(OasisPrivate* c) {
+  c->idle_off_timer = wl_event_loop_add_timer(c->loop, idle_off, c);
+  idle_arm(c);
 }
 
 void announce_lock_surface(Surface* s) {
@@ -45,6 +84,11 @@ static void lock_surf_destroyed(wl_listener* listener, void*) {
   s->lock_surface = nullptr;
   wl_list_remove(&s->lock_surf_destroy.link);
   wl_list_init(&s->lock_surf_destroy.link);
+  if (s->announced && s->role == ROLE_LOCK) {
+    emit_id(s, "lockSurfaceClosed");
+    s->announced = false;
+    s->role = ROLE_NONE;
+  }
 }
 
 void lock_surface_new(OasisPrivate* c,
@@ -106,6 +150,9 @@ void session_lock_new(OasisPrivate* c, wlr_session_lock_v1* lock) {
   c->lock_destroy.notify = lock_destroyed;
   wl_signal_add(&lock->events.destroy, &c->lock_destroy);
   seat_focus(c, nullptr);
+  wlr_seat_pointer_notify_clear_focus(c->seat);
+  c->ptr_focus = nullptr;
+  c->ptr_in_id = -1;
   emit(c, "sessionLock");
   wlr_session_lock_v1_send_locked(lock);
   comp_flush(c);

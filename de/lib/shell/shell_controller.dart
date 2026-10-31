@@ -1070,6 +1070,7 @@ class ShellController extends ChangeNotifier {
     if (await backend.verifyPassword(password)) {
       locked = false;
       _failedUnlocks = 0;
+      await wayland?.sessionUnlock();
       notifyListeners();
       return true;
     }

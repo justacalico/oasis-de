@@ -4,7 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/services/notifications.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_de/shell/shell_menus.dart';
+import 'package:oasis_de/wayland/wayland_service.dart';
 import 'package:oasis_ui/oasis_ui.dart';
+
+import 'wayland_test.dart' show FakeWaylandHost;
 
 OasisApp _app(String id) => OasisApp(
   id: id,
@@ -532,6 +535,23 @@ void main() {
     expect(backend.calls, ['session', 'session', 'session']);
     expect(await c.tryUnlock('pw'), isTrue);
     expect(c.locked, isFalse);
+  });
+
+  test('tryUnlock releases a client-held session lock', () async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    await service.start();
+    final c = ShellController(
+      apps: const [],
+      backend: _RecordingBackend(<String>[]),
+      batteryPollInterval: null,
+      wayland: service,
+    );
+    addTearDown(c.dispose);
+    addTearDown(service.dispose);
+    c.session(OasisSessionAction.lock);
+    expect(await c.tryUnlock('pw'), isTrue);
+    expect(host.calls, contains('sessionUnlock'));
   });
 
   test('notifications cap at 50 and banner can be dismissed', () {

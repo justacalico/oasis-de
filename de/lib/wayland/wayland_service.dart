@@ -484,6 +484,9 @@ class WaylandService extends ChangeNotifier {
   Future<void> sessionUnlock() =>
       available ? _host.sessionUnlock() : Future.value();
 
+  Future<void> activity() =>
+      available ? _host.activity() : Future.value();
+
   Future<void> focus(int? id) => available ? _host.focus(id) : Future.value();
 
   Future<void> pointerMotion(int id, double x, double y) {
