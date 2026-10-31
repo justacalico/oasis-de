@@ -49,7 +49,11 @@ void capture_check(OasisPrivate* c) {
   if (c->output == nullptr) return;
   std::vector<uint8_t> px;
   int w = c->out_w, h = c->out_h;
-  if (!c->host->captureOutput(px, w, h) || px.empty()) return;
+  if (!c->power_on || c->lock != nullptr) {
+    px.assign((size_t)w * h * 4, 0);
+  } else if (!c->host->captureOutput(px, w, h) || px.empty()) {
+    return;
+  }
   auto* buf = new PixelsBuffer();
   buf->px = std::move(px);
   wlr_buffer_init(&buf->base, &pixels_buffer_impl, w, h);
@@ -72,10 +76,7 @@ void output_needs_frame(wl_listener* listener, void*) {
 
 void power_mode_set(OasisPrivate* c, wlr_output* output, uint32_t mode) {
   if (output != c->output) return;
-  c->power_on = mode == ZWLR_OUTPUT_POWER_V1_MODE_ON;
-  OEvent m;
-  m["on"] = c->power_on;
-  emit(c, "outputPower", std::move(m));
+  output_power_set(c, mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
 }
 
 }  // namespace oasis

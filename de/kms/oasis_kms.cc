@@ -592,6 +592,9 @@ static void handle_method(const Mc& mc,
   } else if (n == "sessionUnlock") {
     g_core->sessionUnlock();
     platform_reply(h, Cv{std::monostate{}});
+  } else if (n == "activity") {
+    g_core->activity();
+    platform_reply(h, Cv{std::monostate{}});
   } else if (n == "focus") {
     g_core->focus(cv_int(mc.args, "id"));
     platform_reply(h, Cv{std::monostate{}});

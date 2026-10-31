@@ -69,6 +69,11 @@ class FakeWaylandHost extends WaylandHost {
   }
 
   @override
+  Future<void> activity() async {
+    calls.add('activity');
+  }
+
+  @override
   Future<void> focus(int? id) async {
     calls.add('focus:$id');
   }
@@ -374,6 +379,7 @@ void main() {
     await host.configureLayer(4, 5, 6);
     await host.close(1);
     await host.sessionUnlock();
+    await host.activity();
     await host.focus(2);
     await host.focus(null);
     await host.pointerMotion(1, 1, 2);
@@ -394,6 +400,7 @@ void main() {
       'configureLayer',
       'close',
       'sessionUnlock',
+      'activity',
       'focus',
       'focus',
       'pointerMotion',
@@ -409,7 +416,7 @@ void main() {
     ]);
     expect(calls[2].arguments['maximized'], 1);
     expect(calls[3].arguments['w'], 5);
-    expect(calls[7].arguments['id'], -1);
+    expect(calls[8].arguments['id'], -1);
   });
 
   test('channel host decodes events', () async {
@@ -447,6 +454,7 @@ void main() {
     await service.pointerExit(1);
     await service.pointerButton(0x110, true);
     await service.pointerAxis(0, 1);
+    await service.activity();
     await service.key(30, true);
     expect(host.calls, isEmpty);
     service.dispose();
@@ -1200,6 +1208,7 @@ void layerViewCoverage() {
     addTearDown(dead.dispose);
     await dead.configureLayer(5, 1, 1);
     await dead.sessionUnlock();
+    await dead.activity();
   });
 
   test('layerSurfaceRect resolves anchors and margins', () {

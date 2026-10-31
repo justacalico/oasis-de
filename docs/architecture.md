@@ -41,8 +41,12 @@ Each external toplevel maps to a `WaylandSurface` in Dart and gets an `OasisWind
 | `wp_viewporter`, `wp_fractional_scale_manager_v1` | supported | |
 | `zwp_idle_inhibit_manager_v1`, `wp_cursor_shape_manager_v1`, `wp_presentation` | supported | |
 | `xdg_activation_v1`, `zwp_text_input_manager_v3`, `zwp_primary_selection_device_manager_v1` | supported | |
-| `zwlr_layer_shell_v1` | not implemented | shell chrome is Flutter, not a client |
-| `xdg_foreign`, `zwp_pointer_constraints`, `relative-pointer`, `ext-session-lock` | not implemented | |
+| `zwlr_layer_shell_v1` | supported | third-party panels, wallpapers, OSDs |
+| `ext_session_lock_v1`, `ext_idle_notify_v1` | supported | output blanks after 5 min idle unless inhibited |
+| `ext_output_image_capture_source_manager_v1`, `ext_image_copy_capture_manager_v1` | supported | black frames while locked or blanked |
+| `zwlr_output_power_manager_v1` | supported | |
+| `zwp_pointer_constraints`, `relative-pointer`, `zwp_keyboard_shortcuts_inhibit_v1` | supported | |
+| `xdg_foreign` | not implemented | |
 
 X11 clients are unsupported until the compositor embeds Xwayland: `DISPLAY` and `XAUTHORITY` are stripped from spawned apps so they cannot escape to the host X server. Apps must run as Wayland clients.
 

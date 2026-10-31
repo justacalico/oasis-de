@@ -300,8 +300,14 @@ void main() {
     expect(find.byType(LayerSurfaceView), findsOneWidget);
     expect(find.byType(LockSurfaceView), findsOneWidget);
     expect(find.byType(WaylandPopupView), findsOneWidget);
+    final mouse = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+    );
+    await mouse.addPointer(location: const Offset(500, 300));
+    await mouse.moveTo(const Offset(520, 320));
     await tester.tapAt(const Offset(600, 400));
     await tester.pump();
+    expect(host.calls, contains('activity'));
     host.emit({'event': 'outputPower', 'on': true});
     await tester.pump();
     c.dispose();

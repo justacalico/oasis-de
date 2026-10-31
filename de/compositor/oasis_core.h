@@ -96,6 +96,7 @@ class OasisCore {
   void configureLayer(int64_t id, int w, int h);
   void closeSurface(int64_t id);
   void sessionUnlock();
+  void activity();
   void focus(int64_t id);
   void pointerMotion(int64_t id, double x, double y);
   void pointerExit();

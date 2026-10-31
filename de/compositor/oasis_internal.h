@@ -286,6 +286,8 @@ struct OasisPrivate {
   int phys_w = 340, phys_h = 190;
 
   wl_event_source* ping_timer = nullptr;
+  wl_event_source* idle_off_timer = nullptr;
+  int idle_off_ms = 300000;
   std::vector<KillCheck*> kill_checks;
 
   HostSource* host_source = nullptr;
@@ -329,7 +331,11 @@ void lock_surface_new(OasisPrivate* c,
 void announce_lock_surface(Surface* s);
 void session_lock_new(OasisPrivate* c, wlr_session_lock_v1* lock);
 void idle_activity(OasisPrivate* c);
+void idle_arm(OasisPrivate* c);
 void idle_resync_inhibit(OasisPrivate* c);
+bool idle_wake(OasisPrivate* c);
+void idle_off_timer_start(OasisPrivate* c);
+void output_power_set(OasisPrivate* c, bool on);
 void capture_check(OasisPrivate* c);
 void output_needs_frame(wl_listener* listener, void* data);
 void power_mode_set(OasisPrivate* c, wlr_output* output, uint32_t mode);

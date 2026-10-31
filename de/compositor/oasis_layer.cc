@@ -73,6 +73,11 @@ static void layer_surface_destroyed(wl_listener* listener, void*) {
   wl_list_remove(&s->layer_new_popup.link);
   wl_list_init(&s->layer_destroy.link);
   wl_list_init(&s->layer_new_popup.link);
+  if (s->announced && s->role == ROLE_LAYER) {
+    emit_id(s, "layerClosed");
+    s->announced = false;
+    s->role = ROLE_NONE;
+  }
 }
 
 static void layer_new_popup_handler(wl_listener* listener, void* data) {
