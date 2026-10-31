@@ -7,19 +7,10 @@
 
 #include <algorithm>
 
-extern "C" {
-#include <wlr/types/wlr_compositor.h>
-#include <wlr/types/wlr_seat.h>
-#include <wlr/types/wlr_xdg_decoration_v1.h>
-#include <wlr/types/wlr_xdg_shell.h>
-}
 #include <pthread.h>
 #include <unistd.h>
-#define class class_
-extern "C" {
-#include <wlr/xwayland/xwayland.h>
-}
-#undef class
+
+#include "oasis_wlr.h"
 
 _Pragma("GCC diagnostic ignored \"-Winvalid-offsetof\"")
 
