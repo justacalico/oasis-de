@@ -50,6 +50,7 @@ class WaylandSurface {
   EdgeInsets layerMargins = EdgeInsets.zero;
   int layerKeyboard = 0;
   Size layerDesired = Size.zero;
+  int outputId = -1;
   Rect? layerRect;
 
   bool get isPopup => parentId != null && !isSub && !isLayer && !isLock;
@@ -95,6 +96,66 @@ class WaylandCursor {
   final Offset hotspot;
 }
 
+class OasisOutputMode {
+  const OasisOutputMode({
+    required this.width,
+    required this.height,
+    required this.refreshMhz,
+    this.preferred = false,
+  });
+
+  final int width;
+  final int height;
+  final int refreshMhz;
+  final bool preferred;
+
+  String get label => '${width}x$height';
+}
+
+class OasisOutput {
+  const OasisOutput({
+    required this.id,
+    required this.name,
+    this.description = '',
+    this.enabled = true,
+    this.primary = false,
+    this.powered = true,
+    this.x = 0,
+    this.y = 0,
+    this.width = 0,
+    this.height = 0,
+    this.scale = 1,
+    this.refreshMhz = 60000,
+    this.transform = 0,
+    this.physWidthMm = 0,
+    this.physHeightMm = 0,
+    this.modes = const [],
+  });
+
+  final int id;
+  final String name;
+  final String description;
+  final bool enabled;
+  final bool primary;
+  final bool powered;
+  final int x;
+  final int y;
+  final int width;
+  final int height;
+  final double scale;
+  final int refreshMhz;
+  final int transform;
+  final int physWidthMm;
+  final int physHeightMm;
+  final List<OasisOutputMode> modes;
+
+  Rect get rect =>
+      Rect.fromLTWH(x.toDouble(), y.toDouble(),
+          width.toDouble(), height.toDouble());
+
+  bool contains(Offset point) => rect.contains(point);
+}
+
 class WaylandService extends ChangeNotifier {
   WaylandService({WaylandHost? host})
     : _host = host ?? const ChannelWaylandHost();
@@ -122,6 +183,7 @@ class WaylandService extends ChangeNotifier {
 
   var socket = '';
   var started = false;
+  List<OasisOutput> outputs = const [];
   bool _starting = false;
   Timer? _retryTimer;
   Completer<void>? _retryWait;
@@ -190,9 +252,45 @@ class WaylandService extends ChangeNotifier {
   bool sessionLocked = false;
   bool displayOff = false;
 
-  EdgeInsets get exclusiveInsets {
+  OasisOutput? get primaryOutput {
+    for (final o in outputs) {
+      if (o.enabled && o.primary) return o;
+    }
+    for (final o in outputs) {
+      if (o.enabled) return o;
+    }
+    return outputs.isEmpty ? null : outputs.first;
+  }
+
+  OasisOutput? outputAt(Offset point, {Size? size}) {
+    Rect? area;
+    if (size != null) {
+      area = point & size;
+    }
+    for (final o in outputs) {
+      if (!o.enabled) continue;
+      if (area != null) {
+        if (o.rect.overlaps(area)) return o;
+      } else if (o.contains(point)) {
+        return o;
+      }
+    }
+    return primaryOutput;
+  }
+
+  List<OasisOutput> outputsFor(Rect rect) => [
+        for (final o in outputs)
+          if (o.enabled && o.rect.overlaps(rect)) o,
+      ];
+
+  EdgeInsets get exclusiveInsets => exclusiveInsetsFor(-1);
+
+  EdgeInsets exclusiveInsetsFor(int outputId) {
     var left = 0.0, top = 0.0, right = 0.0, bottom = 0.0;
     for (final s in surfaces.values) {
+      if (outputId >= 0 && s.outputId >= 0 && s.outputId != outputId) {
+        continue;
+      }
       if (!s.isLayer || s.layerExclusive <= 0 || s.size.isEmpty) {
         continue;
       }
@@ -421,6 +519,7 @@ class WaylandService extends ChangeNotifier {
           (e['dw'] as num?)?.toDouble() ?? 0,
           (e['dh'] as num?)?.toDouble() ?? 0,
         );
+        s.outputId = (e['output'] as num?)?.toInt() ?? -1;
       case 'layerClosed':
         surfaces.remove(id);
       case 'lockSurface':
@@ -436,6 +535,41 @@ class WaylandService extends ChangeNotifier {
         sessionLocked = false;
       case 'outputPower':
         displayOff = e['on'] == false;
+      case 'outputs':
+        final list = e['list'] as List<Object?>? ?? const [];
+        outputs = [
+          for (final raw in list)
+            if (raw is Map)
+              OasisOutput(
+                id: (raw['id'] as num?)?.toInt() ?? 0,
+                name: raw['name'] as String? ?? '',
+                description: raw['desc'] as String? ?? '',
+                enabled: raw['enabled'] != false,
+                primary: raw['primary'] == true,
+                powered: raw['powered'] != false,
+                x: (raw['x'] as num?)?.toInt() ?? 0,
+                y: (raw['y'] as num?)?.toInt() ?? 0,
+                width: (raw['w'] as num?)?.toInt() ?? 0,
+                height: (raw['h'] as num?)?.toInt() ?? 0,
+                scale: (raw['scale'] as num?)?.toDouble() ?? 1,
+                refreshMhz: (raw['refresh'] as num?)?.toInt() ?? 0,
+                transform: (raw['transform'] as num?)?.toInt() ?? 0,
+                physWidthMm: (raw['physW'] as num?)?.toInt() ?? 0,
+                physHeightMm: (raw['physH'] as num?)?.toInt() ?? 0,
+                modes: [
+                  for (final m
+                      in (raw['modes'] as List<Object?>? ?? const []))
+                    if (m is Map)
+                      OasisOutputMode(
+                        width: (m['w'] as num?)?.toInt() ?? 0,
+                        height: (m['h'] as num?)?.toInt() ?? 0,
+                        refreshMhz:
+                            (m['refresh'] as num?)?.toInt() ?? 0,
+                        preferred: m['preferred'] == true,
+                      ),
+                ],
+              ),
+        ];
       case 'configureAcked':
         surfaces[id]?.ackedSerial =
             (e['serial'] as num?)?.toInt() ?? 0;
@@ -478,6 +612,35 @@ class WaylandService extends ChangeNotifier {
   Future<void> configureLayer(int id, int width, int height) => available
       ? _host.configureLayer(id, width, height)
       : Future.value();
+
+  Future<void> surfaceOutputs(int id, List<int> outputs) => available
+      ? _host.surfaceOutputs(id, outputs)
+      : Future.value();
+
+  Future<void> configureOutput(
+    String name, {
+    int? x,
+    int? y,
+    int? width,
+    int? height,
+    int? refreshMhz,
+    double? scale,
+    int? transform,
+    bool? enabled,
+  }) =>
+        available
+            ? _host.configureOutput(
+                name,
+                x: x,
+                y: y,
+                width: width,
+                height: height,
+                refreshMhz: refreshMhz,
+                scale: scale,
+                transform: transform,
+                enabled: enabled,
+              )
+            : Future.value();
 
   Future<void> close(int id) => available ? _host.close(id) : Future.value();
 

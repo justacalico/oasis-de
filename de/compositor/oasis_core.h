@@ -49,6 +49,30 @@ struct DmabufInfo {
   }
 };
 
+struct HostOutputMode {
+  int32_t w = 0;
+  int32_t h = 0;
+  int32_t refresh = 0;
+  bool preferred = false;
+};
+
+struct HostOutput {
+  std::string name;
+  std::string description;
+  bool enabled = true;
+  bool primary = false;
+  int32_t x = 0;
+  int32_t y = 0;
+  int32_t w = 0;
+  int32_t h = 0;
+  int32_t refresh = 60000;
+  double scale = 1;
+  int32_t transform = 0;
+  int32_t phys_w = 0;
+  int32_t phys_h = 0;
+  std::vector<HostOutputMode> modes;
+};
+
 class OasisHost {
  public:
   virtual ~OasisHost() = default;
@@ -58,8 +82,8 @@ class OasisHost {
   virtual void pushDmabuf(int64_t id, const DmabufInfo& buf) = 0;
   virtual void frameAvailable(int64_t id) = 0;
   virtual void destroyTexture(int64_t id) = 0;
-  virtual void outputMetrics(int& w, int& h, int& scale, int& phys_w_mm,
-                             int& phys_h_mm) = 0;
+  virtual std::vector<HostOutput> outputs() = 0;
+  virtual void applyOutputs(const std::vector<HostOutput>&) {}
   virtual std::vector<std::string> hostClipboardMimes() { return {}; }
   virtual void hostClipboardRead(
       const std::string& mime,
@@ -67,7 +91,8 @@ class OasisHost {
     done(nullptr, 0);
   }
   virtual void hostClipboardWriteText(const std::string& text) {}
-  virtual bool captureOutput(std::vector<uint8_t>& rgba, int& w, int& h) {
+  virtual bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int w,
+                             int h) {
     return false;
   }
 };
@@ -94,6 +119,8 @@ class OasisCore {
   void configure(int64_t id, int w, int h, bool maximized, bool fullscreen,
                  bool resizing);
   void configureLayer(int64_t id, int w, int h);
+  void surfaceOutputs(int64_t id, const std::vector<int64_t>& outputs);
+  void configureOutput(const HostOutput& cfg);
   void closeSurface(int64_t id);
   void sessionUnlock();
   void activity();

@@ -55,6 +55,8 @@ static void emit_layer_state(Surface* s,
   m["ml"] = (int64_t)s->rep_ml;
   m["dw"] = (int64_t)s->rep_dw;
   m["dh"] = (int64_t)s->rep_dh;
+  OasisOutput* out = output_of(s->comp, ls->output);
+  m["output"] = out != nullptr ? out->public_id : (int64_t)-1;
   emit_id(s, "layer", std::move(m));
 }
 
@@ -86,18 +88,19 @@ static void layer_new_popup_handler(wl_listener* listener, void* data) {
 }
 
 void announce_layer(Surface* s) {
-  OasisPrivate* c = s->comp;
   s->announced = true;
   s->rep_anchor = -1;
   emit_layer_current(s);
   emit_size(s);
-  wlr_surface_send_enter(s->wlr, c->output);
-  wlr_fractional_scale_v1_notify_scale(s->wlr, (double)c->out_scale);
-  comp_flush(c);
+  surface_sync_outputs(s);
+  comp_flush(s->comp);
 }
 
 void layer_new(OasisPrivate* c, wlr_layer_surface_v1* ls) {
-  if (ls->output == nullptr) ls->output = c->output;
+  if (ls->output == nullptr) {
+    OasisOutput* p = output_primary(c);
+    if (p != nullptr) ls->output = p->wlr;
+  }
   Surface* s = surface_of(c, ls->surface);
   if (s == nullptr) {
     surface_new(c, ls->surface);

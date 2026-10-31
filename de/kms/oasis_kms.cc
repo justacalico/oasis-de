@@ -15,15 +15,19 @@
 #include <xf86drmMode.h>
 #include <xkbcommon/xkbcommon.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -242,27 +246,33 @@ static double cv_dbl(const Cv& v, const char* key) {
   return 0;
 }
 
+static Cv oval_to_cv(const Oval& o) {
+  Cv c;
+  if (std::holds_alternative<int64_t>(o.v)) {
+    c.v = std::get<int64_t>(o.v);
+  } else if (std::holds_alternative<double>(o.v)) {
+    c.v = std::get<double>(o.v);
+  } else if (std::holds_alternative<bool>(o.v)) {
+    c.v = std::get<bool>(o.v);
+  } else if (std::holds_alternative<std::string>(o.v)) {
+    c.v = std::get<std::string>(o.v);
+  } else if (std::holds_alternative<Oval::List>(o.v)) {
+    std::vector<Cv> l;
+    for (auto& e : std::get<Oval::List>(o.v)) l.push_back(oval_to_cv(e));
+    c.v = std::move(l);
+  } else if (std::holds_alternative<Oval::Map>(o.v)) {
+    std::map<std::string, Cv> m;
+    for (auto& kv : std::get<Oval::Map>(o.v)) {
+      m[kv.first] = oval_to_cv(kv.second);
+    }
+    c.v = std::move(m);
+  }
+  return c;
+}
+
 static Cv oevent_cv(const OEvent& fields) {
   std::map<std::string, Cv> m;
-  for (auto& kv : fields) {
-    const Oval& o = kv.second;
-    Cv c;
-    if (std::holds_alternative<int64_t>(o.v)) c.v = std::get<int64_t>(o.v);
-    else if (std::holds_alternative<double>(o.v)) c.v = std::get<double>(o.v);
-    else if (std::holds_alternative<bool>(o.v)) c.v = std::get<bool>(o.v);
-    else if (std::holds_alternative<std::string>(o.v))
-      c.v = std::get<std::string>(o.v);
-    else if (std::holds_alternative<Oval::List>(o.v)) {
-      std::vector<Cv> l;
-      for (auto& e : std::get<Oval::List>(o.v)) {
-        OEvent wrap;
-        wrap["x"] = e;
-        l.push_back(oevent_cv(wrap));
-      }
-      c.v = std::move(l);
-    }
-    m[kv.first] = c;
-  }
+  for (auto& kv : fields) m[kv.first] = oval_to_cv(kv.second);
   Cv out;
   out.v = std::move(m);
   return out;
@@ -309,23 +319,176 @@ static T sym(const char* name) {
 
 // ---- kms state ------------------------------------------------------------------
 
+struct Head {
+  drmModeConnector* conn = nullptr;
+  drmModeCrtc* crtc = nullptr;
+  uint32_t conn_id = 0, crtc_id = 0;
+  std::string name;
+  int x = 0, y = 0;
+  drmModeModeInfo mode = {};
+  bool enabled = true;
+};
+
 struct Drm {
   int fd = -1;
   drmModeRes* res = nullptr;
-  drmModeConnector* conn = nullptr;
-  drmModeEncoder* enc = nullptr;
-  drmModeCrtc* crtc = nullptr;
-  drmModeModeInfo mode = {};
-  uint32_t conn_id = 0, crtc_id = 0;
+  std::vector<Head> heads;
   gbm_device* gbm = nullptr;
   gbm_surface* surface = nullptr;
   EGLDisplay dpy = EGL_NO_DISPLAY;
+  EGLConfig cfg = nullptr;
   EGLContext ctx = EGL_NO_CONTEXT;
   EGLSurface esurf = EGL_NO_SURFACE;
   gbm_bo* bo = nullptr;
-  gbm_bo* next_bo = nullptr;
+  gbm_bo* stale_bo = nullptr;
+  int pending_flips = 0;
+  std::unordered_map<uint32_t, uint32_t> fbs;
   int width = 0, height = 0;
 };
+
+static void layout_bounds(Drm& d, int& w, int& h) {
+  w = 0;
+  h = 0;
+  for (auto& hd : d.heads) {
+    if (!hd.enabled) continue;
+    w = std::max(w, hd.x + (int)hd.mode.hdisplay);
+    h = std::max(h, hd.y + (int)hd.mode.vdisplay);
+  }
+  if (w <= 0) w = 1920;
+  if (h <= 0) h = 1080;
+}
+
+static void heads_free(Drm& d) {
+  for (auto& hd : d.heads) {
+    if (hd.conn != nullptr) drmModeFreeConnector(hd.conn);
+    if (hd.crtc != nullptr) drmModeFreeCrtc(hd.crtc);
+  }
+  d.heads.clear();
+}
+
+static std::string connector_name(const drmModeConnector* c) {
+  const char* t = drmModeGetConnectorTypeName(c->connector_type);
+  char buf[64];
+  snprintf(buf, sizeof(buf), "%s-%d", t != nullptr ? t : "Unknown",
+           c->connector_type_id);
+  return buf;
+}
+
+static uint32_t pick_crtc(Drm& d, drmModeConnector* conn,
+                          std::set<uint32_t>& used) {
+  drmModeEncoder* enc = conn->encoder_id != 0
+                            ? drmModeGetEncoder(d.fd, conn->encoder_id)
+                            : nullptr;
+  uint32_t id = enc != nullptr ? enc->crtc_id : 0;
+  if (id != 0 && !used.count(id)) {
+    used.insert(id);
+    drmModeFreeEncoder(enc);
+    return id;
+  }
+  if (enc != nullptr) drmModeFreeEncoder(enc);
+  for (int e = 0; e < conn->count_encoders; e++) {
+    drmModeEncoder* cand = drmModeGetEncoder(d.fd, conn->encoders[e]);
+    if (cand == nullptr) continue;
+    for (int ci = 0; ci < d.res->count_crtcs; ci++) {
+      if (!(cand->possible_crtcs & (1u << ci))) continue;
+      uint32_t cid = d.res->crtcs[ci];
+      if (used.count(cid)) continue;
+      used.insert(cid);
+      drmModeFreeEncoder(cand);
+      return cid;
+    }
+    drmModeFreeEncoder(cand);
+  }
+  return 0;
+}
+
+static void heads_scan(Drm& d) {
+  std::unordered_map<uint32_t, std::pair<int, int>> old_pos;
+  for (auto& hd : d.heads) {
+    old_pos[hd.conn_id] = {hd.x, hd.y};
+  }
+  heads_free(d);
+  if (d.res != nullptr) drmModeFreeResources(d.res);
+  d.res = drmModeGetResources(d.fd);
+  if (d.res == nullptr) return;
+  std::set<uint32_t> used_crtcs;
+  int next_x = 0;
+  for (int i = 0; i < d.res->count_connectors; i++) {
+    drmModeConnector* conn =
+        drmModeGetConnector(d.fd, d.res->connectors[i]);
+    if (conn == nullptr) continue;
+    if (conn->connection != DRM_MODE_CONNECTED || conn->count_modes == 0) {
+      drmModeFreeConnector(conn);
+      continue;
+    }
+    Head hd;
+    hd.conn = conn;
+    hd.conn_id = conn->connector_id;
+    hd.name = connector_name(conn);
+    hd.mode = conn->modes[0];
+    for (int m = 0; m < conn->count_modes; m++) {
+      if (conn->modes[m].type & DRM_MODE_TYPE_PREFERRED) {
+        hd.mode = conn->modes[m];
+        break;
+      }
+    }
+    hd.crtc_id = pick_crtc(d, conn, used_crtcs);
+    if (hd.crtc_id != 0) {
+      hd.crtc = drmModeGetCrtc(d.fd, hd.crtc_id);
+    }
+    auto it = old_pos.find(hd.conn_id);
+    if (it != old_pos.end()) {
+      hd.x = it->second.first;
+      hd.y = it->second.second;
+    } else {
+      hd.x = next_x;
+    }
+    next_x = std::max(next_x, hd.x + (int)hd.mode.hdisplay);
+    d.heads.push_back(hd);
+  }
+}
+
+static bool heads_hotplugged(Drm& d) {
+  drmModeRes* res = drmModeGetResources(d.fd);
+  if (res == nullptr) return false;
+  bool changed = false;
+  int connected_count = 0;
+  for (int i = 0; i < res->count_connectors && !changed; i++) {
+    drmModeConnector* conn =
+        drmModeGetConnector(d.fd, res->connectors[i]);
+    if (conn == nullptr) continue;
+    bool connected = conn->connection == DRM_MODE_CONNECTED &&
+                     conn->count_modes > 0;
+    if (connected) {
+      connected_count++;
+      bool have = false;
+      for (auto& hd : d.heads) {
+        if (hd.conn_id == conn->connector_id) have = true;
+      }
+      changed = !have;
+    }
+    drmModeFreeConnector(conn);
+  }
+  changed = changed || connected_count != (int)d.heads.size();
+  drmModeFreeResources(res);
+  return changed;
+}
+
+static const drmModeModeInfo* head_find_mode(Head& hd, int w, int h,
+                                             int refresh_mhz) {
+  const drmModeModeInfo* best = nullptr;
+  for (int i = 0; i < hd.conn->count_modes; i++) {
+    const auto& m = hd.conn->modes[i];
+    if ((int)m.hdisplay != w || (int)m.vdisplay != h) continue;
+    if (refresh_mhz > 0 &&
+        std::abs((int)m.vrefresh * 1000 - refresh_mhz) > 1000) {
+      continue;
+    }
+    best = &m;
+    if (refresh_mhz > 0) break;
+  }
+  return best;
+}
 
 static void drm_init(Drm& d) {
   const char* nodes[] = {"/dev/dri/card1", "/dev/dri/card0", "/dev/dri/card2"};
@@ -334,36 +497,43 @@ static void drm_init(Drm& d) {
     if (d.fd >= 0) break;
   }
   if (d.fd < 0) die("no drm device");
-  d.res = drmModeGetResources(d.fd);
-  if (!d.res) die("drmModeGetResources");
-  for (int i = 0; i < d.res->count_connectors; i++) {
-    drmModeConnector* c = drmModeGetConnector(d.fd, d.res->connectors[i]);
-    if (c && c->connection == DRM_MODE_CONNECTED && c->count_modes > 0) {
-      d.conn = c;
-      break;
-    }
-    if (c) drmModeFreeConnector(c);
+  heads_scan(d);
+  if (d.heads.empty()) die("no connected connector");
+  layout_bounds(d, d.width, d.height);
+}
+
+static void gbm_surface_new(Drm& d) {
+  d.surface = gbm_surface_create(d.gbm, d.width, d.height,
+                                 GBM_FORMAT_XRGB8888,
+                                 GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+  if (!d.surface) die("gbm surface");
+  const EGLint surf_attrs[] = {EGL_NONE};
+  d.esurf = eglCreateWindowSurface(d.dpy, d.cfg, d.surface, surf_attrs);
+  if (d.esurf == EGL_NO_SURFACE) die("egl surface");
+}
+
+static void gbm_resize(Drm& d, int w, int h) {
+  if (d.esurf != EGL_NO_SURFACE) {
+    eglMakeCurrent(d.dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglDestroySurface(d.dpy, d.esurf);
+    d.esurf = EGL_NO_SURFACE;
   }
-  if (!d.conn) die("no connected connector");
-  d.conn_id = d.conn->connector_id;
-  d.mode = d.conn->modes[0];
-  d.width = d.mode.hdisplay;
-  d.height = d.mode.vdisplay;
-  d.enc = drmModeGetEncoder(d.fd, d.conn->encoder_id);
-  if (d.enc) d.crtc = drmModeGetCrtc(d.fd, d.enc->crtc_id);
-  for (int i = 0; i < d.res->count_crtcs && !d.crtc; i++) {
-    d.crtc = drmModeGetCrtc(d.fd, d.res->crtcs[i]);
+  if (d.surface != nullptr) {
+    gbm_surface_destroy(d.surface);
+    d.surface = nullptr;
   }
-  d.crtc_id = d.crtc->crtc_id;
+  d.bo = nullptr;
+  d.stale_bo = nullptr;
+  d.pending_flips = 0;
+  d.width = w;
+  d.height = h;
+  gbm_surface_new(d);
+  eglMakeCurrent(d.dpy, d.esurf, d.esurf, d.ctx);
 }
 
 static void gbm_init(Drm& d) {
   d.gbm = gbm_create_device(d.fd);
   if (!d.gbm) die("gbm device");
-  d.surface = gbm_surface_create(d.gbm, d.width, d.height,
-                                 GBM_FORMAT_XRGB8888,
-                                 GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
-  if (!d.surface) die("gbm surface");
   const EGLAttrib dpy_attrs[] = {EGL_NONE};
   d.dpy = eglGetPlatformDisplay(EGL_PLATFORM_GBM_KHR, d.gbm, dpy_attrs);
   eglInitialize(d.dpy, nullptr, nullptr);
@@ -381,21 +551,34 @@ static void gbm_init(Drm& d) {
                               EGL_ALPHA_SIZE,
                               0,
                               EGL_NONE};
-  EGLConfig cfg;
   EGLint ncfg = 0;
-  eglChooseConfig(d.dpy, cfg_attrs, &cfg, 1, &ncfg);
+  eglChooseConfig(d.dpy, cfg_attrs, &d.cfg, 1, &ncfg);
   const EGLint ctx_attrs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-  d.ctx = eglCreateContext(d.dpy, cfg, EGL_NO_CONTEXT, ctx_attrs);
-  const EGLint surf_attrs[] = {EGL_NONE};
-  d.esurf = eglCreateWindowSurface(d.dpy, cfg, d.surface, surf_attrs);
+  d.ctx = eglCreateContext(d.dpy, d.cfg, EGL_NO_CONTEXT, ctx_attrs);
+  gbm_surface_new(d);
 }
 
 static uint32_t bo_fb(Drm& d, gbm_bo* bo) {
   uint32_t handle = gbm_bo_get_handle(bo).u32;
+  auto it = d.fbs.find(handle);
+  if (it != d.fbs.end()) return it->second;
   uint32_t stride = gbm_bo_get_stride(bo);
   uint32_t fb = 0;
   drmModeAddFB(d.fd, d.width, d.height, 24, 32, stride, handle, &fb);
+  d.fbs[handle] = fb;
   return fb;
+}
+
+static void release_stale(Drm& d) {
+  if (d.stale_bo == nullptr) return;
+  gbm_surface_release_buffer(d.surface, d.stale_bo);
+  d.stale_bo = nullptr;
+}
+
+static void on_flip(int, unsigned, unsigned, unsigned, void* data) {
+  auto* d = static_cast<Drm*>(data);
+  if (d->pending_flips > 0) d->pending_flips--;
+  if (d->pending_flips == 0) release_stale(*d);
 }
 
 static void drm_present(Drm& d) {
@@ -403,20 +586,43 @@ static void drm_present(Drm& d) {
   gbm_bo* next = gbm_surface_lock_front_buffer(d.surface);
   if (!next) return;
   uint32_t fb = bo_fb(d, next);
-  int ret = drmModePageFlip(d.fd, d.crtc_id, fb, DRM_MODE_PAGE_FLIP_EVENT,
-                          &d);
-  if (ret != 0) {
-    drmModeSetCrtc(d.fd, d.crtc_id, fb, 0, 0, &d.conn_id, 1, &d.mode);
-    gbm_surface_release_buffer(d.surface, next);
-    return;
+  int flips = 0;
+  for (auto& hd : d.heads) {
+    if (!hd.enabled || hd.crtc_id == 0) continue;
+    int ret = drmModePageFlip(d.fd, hd.crtc_id, fb,
+                              DRM_MODE_PAGE_FLIP_EVENT, &d);
+    if (ret != 0) {
+      drmModeSetCrtc(d.fd, hd.crtc_id, fb, hd.x, hd.y, &hd.conn_id, 1,
+                     &hd.mode);
+    } else {
+      flips++;
+    }
   }
-  d.next_bo = next;
+  if (d.bo != nullptr) {
+    if (d.pending_flips == 0) {
+      gbm_surface_release_buffer(d.surface, d.bo);
+    } else {
+      release_stale(d);
+      d.stale_bo = d.bo;
+    }
+  }
+  d.pending_flips += flips;
+  d.bo = next;
 }
 
 // ---- embedder glue ---------------------------------------------------------------
 
 static Drm g_drm;
 static OasisCore* g_core = nullptr;
+
+static void send_metrics() {
+  FlutterWindowMetricsEvent wm = {};
+  wm.struct_size = sizeof(wm);
+  wm.width = g_drm.width;
+  wm.height = g_drm.height;
+  wm.pixel_ratio = 1.0;
+  pSendWindowMetrics(engine, &wm);
+}
 static std::unordered_map<int64_t, GLuint> g_textures;
 static int64_t g_next_tex = 1;
 static struct {
@@ -503,13 +709,81 @@ class KmsHost : public OasisHost {
     glDeleteTextures(1, &it->second);
     g_textures.erase(it);
   }
-  void outputMetrics(int& w, int& h, int& scale, int& pw,
-                     int& ph) override {
-    w = g_drm.width;
-    h = g_drm.height;
-    scale = 1;
-    pw = 340;
-    ph = 190;
+  std::vector<HostOutput> outputs() override {
+    std::vector<HostOutput> out;
+    bool first = true;
+    for (auto& hd : g_drm.heads) {
+      HostOutput o;
+      o.name = hd.name;
+      o.description = hd.name + " display";
+      o.enabled = hd.enabled;
+      o.primary = first;
+      o.x = hd.x;
+      o.y = hd.y;
+      o.w = hd.mode.hdisplay;
+      o.h = hd.mode.vdisplay;
+      o.refresh = hd.mode.vrefresh * 1000;
+      o.scale = 1;
+      o.phys_w = hd.conn != nullptr ? (int)hd.conn->mmWidth : 0;
+      o.phys_h = hd.conn != nullptr ? (int)hd.conn->mmHeight : 0;
+      if (hd.conn != nullptr) {
+        for (int i = 0; i < hd.conn->count_modes; i++) {
+          const auto& m = hd.conn->modes[i];
+          o.modes.push_back({(int32_t)m.hdisplay, (int32_t)m.vdisplay,
+                             (int32_t)m.vrefresh * 1000,
+                             (m.type & DRM_MODE_TYPE_PREFERRED) != 0});
+        }
+      }
+      out.push_back(std::move(o));
+      first = false;
+    }
+    return out;
+  }
+
+  void applyOutputs(const std::vector<HostOutput>& want) override {
+    bool reprogram = false;
+    for (const auto& w : want) {
+      for (auto& hd : g_drm.heads) {
+        if (hd.name != w.name) continue;
+        bool changed = false;
+        if (hd.enabled != w.enabled) {
+          hd.enabled = w.enabled;
+          changed = true;
+        }
+        if (w.enabled) {
+          if (hd.x != w.x || hd.y != w.y) {
+            hd.x = w.x;
+            hd.y = w.y;
+            changed = true;
+          }
+          const drmModeModeInfo* m =
+              head_find_mode(hd, w.w, w.h, w.refresh);
+          if (m != nullptr &&
+              (hd.mode.hdisplay != m->hdisplay ||
+               hd.mode.vdisplay != m->vdisplay ||
+               hd.mode.vrefresh != m->vrefresh)) {
+            hd.mode = *m;
+            changed = true;
+          }
+        }
+        if (!changed || hd.crtc_id == 0) continue;
+        reprogram = true;
+        if (!hd.enabled) {
+          drmModeSetCrtc(g_drm.fd, hd.crtc_id, 0, 0, 0, nullptr, 0,
+                         nullptr);
+        } else if (g_drm.bo != nullptr) {
+          drmModeSetCrtc(g_drm.fd, hd.crtc_id, bo_fb(g_drm, g_drm.bo),
+                         hd.x, hd.y, &hd.conn_id, 1, &hd.mode);
+        }
+      }
+    }
+    if (!reprogram) return;
+    int nw = 0, nh = 0;
+    layout_bounds(g_drm, nw, nh);
+    if (nw != g_drm.width || nh != g_drm.height) {
+      gbm_resize(g_drm, nw, nh);
+      send_metrics();
+    }
   }
   std::vector<std::string> hostClipboardMimes() override { return {}; }
   void hostClipboardRead(
@@ -518,21 +792,20 @@ class KmsHost : public OasisHost {
     done(nullptr, 0);
   }
   void hostClipboardWriteText(const std::string&) override {}
-  bool captureOutput(std::vector<uint8_t>& rgba, int& w,
-                     int& h) override {
-    w = g_drm.width;
-    h = g_drm.height;
+  bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int w,
+                     int h) override {
     if (w <= 0 || h <= 0) return false;
     eng_make_current(nullptr);
     rgba.resize((size_t)w * h * 4);
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+    glReadPixels(x, g_drm.height - y - h, w, h, GL_RGBA, GL_UNSIGNED_BYTE,
+                 rgba.data());
     size_t row_bytes = (size_t)w * 4;
     std::vector<uint8_t> row(row_bytes);
-    for (int y = 0; y < h / 2; y++) {
-      uint8_t* top = rgba.data() + (size_t)y * row_bytes;
+    for (int yy = 0; yy < h / 2; yy++) {
+      uint8_t* top = rgba.data() + (size_t)yy * row_bytes;
       uint8_t* bottom =
-          rgba.data() + (size_t)(h - 1 - y) * row_bytes;
+          rgba.data() + (size_t)(h - 1 - yy) * row_bytes;
       memcpy(row.data(), top, row_bytes);
       memcpy(top, bottom, row_bytes);
       memcpy(bottom, row.data(), row_bytes);
@@ -585,6 +858,42 @@ static void handle_method(const Mc& mc,
   } else if (n == "configureLayer") {
     g_core->configureLayer(cv_int(mc.args, "id"), (int)cv_int(mc.args, "w"),
                            (int)cv_int(mc.args, "h"));
+    platform_reply(h, Cv{std::monostate{}});
+  } else if (n == "surfaceOutputs") {
+    auto* args = std::get_if<std::map<std::string, Cv>>(&mc.args.v);
+    std::vector<int64_t> ids;
+    if (args != nullptr) {
+      auto it = args->find("outputs");
+      if (it != args->end()) {
+        if (auto* l = std::get_if<std::vector<Cv>>(&it->second.v)) {
+          for (auto& e : *l) {
+            if (auto* i = std::get_if<int64_t>(&e.v)) ids.push_back(*i);
+          }
+        }
+      }
+    }
+    g_core->surfaceOutputs(cv_int(mc.args, "id"), ids);
+    platform_reply(h, Cv{std::monostate{}});
+  } else if (n == "configureOutput") {
+    HostOutput cfg;
+    auto* args = std::get_if<std::map<std::string, Cv>>(&mc.args.v);
+    if (args != nullptr) {
+      auto it = args->find("name");
+      if (it != args->end()) {
+        if (auto* s = std::get_if<std::string>(&it->second.v)) {
+          cfg.name = *s;
+        }
+      }
+    }
+    cfg.enabled = cv_int(mc.args, "enabled") != 0;
+    cfg.x = (int32_t)cv_int(mc.args, "x");
+    cfg.y = (int32_t)cv_int(mc.args, "y");
+    cfg.w = (int32_t)cv_int(mc.args, "w");
+    cfg.h = (int32_t)cv_int(mc.args, "h");
+    cfg.refresh = (int32_t)cv_int(mc.args, "refresh");
+    cfg.scale = cv_dbl(mc.args, "scale");
+    cfg.transform = (int32_t)cv_int(mc.args, "transform");
+    g_core->configureOutput(cfg);
     platform_reply(h, Cv{std::monostate{}});
   } else if (n == "close") {
     g_core->closeSurface(cv_int(mc.args, "id"));
@@ -839,21 +1148,22 @@ int main(int argc, char** argv) {
     die("FlutterEngineRun failed");
   }
 
-  FlutterWindowMetricsEvent wm = {};
-  wm.struct_size = sizeof(wm);
-  wm.width = g_drm.width;
-  wm.height = g_drm.height;
-  wm.pixel_ratio = 1.0;
-  pSendWindowMetrics(engine, &wm);
+  send_metrics();
 
   g_core = new OasisCore(new KmsHost());
   input_init();
 
+  drmEventContext evctx = {};
+  evctx.version = 2;
+  evctx.page_flip_handler = on_flip;
+
   int wlfd = -1;
+  int rescans = 0;
   while (true) {
     pollfd fds[4] = {};
     int nf = 0;
     fds[nf++] = {g_input.fd, POLLIN, 0};
+    fds[nf++] = {g_drm.fd, POLLIN, 0};
     if (wlfd < 0 && g_core->running()) wlfd = g_core->fd();
     if (!g_core->running()) wlfd = -1;
     if (wlfd >= 0) fds[nf++] = {wlfd, POLLIN, 0};
@@ -863,10 +1173,25 @@ int main(int argc, char** argv) {
       g_task = {};
       pRunTask(engine, &t);
     }
+    if (++rescans >= 20) {
+      rescans = 0;
+      if (heads_hotplugged(g_drm)) {
+        heads_scan(g_drm);
+        int nw = 0, nh = 0;
+        layout_bounds(g_drm, nw, nh);
+        if (nw != g_drm.width || nh != g_drm.height) {
+          gbm_resize(g_drm, nw, nh);
+          send_metrics();
+        }
+        if (g_core->running()) g_core->outputChanged();
+      }
+    }
     if (ret <= 0) continue;
     for (int i = 0; i < nf; i++) {
       if (fds[i].fd == g_input.fd && (fds[i].revents & POLLIN)) {
         input_dispatch();
+      } else if (fds[i].fd == g_drm.fd && (fds[i].revents & POLLIN)) {
+        drmHandleEvent(g_drm.fd, &evctx);
       } else if (fds[i].fd == wlfd && (fds[i].revents & POLLIN)) {
         g_core->dispatch();
       }

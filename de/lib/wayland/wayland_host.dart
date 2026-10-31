@@ -17,6 +17,18 @@ abstract class WaylandHost {
     bool resizing = false,
   });
   Future<void> configureLayer(int id, int width, int height);
+  Future<void> surfaceOutputs(int id, List<int> outputs);
+  Future<void> configureOutput(
+    String name, {
+    int? x,
+    int? y,
+    int? width,
+    int? height,
+    int? refreshMhz,
+    double? scale,
+    int? transform,
+    bool? enabled,
+  });
   Future<void> close(int id);
   Future<void> sessionUnlock();
   Future<void> activity();
@@ -84,6 +96,37 @@ class ChannelWaylandHost extends WaylandHost {
         'id': id,
         'w': width,
         'h': height,
+      });
+
+  @override
+  Future<void> surfaceOutputs(int id, List<int> outputs) =>
+      _methods.invokeMethod('surfaceOutputs', {
+        'id': id,
+        'outputs': outputs,
+      });
+
+  @override
+  Future<void> configureOutput(
+    String name, {
+    int? x,
+    int? y,
+    int? width,
+    int? height,
+    int? refreshMhz,
+    double? scale,
+    int? transform,
+    bool? enabled,
+  }) =>
+      _methods.invokeMethod('configureOutput', {
+        'name': name,
+        'x': ?x,
+        'y': ?y,
+        'w': ?width,
+        'h': ?height,
+        'refresh': ?refreshMhz,
+        'scale': ?scale,
+        'transform': ?transform,
+        'enabled': enabled == false ? 0 : 1,
       });
 
   @override

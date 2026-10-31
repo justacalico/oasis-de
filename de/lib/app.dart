@@ -9,6 +9,7 @@ import 'apps/shell_apps.dart';
 import 'services/mpris.dart';
 import 'services/notifications.dart';
 import 'shell/desktop_shell.dart';
+import 'services/displays.dart';
 import 'shell/shell_controller.dart';
 import 'shell/shell_menus.dart';
 import 'wayland/desktop_entries.dart';
@@ -63,6 +64,8 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final UpdateService _updates;
   late final ShellController _controller;
   late final WaylandService _wayland;
+  late final WaylandDisplayBackend _displayBackend;
+  late final DisplaysDaemon _displaysDaemon;
   late final MprisService _mpris;
   List<OasisApp> _externalApps = const [];
   late final String? _savedPins = widget.store?.read('shell.pinned');
@@ -197,6 +200,17 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
           Future.value(),
     );
     unawaited(_wayland.start());
+    _displayBackend = WaylandDisplayBackend(
+      _wayland,
+      store: widget.store,
+      onIdentify: _controller.identifyOutputs,
+    );
+    _displayBackend.restore();
+    _displaysDaemon = DisplaysDaemon(
+      _displayBackend,
+      onIdentify: _controller.identifyOutputs,
+    );
+    unawaited(_displaysDaemon.start());
     unawaited(_mpris.start());
     if (!mounted) return;
     Future<void> reload() async {
@@ -213,6 +227,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
 
   @override
   void dispose() {
+    unawaited(_displaysDaemon.stop());
     unawaited(widget.notificationDaemon?.stop() ?? Future.value());
     _appDirWatch?.cancel();
     _appearance.removeListener(_persistState);
@@ -258,6 +273,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 openUrl: widget.openUrl,
                 store: widget.store,
                 backend: widget.backend,
+                displayBackend: _displayBackend,
               );
               final apps = [...builtins, ..._externalApps];
               final appsById = {for (final a in apps) a.id: a};

@@ -239,5 +239,16 @@
   "tipControlCenter": "Центр управления",
   "lockHint": "Введите пароль",
   "lockWrong": "Неверный пароль",
-  "lockUnlock": "Разблокировать"
+  "lockUnlock": "Разблокировать",
+  "displaysIdentify": "Определить",
+  "displaysNone": "Дисплеи не обнаружены",
+  "displaysArrangeHint": "Перетащите дисплеи, чтобы расположить их.",
+  "displaysApply": "Применить",
+  "displaysRevert": "Отменить",
+  "displaysResolution": "Разрешение",
+  "displaysRefresh": "Частота обновления",
+  "displaysScale": "Масштаб",
+  "displaysRotation": "Поворот",
+  "displaysRotationNone": "Обычный",
+  "displaysPrimary": "основной"
 }

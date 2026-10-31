@@ -583,4 +583,37 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get lockUnlock => 'Разблокировать';
+
+  @override
+  String get displaysIdentify => 'Определить';
+
+  @override
+  String get displaysNone => 'Дисплеи не обнаружены';
+
+  @override
+  String get displaysArrangeHint => 'Перетащите дисплеи, чтобы расположить их.';
+
+  @override
+  String get displaysApply => 'Применить';
+
+  @override
+  String get displaysRevert => 'Отменить';
+
+  @override
+  String get displaysResolution => 'Разрешение';
+
+  @override
+  String get displaysRefresh => 'Частота обновления';
+
+  @override
+  String get displaysScale => 'Масштаб';
+
+  @override
+  String get displaysRotation => 'Поворот';
+
+  @override
+  String get displaysRotationNone => 'Обычный';
+
+  @override
+  String get displaysPrimary => 'основной';
 }

@@ -5,6 +5,7 @@ import 'package:clock/clock.dart';
 
 export 'shell_constants.dart';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:oasis_ui/oasis_ui.dart';
@@ -136,6 +137,59 @@ class ShellController extends ChangeNotifier {
 
   void Function(int id, String action)? notificationActionHandler;
   void Function(int id, int reason)? notificationClosedHandler;
+
+  var identifyActive = false;
+  var lastPointerPosition = Offset.zero;
+  Timer? _identifyTimer;
+
+  void identifyOutputs() {
+    _identifyTimer?.cancel();
+    identifyActive = true;
+    notifyListeners();
+    _identifyTimer = Timer(const Duration(seconds: 3), () {
+      identifyActive = false;
+      notifyListeners();
+    });
+  }
+
+  final _reportedOutputs = <int, List<int>>{};
+
+  @override
+  void notifyListeners() {
+    _syncSurfaceOutputs();
+    super.notifyListeners();
+  }
+
+  void _syncSurfaceOutputs() {
+    final wl = wayland;
+    if (wl == null || _disposed) return;
+    for (final w in windows) {
+      final s = w.surface;
+      if (s == null || w.workspace != activeWorkspace) continue;
+      var rect = w.position & (w.size ?? s.size);
+      if (w.zoomed || w.fullscreen) {
+        final head = wl.outputAt(rect.center) ?? wl.primaryOutput;
+        if (head != null) rect = head.rect;
+      }
+      final ids = wl
+          .outputsFor(rect)
+          .map((o) => o.id)
+          .toList()
+        ..sort();
+      if (!listEquals(ids, _reportedOutputs[s.id])) {
+        _reportedOutputs[s.id] = ids;
+        unawaited(wl.surfaceOutputs(s.id, ids));
+      }
+    }
+  }
+
+  Offset get _spawnOrigin {
+    final wl = wayland;
+    final o = wl == null
+        ? null
+        : (wl.outputAt(lastPointerPosition) ?? wl.primaryOutput);
+    return o?.rect.topLeft ?? Offset.zero;
+  }
 
   void pushNotification(OasisNotification n) {
     if (!n.transient) {
@@ -370,10 +424,11 @@ class ShellController extends ChangeNotifier {
         id: _nextId++,
         app: app,
         workspace: activeWorkspace,
-        position: Offset(
-          56 + _cascadeCount * 28.0,
-          52 + _cascadeCount * 24.0,
-        ),
+        position: _spawnOrigin +
+            Offset(
+              56 + _cascadeCount * 28.0,
+              52 + _cascadeCount * 24.0,
+            ),
       );
       unawaited(
         service.launch(app.exec!).catchError((Object e) {
@@ -391,10 +446,11 @@ class ShellController extends ChangeNotifier {
           id: _nextId++,
           app: app,
           workspace: activeWorkspace,
-          position: Offset(
-            56 + _cascadeCount * 28.0,
-            52 + _cascadeCount * 24.0,
-          ),
+          position: _spawnOrigin +
+              Offset(
+                56 + _cascadeCount * 28.0,
+                52 + _cascadeCount * 24.0,
+              ),
         );
     w.launching = app.isExternal;
     windows.add(w);
@@ -748,10 +804,11 @@ class ShellController extends ChangeNotifier {
           id: _nextId++,
           app: _appForSurface(s),
           workspace: activeWorkspace,
-          position: Offset(
-            56 + _cascadeCount * 28.0,
-            52 + _cascadeCount * 24.0,
-          ),
+          position: _spawnOrigin +
+              Offset(
+                56 + _cascadeCount * 28.0,
+                52 + _cascadeCount * 24.0,
+              ),
         );
         windows.add(w);
         return w;
@@ -1101,6 +1158,7 @@ class ShellController extends ChangeNotifier {
       w.launchTimer?.cancel();
     }
     _requestSub?.cancel();
+    _identifyTimer?.cancel();
     wayland?.removeListener(_syncSurfaces);
     mpris?.removeListener(notifyListeners);
     super.dispose();

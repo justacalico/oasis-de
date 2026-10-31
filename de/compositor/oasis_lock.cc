@@ -68,15 +68,13 @@ void idle_off_timer_start(OasisPrivate* c) {
 }
 
 void announce_lock_surface(Surface* s) {
-  OasisPrivate* c = s->comp;
   s->announced = true;
   OEvent m;
   m["textureId"] = s->texture_id;
   emit_id(s, "lockSurface", std::move(m));
   emit_size(s);
-  wlr_surface_send_enter(s->wlr, c->output);
-  wlr_fractional_scale_v1_notify_scale(s->wlr, (double)c->out_scale);
-  comp_flush(c);
+  surface_sync_outputs(s);
+  comp_flush(s->comp);
 }
 
 static void lock_surf_destroyed(wl_listener* listener, void*) {
@@ -93,7 +91,10 @@ static void lock_surf_destroyed(wl_listener* listener, void*) {
 
 void lock_surface_new(OasisPrivate* c,
                       wlr_session_lock_surface_v1* lock_surface) {
-  if (lock_surface->output == nullptr) lock_surface->output = c->output;
+  if (lock_surface->output == nullptr) {
+    OasisOutput* p = output_primary(c);
+    if (p != nullptr) lock_surface->output = p->wlr;
+  }
   Surface* s = surface_of(c, lock_surface->surface);
   if (s == nullptr) {
     surface_new(c, lock_surface->surface);
@@ -107,7 +108,11 @@ void lock_surface_new(OasisPrivate* c,
   }
   s->lock_surf_destroy.notify = lock_surf_destroyed;
   wl_signal_add(&lock_surface->events.destroy, &s->lock_surf_destroy);
-  wlr_session_lock_surface_v1_configure(lock_surface, c->out_w, c->out_h);
+  OasisOutput* o = output_of(c, lock_surface->output);
+  if (o == nullptr) o = output_primary(c);
+  wlr_session_lock_surface_v1_configure(
+      lock_surface, o != nullptr ? o->width : 1920,
+      o != nullptr ? o->height : 1080);
   comp_flush(c);
 }
 

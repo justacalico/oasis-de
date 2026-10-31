@@ -575,4 +575,37 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get lockUnlock => '解锁';
+
+  @override
+  String get displaysIdentify => '识别';
+
+  @override
+  String get displaysNone => '未检测到显示器';
+
+  @override
+  String get displaysArrangeHint => '拖动显示器以排列。';
+
+  @override
+  String get displaysApply => '应用';
+
+  @override
+  String get displaysRevert => '还原';
+
+  @override
+  String get displaysResolution => '分辨率';
+
+  @override
+  String get displaysRefresh => '刷新率';
+
+  @override
+  String get displaysScale => '缩放';
+
+  @override
+  String get displaysRotation => '旋转';
+
+  @override
+  String get displaysRotationNone => '默认';
+
+  @override
+  String get displaysPrimary => '主显示器';
 }

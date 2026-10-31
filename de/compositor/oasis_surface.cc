@@ -417,11 +417,14 @@ void send_frame_done(Surface* s) {
   wlr_presentation_feedback* fb =
       wlr_presentation_surface_sampled(wlr);
   if (fb != nullptr) {
+    OasisOutput* o = output_for_surface(s);
     wlr_presentation_event ev = {};
-    ev.output = s->comp->output;
+    ev.output = o != nullptr ? o->wlr : nullptr;
     ev.tv_sec = (uint64_t)ts.tv_sec;
     ev.tv_nsec = (uint32_t)ts.tv_nsec;
-    ev.refresh = 16666666;
+    ev.refresh =
+        o != nullptr && o->refresh > 0 ? (uint32_t)(1000000000000ULL / o->refresh)
+                                     : 16666666;
     ev.flags = 0;
     wlr_presentation_feedback_send_presented(fb, &ev);
     wlr_presentation_feedback_destroy(fb);
@@ -429,7 +432,6 @@ void send_frame_done(Surface* s) {
 }
 
 void announce_toplevel(Surface* s) {
-  OasisPrivate* c = s->comp;
   s->announced = true;
   OEvent m;
   m["textureId"] = s->texture_id;
@@ -438,8 +440,7 @@ void announce_toplevel(Surface* s) {
   m["parent"] = s->tl_parent != nullptr ? s->tl_parent->public_id : -1;
   emit_id(s, "toplevel", std::move(m));
   emit_size(s);
-  wlr_surface_send_enter(s->wlr, c->output);
-  wlr_fractional_scale_v1_notify_scale(s->wlr, (double)c->out_scale);
+  surface_sync_outputs(s);
   if (!s->inhibitors.empty()) {
     OEvent im;
     im["on"] = true;

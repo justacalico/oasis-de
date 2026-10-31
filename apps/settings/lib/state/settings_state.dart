@@ -22,7 +22,7 @@ enum SettingsPane {
 }
 
 class SettingsState extends ChangeNotifier {
-  SettingsState({SettingsStore? store, this.backend})
+  SettingsState({SettingsStore? store, this.backend, this.displayBackend})
       : _store = store ?? MemorySettingsStore() {
     wifiOn = _store.read('shell.wifi') != '0';
     bluetoothOn = _store.read('shell.bluetooth') != '0';
@@ -47,6 +47,30 @@ class SettingsState extends ChangeNotifier {
 
   final SettingsStore _store;
   final OasisSystemBackend? backend;
+  final OasisDisplayBackend? displayBackend;
+
+  List<OasisDisplay> displays = const [];
+  var displaysBusy = false;
+
+  Future<void> refreshDisplays() async {
+    final b = displayBackend;
+    if (b == null) return;
+    displaysBusy = true;
+    notifyListeners();
+    displays = await b.displays();
+    displaysBusy = false;
+    notifyListeners();
+  }
+
+  Future<void> applyDisplay(OasisDisplay d) async {
+    final b = displayBackend;
+    if (b == null) return;
+    await b.setDisplay(d);
+    await refreshDisplays();
+  }
+
+  Future<void> identifyDisplays() =>
+      displayBackend?.identifyDisplays() ?? Future.value();
 
   var pane = SettingsPane.appearance;
   var wifiOn = true;

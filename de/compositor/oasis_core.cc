@@ -513,31 +513,6 @@ static void handle_kb_mods(wl_listener* listener, void*) {
   wlr_seat_keyboard_notify_modifiers(c->seat, &c->vkb->modifiers);
 }
 
-// ---- output -----------------------------------------------------------------------------
-
-static void output_apply(OasisPrivate* c) {
-  if (c->output == nullptr) return;
-  wlr_output_state st;
-  wlr_output_state_init(&st);
-  wlr_output_state_set_enabled(&st, true);
-  wlr_output_state_set_custom_mode(&st, c->out_w, c->out_h, 60000);
-  wlr_output_state_set_scale(&st, (float)c->out_scale);
-  wlr_output_commit_state(c->output, &st);
-  wlr_output_state_finish(&st);
-  c->output->phys_width = c->phys_w;
-  c->output->phys_height = c->phys_h;
-}
-
-static void output_notify_surfaces(OasisPrivate* c) {
-  for (Surface* s : c->surfaces) {
-    if (s->wlr != nullptr && s->announced) {
-      wlr_surface_send_enter(s->wlr, c->output);
-      wlr_fractional_scale_v1_notify_scale(s->wlr, (double)c->out_scale);
-    }
-  }
-  comp_flush(c);
-}
-
 // ---- timers ----------------------------------------------------------------------------
 
 static int ping_tick(void* data) {
@@ -613,23 +588,28 @@ void OasisCore::dispatch() {
   wl_display_flush_clients(p->display);
 }
 
-void OasisCore::outputChanged() {
-  int w = 0, h = 0, scale = 1, pw = 340, ph = 190;
-  p->host->outputMetrics(w, h, scale, pw, ph);
-  p->out_w = w > 0 ? w : 1920;
-  p->out_h = h > 0 ? h : 1080;
-  p->out_scale = scale > 0 ? scale : 1;
-  p->phys_w = pw > 0 ? pw : 340;
-  p->phys_h = ph > 0 ? ph : 190;
-  output_apply(p);
-  output_notify_surfaces(p);
-  for (Surface* s : p->surfaces) {
-    if (s->role == ROLE_LOCK && s->lock_surface != nullptr) {
-      wlr_session_lock_surface_v1_configure(s->lock_surface, p->out_w,
-                                            p->out_h);
+void OasisCore::outputChanged() { outputs_sync_host(p); }
+
+void OasisCore::surfaceOutputs(int64_t id,
+                               const std::vector<int64_t>& ids) {
+  Surface* s = surface_by_id(p, id);
+  if (s == nullptr) return;
+  s->outputs_reported = true;
+  s->outputs.clear();
+  for (int64_t oid : ids) {
+    for (OasisOutput* o : p->outputs) {
+      if (o->public_id == oid) {
+        s->outputs.insert(o);
+        break;
+      }
     }
   }
+  surface_sync_outputs(s);
   comp_flush(p);
+}
+
+void OasisCore::configureOutput(const HostOutput& cfg) {
+  outputs_apply_config(p, cfg);
 }
 
 bool OasisCore::start(std::string* error) {
@@ -709,13 +689,7 @@ bool OasisCore::start(std::string* error) {
   p->kb_mods.notify = handle_kb_mods;
   wl_signal_add(&p->vkb->events.modifiers, &p->kb_mods);
 
-  p->output = wlr_headless_add_output(p->backend, p->out_w, p->out_h);
-  wlr_output_set_name(p->output, "oasis-embedded");
-  wlr_output_set_description(p->output, "Oasis embedded output");
-  wlr_output_init_render(p->output, p->allocator, p->renderer);
-  wlr_output_create_global(p->output, p->display);
-  p->output_needs_frame.notify = output_needs_frame;
-  wl_signal_add(&p->output->events.needs_frame, &p->output_needs_frame);
+  outputs_init(p);
   outputChanged();
 
   p->xwayland = wlr_xwayland_create(p->display, p->compositor, false);
@@ -828,6 +802,7 @@ bool OasisCore::start(std::string* error) {
 
 void OasisCore::stop() {
   p->stopping = true;
+  outputs_finish(p);
   if (p->ping_timer != nullptr) {
     wl_event_source_remove(p->ping_timer);
     p->ping_timer = nullptr;
@@ -909,6 +884,7 @@ void OasisCore::stop() {
 }
 
 void OasisCore::replayEvents() {
+  outputs_emit(p);
   for (Surface* s : p->surfaces) {
     if (!s->announced) continue;
     if (s->role == ROLE_TOPLEVEL) {

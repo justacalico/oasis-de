@@ -583,4 +583,38 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get lockUnlock => 'Díghlasáil';
+
+  @override
+  String get displaysIdentify => 'Aithin';
+
+  @override
+  String get displaysNone => 'Níor aimsíodh aon taispeáin';
+
+  @override
+  String get displaysArrangeHint =>
+      'Tarraing na taispeántais chun iad a shocrú.';
+
+  @override
+  String get displaysApply => 'Cuir i bhfeidhm';
+
+  @override
+  String get displaysRevert => 'Fill siar';
+
+  @override
+  String get displaysResolution => 'Taifeach';
+
+  @override
+  String get displaysRefresh => 'Ráta athnuachana';
+
+  @override
+  String get displaysScale => 'Scála';
+
+  @override
+  String get displaysRotation => 'Rothlú';
+
+  @override
+  String get displaysRotationNone => 'Réamhshocraithe';
+
+  @override
+  String get displaysPrimary => 'príomh';
 }

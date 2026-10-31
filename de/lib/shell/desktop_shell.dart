@@ -94,11 +94,26 @@ class _DesktopShellState extends State<DesktopShell> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: controller,
+      animation: Listenable.merge([
+        controller,
+        if (controller.wayland != null) controller.wayland!,
+      ]),
       builder: (context, _) {
         final menus = widget.menusBuilder();
-        final exclusive =
-            controller.wayland?.exclusiveInsets ?? EdgeInsets.zero;
+        final wl = controller.wayland;
+        final exclusive = wl?.exclusiveInsets ?? EdgeInsets.zero;
+        final heads = [
+          for (final o in wl?.outputs ?? const <OasisOutput>[])
+            if (o.enabled) o,
+        ];
+        final screen = MediaQuery.sizeOf(context);
+        final screenRect = Offset.zero & screen;
+        final primary =
+            wl?.primaryOutput ?? (heads.isEmpty ? null : heads.first);
+        final activeHead =
+            (wl?.outputAt(_pointerPos.value) ?? primary) ?? primary;
+        final activeRect = activeHead?.rect ?? screenRect;
+        final primaryRect = primary?.rect ?? screenRect;
         return CallbackShortcuts(
           bindings: {
             const SingleActivator(LogicalKeyboardKey.tab, alt: true): () =>
@@ -126,6 +141,7 @@ class _DesktopShellState extends State<DesktopShell> {
             onPointerDown: _onShellPointerDown,
             onPointerHover: (e) {
               _pointerPos.value = e.position;
+              controller.lastPointerPosition = e.position;
               if (e.buttons == 0) controller.endSurfaceGesture();
             },
             onPointerMove: (e) =>
@@ -153,34 +169,43 @@ class _DesktopShellState extends State<DesktopShell> {
                       key: ValueKey(w.id),
                       builder: (context) {
                         final screen = MediaQuery.sizeOf(context);
+                        final wcenter = w.position +
+                            (w.size ?? Size.zero).center(Offset.zero);
+                        final zoomHead =
+                            (wl?.outputAt(wcenter) ?? wl?.primaryOutput)?.rect ??
+                                (Offset.zero & screen);
+                        final zinsets = exclusive;
                         final target = Rect.fromLTWH(
                           w.zoomed
-                              ? exclusive.left
+                              ? zoomHead.left + zinsets.left
                               : w.fullscreen
-                              ? 0
+                              ? zoomHead.left
                               : w.position.dx,
                           w.zoomed
-                              ? kMenuBarHeight + 4 + exclusive.top
+                              ? zoomHead.top +
+                                  kMenuBarHeight +
+                                  4 +
+                                  zinsets.top
                               : w.fullscreen
-                              ? 0
+                              ? zoomHead.top
                               : w.position.dy,
                           w.zoomed
                               ? math.max(
                                   0,
-                                  screen.width - exclusive.horizontal,
+                                  zoomHead.width - zinsets.horizontal,
                                 )
                               : w.fullscreen
-                              ? screen.width
+                              ? zoomHead.width
                               : _windowSize(w, screen).width,
                           w.fullscreen
-                              ? screen.height
+                              ? zoomHead.height
                               : w.zoomed
                               ? math.max(
                                   0,
-                                  screen.height -
+                                  zoomHead.height -
                                       kMenuBarHeight -
                                       8 -
-                                      exclusive.vertical,
+                                      zinsets.vertical,
                                 )
                               : _windowSize(w, screen).height,
                         );
@@ -263,22 +288,29 @@ class _DesktopShellState extends State<DesktopShell> {
                       !w.minimized &&
                       w.workspace == controller.activeWorkspace,
                 ))
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: ShellMenuBar(
-                      controller: controller,
-                      menus: menus,
-                      labelKeys: [
-                        for (final m in menus)
-                          _menuLabelKeys.putIfAbsent(
-                            m.label,
-                            () => GlobalKey(debugLabel: m.label),
-                          ),
-                      ],
+                  for (var i = 0; i < (heads.isEmpty ? 1 : heads.length); i++)
+                    Positioned.fromRect(
+                      rect: heads.isEmpty
+                          ? Rect.fromLTWH(
+                              0, 0, screen.width, kMenuBarHeight)
+                          : Rect.fromLTWH(
+                              heads[i].rect.left,
+                              heads[i].rect.top,
+                              heads[i].rect.width,
+                              kMenuBarHeight,
+                            ),
+                      child: ShellMenuBar(
+                        controller: controller,
+                        menus: menus,
+                        labelKeys: [
+                          for (final m in menus)
+                            _menuLabelKeys.putIfAbsent(
+                              m.label,
+                              () => GlobalKey(debugLabel: m.label),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
                 if (controller.openMenu != null)
                   Positioned(
                     top: kMenuBarHeight + 2,
@@ -290,15 +322,18 @@ class _DesktopShellState extends State<DesktopShell> {
                     ),
                   ),
                 if (controller.controlCenterOpen)
-                  Positioned.fill(
+                  Positioned.fromRect(
+                    rect: activeRect,
                     child: ShellControlCenter(controller: controller),
                   ),
                 if (controller.launchPadOpen)
-                  Positioned.fill(
+                  Positioned.fromRect(
+                    rect: activeRect,
                     child: ShellLaunchPad(controller: controller),
                   ),
                 if (controller.notificationCenterOpen)
-                  Positioned.fill(
+                  Positioned.fromRect(
+                    rect: activeRect,
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: controller.toggleNotificationCenter,
@@ -306,7 +341,8 @@ class _DesktopShellState extends State<DesktopShell> {
                     ),
                   ),
                 if (controller.switcherIndex != null)
-                  Positioned.fill(
+                  Positioned.fromRect(
+                    rect: activeRect,
                     child: WindowSwitcher(controller: controller),
                   ),
                 if (!controller.windows.any(
@@ -350,14 +386,46 @@ class _DesktopShellState extends State<DesktopShell> {
                       !w.minimized &&
                       w.workspace == controller.activeWorkspace,
                 ))
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Center(child: ShellDock(controller: controller)),
+                  Positioned.fromRect(
+                    rect: primaryRect,
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: ShellDock(controller: controller),
+                    ),
                   ),
                 if (controller.launcherOpen)
-                  Positioned.fill(child: ShellLauncher(controller: controller)),
+                  Positioned.fromRect(
+                    rect: activeRect,
+                    child: ShellLauncher(controller: controller),
+                  ),
+                if (controller.identifyActive)
+                  for (var i = 0; i < heads.length; i++)
+                    Positioned.fromRect(
+                      rect: heads[i].rect,
+                      child: IgnorePointer(
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 18,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white54),
+                            ),
+                            child: Text(
+                              '${i + 1}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 72,
+                                fontWeight: FontWeight.w300,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 for (final s in _layerItems(3)) s,
                 if (controller.wayland?.sessionLocked ?? false)
                   const Positioned.fill(
@@ -505,7 +573,15 @@ class _DesktopShellState extends State<DesktopShell> {
       for (final s in service.layerSurfaces(layer))
         if (s.size.width > 0 && s.size.height > 0)
           () {
-            final rect = layerSurfaceRect(s, screen);
+            var rect = layerSurfaceRect(s, screen);
+            for (final o in service.outputs) {
+              if (o.id == s.outputId) {
+                rect = layerSurfaceRect(s, Size(
+                      o.width.toDouble(), o.height.toDouble()))
+                    .shift(o.rect.topLeft);
+                break;
+              }
+            }
             s.layerRect = rect;
             return Positioned.fromRect(
               key: ValueKey('layer-${s.id}'),
