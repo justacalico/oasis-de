@@ -264,8 +264,8 @@ static void emit_input_region(Surface* s) {
   }
   bool infinite = n == 1 && boxes[0].x1 == INT32_MIN &&
                   boxes[0].y1 == INT32_MIN &&
-                  boxes[0].x2 - boxes[0].x1 == INT32_MAX &&
-                  boxes[0].y2 - boxes[0].y1 == INT32_MAX;
+                  boxes[0].x2 == INT32_MAX &&
+                  boxes[0].y2 == INT32_MAX;
   OEvent m;
   if (infinite) {
     if (s->input_reported && s->input_null) return;
