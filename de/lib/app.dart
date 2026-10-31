@@ -65,6 +65,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final UpdateService _updates;
   late final ShellController _controller;
   late final WaylandService _wayland;
+  late final OasisSystemBackend _backend;
   late final WaylandPowerBackend _powerBackend;
   late final WaylandDisplayBackend _displayBackend;
   late final DisplaysDaemon _displaysDaemon;
@@ -89,10 +90,11 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _wayland = widget.wayland ?? WaylandService();
     _powerBackend = WaylandPowerBackend(_wayland, store: widget.store);
     _mpris = widget.mpris ?? MprisService();
+    _backend = widget.backend ?? const CliSystemBackend();
     _controller = ShellController(
       apps: const [],
       wayland: _wayland,
-      backend: widget.backend ?? const CliSystemBackend(),
+      backend: _backend,
       mpris: _mpris,
     );
     _controller.unknownAppName = () =>
@@ -276,7 +278,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 locale: _locale,
                 openUrl: widget.openUrl,
                 store: widget.store,
-                backend: widget.backend,
+                backend: _backend,
                 displayBackend: _displayBackend,
                 powerBackend: _powerBackend,
               );
