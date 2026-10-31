@@ -675,6 +675,8 @@ bool OasisCore::start(std::string* error) {
   p->xdg_shell = wlr_xdg_shell_create(p->display, 6);
   p->deco_mgr = wlr_xdg_decoration_manager_v1_create(p->display);
   p->viewporter = wlr_viewporter_create(p->display);
+  p->dmabuf_v1 =
+      wlr_linux_dmabuf_v1_create_with_renderer(p->display, 5, p->renderer);
   p->fs_mgr = wlr_fractional_scale_manager_v1_create(p->display, 1);
   p->inhibit_mgr = wlr_idle_inhibit_v1_create(p->display);
   p->cursor_shape_mgr = wlr_cursor_shape_manager_v1_create(p->display, 1);
