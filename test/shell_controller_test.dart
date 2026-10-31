@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -309,6 +311,36 @@ void main() {
     expect(calls, ['wifi', 'bluetooth', 'brightness', 'volume']);
     await pumpEventQueue();
     c.dispose();
+  });
+
+  test('wifi network list refreshes and connects', () async {
+    final calls = <String>[];
+    final c = ShellController(
+      apps: const [],
+      backend: _WifiBackend(calls),
+    );
+    await c.refreshWifiNetworks();
+    expect([for (final n in c.wifiNetworks) n.ssid], ['Home', 'Cafe']);
+    expect(c.wifiScanning, isFalse);
+    await c.connectWifiNetwork('Cafe');
+    expect(calls, ['scan', 'connect:Cafe', 'scan']);
+    c.wifiOn = false;
+    await c.refreshWifiNetworks();
+    expect(c.wifiNetworks, isEmpty);
+    c.dispose();
+  });
+
+  test('wifi scan settling after dispose is ignored', () async {
+    final completer = Completer<List<OasisWifiNetwork>>();
+    final c = ShellController(
+      apps: const [],
+      backend: _SlowWifiBackend(completer.future),
+    );
+    final pending = c.refreshWifiNetworks();
+    expect(c.wifiScanning, isTrue);
+    c.dispose();
+    completer.complete(const [OasisWifiNetwork(ssid: 'Late')]);
+    await pending;
   });
 
   test('slider previews apply live, deduped per percent', () async {
@@ -651,6 +683,34 @@ void main() {
   });
 }
 
+class _WifiBackend extends NoopSystemBackend {
+  _WifiBackend(this.calls);
+
+  final List<String> calls;
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() async {
+    calls.add('scan');
+    return const [
+      OasisWifiNetwork(ssid: 'Home', signal: 90, connected: true),
+      OasisWifiNetwork(ssid: 'Cafe', signal: 55, secured: true),
+    ];
+  }
+
+  @override
+  Future<void> connectWifi(String ssid) async =>
+      calls.add('connect:$ssid');
+}
+
+class _SlowWifiBackend extends NoopSystemBackend {
+  _SlowWifiBackend(this.future);
+
+  final Future<List<OasisWifiNetwork>> future;
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() => future;
+}
+
 class _CountDenyBackend extends NoopSystemBackend {
   _CountDenyBackend(this.onDeny);
 
@@ -695,6 +755,12 @@ class _BatteryBackend implements OasisSystemBackend {
   Future<void> wifi(bool enabled) async {}
 
   @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() async => const [];
+
+  @override
+  Future<void> connectWifi(String ssid) async {}
+
+  @override
   Future<void> bluetooth(bool enabled) async {}
 
   @override
@@ -723,6 +789,13 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<void> wifi(bool enabled) async => calls.add('wifi');
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() async => const [];
+
+  @override
+  Future<void> connectWifi(String ssid) async =>
+      calls.add('connect:$ssid');
 
   @override
   Future<void> bluetooth(bool enabled) async => calls.add('bluetooth');

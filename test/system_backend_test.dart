@@ -111,9 +111,55 @@ void main() {
     expect(b.level, isNull);
   });
 
+  test('cli backend scans and joins wifi networks', () async {
+    final calls = <String>[];
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async {
+      calls.add('$exe ${args.join(' ')}');
+      return ProcessResult(
+        0,
+        0,
+        'no:Weak:20:--\n'
+            'yes:Home\\:Base:88:WPA2\n'
+            'no:Cafe:60:WPA2 WPA3\n'
+            'no:Cafe:40:WPA2\n'
+            'no::35:\n'
+            'garbage\n',
+        '',
+      );
+    }
+
+    final nets = await CliSystemBackend(run: fakeRun).wifiNetworks();
+    expect(calls, [
+      'nmcli -t -f ACTIVE,SSID,SIGNAL,SECURITY device wifi list',
+    ]);
+    expect(nets.map((n) => n.ssid), ['Home:Base', 'Cafe', 'Weak']);
+    expect(nets[0].connected, isTrue);
+    expect(nets[0].secured, isTrue);
+    expect(nets[0].signal, 88);
+    expect(nets[1].secured, isTrue);
+    expect(nets[2].secured, isFalse);
+    expect(nets[2].signal, 20);
+
+    calls.clear();
+    await CliSystemBackend(run: fakeRun).connectWifi('Cafe');
+    expect(calls, ['nmcli device wifi connect Cafe']);
+  });
+
+  test('cli backend returns no networks on failure', () async {
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async {
+      return ProcessResult(0, 1, '', '');
+    }
+
+    expect(
+      await CliSystemBackend(run: fakeRun).wifiNetworks(),
+      isEmpty,
+    );
+  });
+
   test('noop backend accepts calls', () async {
     NoopSystemBackend()
       ..wifi(true)
+      ..connectWifi('x')
       ..bluetooth(true)
       ..brightness(0.5)
       ..volume(0.5)
@@ -123,6 +169,7 @@ void main() {
       (await NoopSystemBackend().read()).wifi,
       isNull,
     );
+    expect(await NoopSystemBackend().wifiNetworks(), isEmpty);
     expect((await NoopSystemBackend().battery()).level, isNull);
     expect(
       (await NoopSystemBackend().systemInfo()).kernel,
@@ -224,6 +271,12 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<void> wifi(bool enabled) async => calls.add('wifi');
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() async => const [];
+
+  @override
+  Future<void> connectWifi(String ssid) async => calls.add('connect');
 
   @override
   Future<void> bluetooth(bool enabled) async => calls.add('bluetooth');

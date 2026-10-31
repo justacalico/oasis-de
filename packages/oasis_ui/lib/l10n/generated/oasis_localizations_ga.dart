@@ -70,6 +70,15 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get ccWifi => 'Wi-Fi';
 
   @override
+  String get wifiMenuScanning => 'Ag scanadh…';
+
+  @override
+  String get wifiMenuNoNetworks => 'Níor aimsíodh líonraí';
+
+  @override
+  String get wifiMenuSettings => 'Socruithe Wi-Fi…';
+
+  @override
   String get ccBluetooth => 'Bluetooth';
 
   @override

@@ -8,6 +8,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 
 import 'context_menu.dart';
 import 'shell_controller.dart';
+import 'wifi_menu.dart';
 
 
 class ShellMenuBar extends StatelessWidget {
@@ -98,12 +99,7 @@ class ShellMenuBar extends StatelessWidget {
                   style: textStyle,
                   tooltip: l10n.launcherHint,
                 ),
-                _StatusIcon(
-                  icon: controller.wifiOn ? Icons.wifi : Icons.wifi_off,
-                  onTap: controller.toggleControlCenter,
-                  style: textStyle,
-                  tooltip: l10n.ccWifi,
-                ),
+                _WifiMenu(controller: controller, style: textStyle),
                 if (controller.batteryLevel != null)
                   _StatusIcon(
                     icon: controller.batteryCharging
@@ -325,6 +321,29 @@ class MenuDropdown extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _WifiMenu extends StatelessWidget {
+  const _WifiMenu({required this.controller, required this.style});
+
+  final ShellController controller;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
+    final c = controller;
+    return _StatusIcon(
+      icon: c.wifiOn ? Icons.wifi : Icons.wifi_off,
+      style: style,
+      tooltip: l10n.ccWifi,
+      onTap: () {
+        final box = context.findRenderObject()! as RenderBox;
+        final pos = box.localToGlobal(Offset(0, box.size.height + 4));
+        showWifiMenu(context, pos, c);
+      },
     );
   }
 }

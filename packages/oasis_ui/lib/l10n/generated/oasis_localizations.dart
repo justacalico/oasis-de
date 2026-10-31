@@ -216,6 +216,24 @@ abstract class OasisLocalizations {
   /// **'Wi-Fi'**
   String get ccWifi;
 
+  /// No description provided for @wifiMenuScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning…'**
+  String get wifiMenuScanning;
+
+  /// No description provided for @wifiMenuNoNetworks.
+  ///
+  /// In en, this message translates to:
+  /// **'No networks found'**
+  String get wifiMenuNoNetworks;
+
+  /// No description provided for @wifiMenuSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi Settings…'**
+  String get wifiMenuSettings;
+
   /// No description provided for @ccBluetooth.
   ///
   /// In en, this message translates to:

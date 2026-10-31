@@ -35,6 +35,69 @@ class CliSystemBackend implements OasisSystemBackend {
       _exec('nmcli', ['radio', 'wifi', enabled ? 'on' : 'off']);
 
   @override
+  Future<void> connectWifi(String ssid) =>
+      _exec('nmcli', ['device', 'wifi', 'connect', ssid]);
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() async {
+    final out = await _read('nmcli', [
+      '-t',
+      '-f',
+      'ACTIVE,SSID,SIGNAL,SECURITY',
+      'device',
+      'wifi',
+      'list',
+    ]);
+    if (out == null) return const [];
+    final seen = <String>{};
+    final networks = <OasisWifiNetwork>[];
+    for (final line in out.split('\n')) {
+      final fields = _splitTerse(line);
+      if (fields.length < 4) continue;
+      final ssid = fields[1].trim();
+      if (ssid.isEmpty || !seen.add(ssid)) continue;
+      networks.add(
+        OasisWifiNetwork(
+          ssid: ssid,
+          signal: int.tryParse(fields[2].trim()) ?? 0,
+          secured:
+              fields[3].trim().isNotEmpty && fields[3].trim() != '--',
+          connected: fields[0].trim() == 'yes',
+        ),
+      );
+    }
+    networks.sort((a, b) {
+      final byActive = (b.connected ? 1 : 0).compareTo(
+        a.connected ? 1 : 0,
+      );
+      return byActive != 0 ? byActive : b.signal.compareTo(a.signal);
+    });
+    return networks;
+  }
+
+  static List<String> _splitTerse(String line) {
+    final fields = <String>[];
+    final buf = StringBuffer();
+    var escaped = false;
+    for (var i = 0; i < line.length; i++) {
+      final ch = line[i];
+      if (escaped) {
+        buf.write(ch);
+        escaped = false;
+      } else if (ch == '\\') {
+        escaped = true;
+      } else if (ch == ':') {
+        fields.add(buf.toString());
+        buf.clear();
+      } else {
+        buf.write(ch);
+      }
+    }
+    fields.add(buf.toString());
+    return fields;
+  }
+
+  @override
   Future<void> bluetooth(bool enabled) =>
       _exec('bluetoothctl', ['power', enabled ? 'on' : 'off']);
 

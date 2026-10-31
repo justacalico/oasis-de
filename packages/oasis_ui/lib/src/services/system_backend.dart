@@ -23,8 +23,24 @@ class OasisBattery {
 
 enum OasisSessionAction { lock, logout, suspend, reboot, poweroff }
 
+class OasisWifiNetwork {
+  const OasisWifiNetwork({
+    required this.ssid,
+    this.signal = 0,
+    this.secured = false,
+    this.connected = false,
+  });
+
+  final String ssid;
+  final int signal;
+  final bool secured;
+  final bool connected;
+}
+
 abstract class OasisSystemBackend {
   Future<void> wifi(bool enabled);
+  Future<List<OasisWifiNetwork>> wifiNetworks();
+  Future<void> connectWifi(String ssid);
   Future<void> bluetooth(bool enabled);
   Future<void> brightness(double level);
   Future<void> volume(double level);
@@ -61,6 +77,12 @@ class NoopSystemBackend implements OasisSystemBackend {
 
   @override
   Future<void> wifi(bool enabled) async {}
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() async => const [];
+
+  @override
+  Future<void> connectWifi(String ssid) async {}
 
   @override
   Future<void> bluetooth(bool enabled) async {}
