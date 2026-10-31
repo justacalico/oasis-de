@@ -80,9 +80,9 @@ integration:
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
   script:
     - !reference [.wlroots-deps, script]
-    - apt-get install -y --no-install-recommends xvfb xauth
+    - apt-get install -y --no-install-recommends xvfb xauth dbus-x11
     - export XDG_RUNTIME_DIR=/tmp/xdg-runtime && mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
-    - cd de && flutter pub get && xvfb-run -a flutter test integration_test -d linux
+    - cd de && flutter pub get && dbus-run-session -- xvfb-run -a flutter test integration_test -d linux
 
 native-build:
   stage: test
