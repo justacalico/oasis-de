@@ -359,30 +359,10 @@ void main() {
   });
 
   test('OasisPalette resolves modes', () {
-    expect(
-      OasisPalette.of(OasisThemeMode.system, platformDark: false).isDark,
-      isFalse,
-    );
-    expect(
-      OasisPalette.of(OasisThemeMode.system, platformDark: true).isDark,
-      isTrue,
-    );
-    expect(
-      OasisPalette.of(OasisThemeMode.light, platformDark: true).isDark,
-      isFalse,
-    );
-    expect(
-      OasisPalette.of(OasisThemeMode.dark, platformDark: false).isDark,
-      isTrue,
-    );
-    expect(
-      OasisPalette.of(OasisThemeMode.oled, platformDark: false).isOled,
-      isTrue,
-    );
-    expect(
-      OasisTheme.resolve(OasisThemeMode.oled, platformDark: false),
-      isA<ThemeData>(),
-    );
+    expect(OasisPalette.of(OasisThemeMode.light).isDark, isFalse);
+    expect(OasisPalette.of(OasisThemeMode.dark).isDark, isTrue);
+    expect(OasisPalette.of(OasisThemeMode.oled).isOled, isTrue);
+    expect(OasisTheme.resolve(OasisThemeMode.oled), isA<ThemeData>());
     expect(OasisTheme.light(), isA<ThemeData>());
     expect(OasisTheme.dark(), isA<ThemeData>());
     expect(OasisTheme.oled(), isA<ThemeData>());
@@ -390,18 +370,18 @@ void main() {
 
   test('OasisAppearance mutators and custom accent', () {
     final a = OasisAppearance();
-    expect(a.themeMode, OasisThemeMode.system);
-    a.themeMode = OasisThemeMode.system;
+    expect(a.themeMode, OasisThemeMode.light);
+    a.themeMode = OasisThemeMode.light;
     a.accent = null;
     a.themeMode = OasisThemeMode.dark;
     expect(a.themeMode, OasisThemeMode.dark);
     a.accent = const Color(0xFF123456);
     expect(a.accent, const Color(0xFF123456));
-    final themed = a.themeForBrightness(false);
+    final themed = a.theme;
     expect(themed.colorScheme.primary, const Color(0xFF123456));
     a.themeMode = OasisThemeMode.oled;
     expect(
-      a.themeForBrightness(true).scaffoldBackgroundColor.toARGB32(),
+      a.theme.scaffoldBackgroundColor.toARGB32(),
       isNot(0),
     );
     a.dispose();
@@ -433,20 +413,12 @@ void main() {
     updates.dispose();
   });
 
-  testWidgets('OasisAppearance themeFor resolves context brightness', (
-    tester,
-  ) async {
-    final a = OasisAppearance(themeMode: OasisThemeMode.system);
-    await pumpOasis(
-      tester,
-      Builder(
-        builder: (context) {
-          return Text(a.themeFor(context).brightness.name);
-        },
-      ),
-      platformDark: true,
-    );
-    expect(find.text('dark'), findsOneWidget);
+  test('OasisAppearance theme follows themeMode', () {
+    final a = OasisAppearance(themeMode: OasisThemeMode.dark);
+    expect(a.theme.brightness, Brightness.dark);
+    a.themeMode = OasisThemeMode.light;
+    expect(a.theme.brightness, Brightness.light);
+    a.dispose();
   });
 
   testWidgets('OasisButton press cancelled by dragging off', (tester) async {

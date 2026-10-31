@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-enum OasisThemeMode { system, light, dark, oled }
+enum OasisThemeMode { light, dark, oled }
 
 class OasisPalette {
   const OasisPalette({
@@ -121,10 +121,8 @@ class OasisPalette {
     isOled: true,
   );
 
-  static OasisPalette of(OasisThemeMode mode, {required bool platformDark}) {
+  static OasisPalette of(OasisThemeMode mode) {
     switch (mode) {
-      case OasisThemeMode.system:
-        return platformDark ? dark : light;
       case OasisThemeMode.light:
         return light;
       case OasisThemeMode.dark:

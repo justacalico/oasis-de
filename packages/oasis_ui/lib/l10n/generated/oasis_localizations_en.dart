@@ -282,9 +282,6 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get settingsBluetoothBody => 'Toggle Bluetooth on or off.';
 
   @override
-  String get themeSystem => 'System';
-
-  @override
   String get themeLight => 'Light';
 
   @override

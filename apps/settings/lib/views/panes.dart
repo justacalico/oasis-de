@@ -30,7 +30,6 @@ class AppearancePane extends StatelessWidget {
     final text = Theme.of(context).textTheme;
 
     final modes = [
-      (OasisThemeMode.system, l10n.themeSystem),
       (OasisThemeMode.light, l10n.themeLight),
       (OasisThemeMode.dark, l10n.themeDark),
       (OasisThemeMode.oled, l10n.themeOled),
@@ -110,7 +109,7 @@ class _ThemeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = OasisPalette.of(mode, platformDark: false);
+    final p = OasisPalette.of(mode);
     final host = OasisStyle.of(context).palette;
     return GestureDetector(
       onTap: onTap,

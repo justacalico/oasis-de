@@ -16,17 +16,13 @@ Future<void> loadOasisFonts() async {
 Widget wrapOasis(
   Widget home, {
   OasisThemeMode theme = OasisThemeMode.light,
-  bool platformDark = false,
   Locale? locale,
   Size size = const Size(1280, 800),
 }) {
   return MediaQuery(
-    data: MediaQueryData(
-        size: size,
-        platformBrightness:
-            platformDark ? Brightness.dark : Brightness.light),
+    data: MediaQueryData(size: size),
     child: MaterialApp(
-      theme: OasisTheme.resolve(theme, platformDark: platformDark),
+      theme: OasisTheme.resolve(theme),
       locale: locale,
       supportedLocales: OasisLocalizations.supportedLocales,
       localizationsDelegates: const [
@@ -44,7 +40,6 @@ Future<void> pumpOasis(
   WidgetTester tester,
   Widget home, {
   OasisThemeMode theme = OasisThemeMode.light,
-  bool platformDark = false,
   Locale? locale,
   Size size = const Size(1280, 800),
 }) async {
@@ -54,7 +49,6 @@ Future<void> pumpOasis(
   await tester.pumpWidget(wrapOasis(
     home,
     theme: theme,
-    platformDark: platformDark,
     locale: locale,
     size: size,
   ));

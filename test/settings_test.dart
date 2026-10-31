@@ -84,7 +84,7 @@ void main() {
       size: const Size(900, 620),
     );
     expect(find.text('Appearance'), findsWidgets);
-    expect(find.text('System'), findsOneWidget);
+    expect(find.text('System'), findsNothing);
     expect(find.text('OLED'), findsOneWidget);
 
     await tester.tap(find.text('General'));

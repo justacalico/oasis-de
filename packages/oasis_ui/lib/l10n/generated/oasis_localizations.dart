@@ -600,12 +600,6 @@ abstract class OasisLocalizations {
   /// **'Toggle Bluetooth on or off.'**
   String get settingsBluetoothBody;
 
-  /// No description provided for @themeSystem.
-  ///
-  /// In en, this message translates to:
-  /// **'System'**
-  String get themeSystem;
-
   /// No description provided for @themeLight.
   ///
   /// In en, this message translates to:

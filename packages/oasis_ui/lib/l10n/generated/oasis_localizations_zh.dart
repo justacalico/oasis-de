@@ -280,9 +280,6 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get settingsBluetoothBody => '开启或关闭蓝牙。';
 
   @override
-  String get themeSystem => '跟随系统';
-
-  @override
   String get themeLight => '浅色';
 
   @override
