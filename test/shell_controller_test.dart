@@ -311,6 +311,36 @@ void main() {
     c.dispose();
   });
 
+  test('slider previews apply live, deduped per percent', () async {
+    final calls = <String>[];
+    final c = ShellController(
+      apps: const [],
+      backend: _RecordingBackend(calls),
+    );
+    c.brightnessPreview = 0.501;
+    c.brightnessPreview = 0.504;
+    c.brightnessPreview = 0.51;
+    c.volumePreview = 0.3;
+    c.volumePreview = 0.302;
+    expect(c.brightness, 0.51);
+    expect(c.volume, 0.302);
+    expect(calls, ['brightness', 'brightness', 'volume']);
+    c.brightnessValue = 0.6;
+    c.brightnessPreview = 0.602;
+    c.brightnessPreview = 0.62;
+    c.volumeValue = 0.1;
+    expect(calls, [
+      'brightness',
+      'brightness',
+      'volume',
+      'brightness',
+      'brightness',
+      'volume',
+    ]);
+    await pumpEventQueue();
+    c.dispose();
+  });
+
   test('cycleWindows selects and commits the next visible window', () {
     final c = _controller();
     c.cycleWindows();
