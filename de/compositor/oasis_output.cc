@@ -81,7 +81,20 @@ void output_apply_state(OasisOutput* o) {
   wlr_output_state_init(&st);
   wlr_output_state_set_enabled(&st, o->enabled);
   if (o->enabled && o->width > 0 && o->height > 0) {
-    wlr_output_state_set_custom_mode(&st, o->width, o->height, o->refresh);
+    wlr_output_mode* mode = nullptr;
+    for (wlr_output_mode* m : o->modes) {
+      if (m->width == o->width && m->height == o->height &&
+          std::abs(m->refresh - o->refresh) <= 1000) {
+        mode = m;
+        break;
+      }
+    }
+    if (mode != nullptr) {
+      wlr_output_state_set_mode(&st, mode);
+    } else {
+      wlr_output_state_set_custom_mode(&st, o->width, o->height,
+                                       o->refresh);
+    }
   }
   wlr_output_commit_state(o->wlr, &st);
   wlr_output_state_finish(&st);
@@ -389,11 +402,25 @@ static void output_fill(OasisOutput* o, const HostOutput& h) {
   o->primary = h.primary;
   o->x = h.x;
   o->y = h.y;
+  const HostOutputMode* preferred = nullptr;
+  for (const auto& m : h.modes) {
+    if (m.preferred) {
+      preferred = &m;
+      break;
+    }
+  }
   if (h.w > 0 && h.h > 0) {
     o->width = h.w;
     o->height = h.h;
+  } else if (preferred != nullptr) {
+    o->width = preferred->w;
+    o->height = preferred->h;
   }
-  if (h.refresh > 0) o->refresh = h.refresh;
+  if (h.refresh > 0) {
+    o->refresh = h.refresh;
+  } else if (preferred != nullptr) {
+    o->refresh = preferred->refresh;
+  }
   if (h.scale > 0) o->scale = h.scale;
   if (h.transform >= 0 && h.transform <= 7) o->transform = h.transform;
   o->phys_w = h.phys_w;
