@@ -493,6 +493,7 @@ void main() {
     expect(evdevCodeFor(PhysicalKeyboardKey.f12), 88);
     expect(evdevCodeFor(PhysicalKeyboardKey.controlLeft), 29);
     expect(evdevCodeFor(PhysicalKeyboardKey.mediaPlayPause), 164);
+    expect(evdevCodeFor(const PhysicalKeyboardKey(0x000e0026)), 30);
     for (var u = 0; u <= 0xFF; u++) {
       evdevCodeFor(PhysicalKeyboardKey(u | 0x70000));
     }

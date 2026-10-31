@@ -46,5 +46,6 @@ int? evdevCodeFor(PhysicalKeyboardKey key) {
   final page = (usage >> 16) & 0xFFFF;
   final id = usage & 0xFFFF;
   if (page == 0x0C) return _consumerToEvdev[id];
+  if (page == 0x0E) return id - 8;
   return _hidToEvdev[id];
 }

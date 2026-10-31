@@ -9,20 +9,24 @@
 #include <linux/input-event-codes.h>
 #include <poll.h>
 #include <signal.h>
+#include <sys/eventfd.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
 
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <set>
 #include <string>
@@ -996,12 +1000,166 @@ static void send_pointer(double x, double y, int64_t phase, int64_t buttons) {
   ev.y = y;
   ev.device = 0;
   ev.signal_kind = kFlutterPointerSignalKindNone;
+  ev.device_kind = kFlutterPointerDeviceKindMouse;
   ev.buttons = buttons;
   pSendPointer(engine, &ev, 1);
 }
 
 static double g_px = 0, g_py = 0;
 static int64_t g_buttons = 0;
+
+// evdev -> USB HID usage. Keyboard-page entries produce a physical of
+// 0x00070000|usage, consumer-page entries 0x000c0000|usage. Keys missing from
+// both tables fall back to a private page (0x0e) holding the xkb keycode,
+// which the Dart side decodes straight back into an evdev code.
+static const struct {
+  uint16_t ev;
+  uint16_t hid;
+} kHidKbd[] = {
+    {1, 0x29},   {2, 0x1e},   {3, 0x1f},   {4, 0x20},   {5, 0x21},
+    {6, 0x22},   {7, 0x23},   {8, 0x24},   {9, 0x25},   {10, 0x26},
+    {11, 0x27},  {12, 0x2d},  {13, 0x2e},  {14, 0x2a},  {15, 0x2b},
+    {16, 0x14},  {17, 0x1a},  {18, 0x08},  {19, 0x15},  {20, 0x17},
+    {21, 0x1c},  {22, 0x18},  {23, 0x0c},  {24, 0x12},  {25, 0x13},
+    {26, 0x2f},  {27, 0x30},  {28, 0x28},  {29, 0xe0},  {30, 0x04},
+    {31, 0x16},  {32, 0x07},  {33, 0x09},  {34, 0x0a},  {35, 0x0b},
+    {36, 0x0d},  {37, 0x0e},  {38, 0x0f},  {39, 0x33},  {40, 0x34},
+    {41, 0x35},  {42, 0xe1},  {43, 0x31},  {44, 0x1d},  {45, 0x1b},
+    {46, 0x06},  {47, 0x19},  {48, 0x05},  {49, 0x11},  {50, 0x10},
+    {51, 0x36},  {52, 0x37},  {53, 0x38},  {54, 0xe5},  {55, 0x55},
+    {56, 0xe2},  {57, 0x2c},  {58, 0x39},  {59, 0x3a},  {60, 0x3b},
+    {61, 0x3c},  {62, 0x3d},  {63, 0x3e},  {64, 0x3f},  {65, 0x40},
+    {66, 0x41},  {67, 0x42},  {68, 0x43},  {69, 0x53},  {70, 0x47},
+    {71, 0x5f},  {72, 0x60},  {73, 0x61},  {74, 0x56},  {75, 0x5c},
+    {76, 0x5d},  {77, 0x5e},  {78, 0x57},  {79, 0x59},  {80, 0x5a},
+    {81, 0x5b},  {82, 0x62},  {83, 0x63},  {86, 0x64},  {87, 0x44},
+    {88, 0x45},  {96, 0x58},  {97, 0xe4},  {98, 0x54},  {99, 0x46},
+    {100, 0xe6}, {102, 0x4a}, {103, 0x52}, {104, 0x4b}, {105, 0x50},
+    {106, 0x4f}, {107, 0x4d}, {108, 0x51}, {109, 0x4e}, {110, 0x49},
+    {111, 0x4c}, {117, 0x67}, {119, 0x48}, {127, 0x65}, {148, 0x80},
+    {149, 0x81}, {150, 0x82}, {152, 0x84}, {153, 0x83},
+    {174, 0x8c}, {181, 0x8f}, {183, 0x68}, {184, 0x69}, {185, 0x6a},
+    {186, 0x6b}, {187, 0x6c}, {188, 0x6d}, {189, 0x6e}, {190, 0x6f},
+    {191, 0x70}, {192, 0x71}, {193, 0x72}, {194, 0x73}, {208, 0x8a},
+    {224, 0x8b}, {226, 0x89},
+};
+
+static const struct {
+  uint16_t ev;
+  uint16_t hid;
+} kHidCons[] = {
+    {113, 0xe2}, {114, 0xea}, {115, 0xe9}, {116, 0x30},  {128, 0x226},
+    {140, 0x192}, {151, 0x196}, {155, 0x18a}, {156, 0x22a}, {158, 0x224},
+    {159, 0x225}, {163, 0xb5}, {164, 0xcd}, {165, 0xb6},  {166, 0xb7},
+    {172, 0x223}, {217, 0x221},
+};
+
+static uint64_t key_physical(uint32_t code) {
+  for (const auto& m : kHidKbd) {
+    if (m.ev == code) return 0x00070000 | m.hid;
+  }
+  for (const auto& m : kHidCons) {
+    if (m.ev == code) return 0x000c0000 | m.hid;
+  }
+  return 0x000e0000 | (code + 8);
+}
+
+// Maps a key's level-0 keysym to a LogicalKeyboardKey id: printable keys use
+// their Unicode value, named keys use the unprintable/modifier planes.
+static uint64_t key_logical(uint32_t code) {
+  xkb_keysym_t sym = XKB_KEY_NoSymbol;
+  if (g_input.map != nullptr) {
+    const xkb_keysym_t* syms = nullptr;
+    if (xkb_keymap_key_get_syms_by_level(g_input.map, code + 8, 0, 0,
+                                         &syms) > 0) {
+      sym = syms[0];
+    }
+  }
+  if (sym != XKB_KEY_NoSymbol) {
+    if (sym >= XKB_KEY_KP_0 && sym <= XKB_KEY_KP_9) {
+      return 0x00200000230 + (sym - XKB_KEY_KP_0);
+    }
+    if (sym >= XKB_KEY_F1 && sym <= XKB_KEY_F24) {
+      return 0x00100000801 + (sym - XKB_KEY_F1);
+    }
+    switch (sym) {
+      case XKB_KEY_BackSpace: return 0x00100000008;
+      case XKB_KEY_Tab: return 0x00100000009;
+      case XKB_KEY_Return: return 0x0010000000d;
+      case XKB_KEY_Escape: return 0x0010000001b;
+      case XKB_KEY_Delete: return 0x0010000007f;
+      case XKB_KEY_Insert: return 0x00100000407;
+      case XKB_KEY_Home: return 0x00100000306;
+      case XKB_KEY_End: return 0x00100000305;
+      case XKB_KEY_Page_Up: return 0x00100000308;
+      case XKB_KEY_Page_Down: return 0x00100000307;
+      case XKB_KEY_Left: return 0x00100000302;
+      case XKB_KEY_Up: return 0x00100000304;
+      case XKB_KEY_Right: return 0x00100000303;
+      case XKB_KEY_Down: return 0x00100000301;
+      case XKB_KEY_Caps_Lock: return 0x00100000104;
+      case XKB_KEY_Num_Lock: return 0x0010000010a;
+      case XKB_KEY_Scroll_Lock: return 0x0010000010c;
+      case XKB_KEY_ISO_Level3_Shift: return 0x00100000103;
+      case XKB_KEY_Menu: return 0x00100000505;
+      case XKB_KEY_Print: return 0x00100000608;
+      case XKB_KEY_Pause: return 0x00100000509;
+      case XKB_KEY_Shift_L: return 0x00200000102;
+      case XKB_KEY_Shift_R: return 0x00200000103;
+      case XKB_KEY_Control_L: return 0x00200000100;
+      case XKB_KEY_Control_R: return 0x00200000101;
+      case XKB_KEY_Alt_L: return 0x00200000104;
+      case XKB_KEY_Alt_R: return 0x00200000105;
+      case XKB_KEY_Meta_L:
+      case XKB_KEY_Super_L:
+      case XKB_KEY_Hyper_L: return 0x00200000106;
+      case XKB_KEY_Meta_R:
+      case XKB_KEY_Super_R:
+      case XKB_KEY_Hyper_R: return 0x00200000107;
+      case XKB_KEY_KP_Enter: return 0x0020000020d;
+      case XKB_KEY_KP_Multiply: return 0x0020000022a;
+      case XKB_KEY_KP_Add: return 0x0020000022b;
+      case XKB_KEY_KP_Separator: return 0x0020000022c;
+      case XKB_KEY_KP_Subtract: return 0x0020000022d;
+      case XKB_KEY_KP_Decimal:
+      case XKB_KEY_KP_Delete: return 0x0020000022e;
+      case XKB_KEY_KP_Divide: return 0x0020000022f;
+      case XKB_KEY_KP_Equal: return 0x0020000023d;
+      case XKB_KEY_KP_Insert: return 0x00200000230;
+      case XKB_KEY_KP_End: return 0x00200000231;
+      case XKB_KEY_KP_Down: return 0x00200000232;
+      case XKB_KEY_KP_Next: return 0x00200000233;
+      case XKB_KEY_KP_Left: return 0x00200000234;
+      case XKB_KEY_KP_Begin: return 0x00200000235;
+      case XKB_KEY_KP_Right: return 0x00200000236;
+      case XKB_KEY_KP_Home: return 0x00200000237;
+      case XKB_KEY_KP_Up: return 0x00200000238;
+      case XKB_KEY_KP_Prior: return 0x00200000239;
+      case XKB_KEY_XF86AudioLowerVolume: return 0x00100000a0f;
+      case XKB_KEY_XF86AudioRaiseVolume: return 0x00100000a10;
+      case XKB_KEY_XF86AudioMute: return 0x00100000a11;
+      case XKB_KEY_XF86AudioPlay: return 0x00100000d2f;
+      case XKB_KEY_XF86AudioPause: return 0x00100000d2e;
+      case XKB_KEY_XF86AudioPrev: return 0x00100000a09;
+      case XKB_KEY_XF86AudioNext: return 0x00100000a08;
+      case XKB_KEY_XF86AudioStop: return 0x00100000a07;
+      case XKB_KEY_XF86MonBrightnessDown: return 0x00100000601;
+      case XKB_KEY_XF86MonBrightnessUp: return 0x00100000602;
+      case XKB_KEY_XF86Sleep: return 0x00200000002;
+      case XKB_KEY_XF86WakeUp: return 0x0010000060b;
+      case XKB_KEY_XF86Back: return 0x00100000c01;
+      case XKB_KEY_XF86Forward: return 0x00100000c03;
+      case XKB_KEY_XF86Search: return 0x00100000c06;
+      case XKB_KEY_XF86HomePage: return 0x00100000c04;
+      case XKB_KEY_XF86Mail: return 0x00100000b03;
+      case XKB_KEY_XF86WWW: return 0x00100000b09;
+      default: break;
+    }
+    uint32_t cp = xkb_keysym_to_utf32(sym);
+    if (cp != 0) return cp;
+  }
+  return 0x00100000001;
+}
 
 static void input_dispatch() {
   libinput_dispatch(g_input.li);
@@ -1027,13 +1185,19 @@ static void input_dispatch() {
       if (b == BTN_LEFT) bit = kFlutterPointerButtonMousePrimary;
       else if (b == BTN_RIGHT) bit = kFlutterPointerButtonMouseSecondary;
       else if (b == BTN_MIDDLE) bit = kFlutterPointerButtonMouseMiddle;
-      if (libinput_event_pointer_get_button_state(pe) ==
-          LIBINPUT_BUTTON_STATE_PRESSED) {
-        g_buttons |= bit;
-        send_pointer(g_px, g_py, kDown, g_buttons);
-      } else {
-        send_pointer(g_px, g_py, kUp, g_buttons);
-        g_buttons &= ~bit;
+      else if (b == BTN_SIDE) bit = kFlutterPointerButtonMouseBack;
+      else if (b == BTN_EXTRA) bit = kFlutterPointerButtonMouseForward;
+      if (bit != 0) {
+        bool was_down = g_buttons != 0;
+        if (libinput_event_pointer_get_button_state(pe) ==
+            LIBINPUT_BUTTON_STATE_PRESSED) {
+          g_buttons |= bit;
+        } else {
+          g_buttons &= ~bit;
+        }
+        send_pointer(g_px, g_py,
+                     g_buttons == 0 ? kUp : was_down ? kMove : kDown,
+                     g_buttons);
       }
     } else if (type == LIBINPUT_EVENT_POINTER_SCROLL_WHEEL ||
                type == LIBINPUT_EVENT_POINTER_SCROLL_FINGER ||
@@ -1047,6 +1211,7 @@ static void input_dispatch() {
       sev.y = g_py;
       sev.device = 0;
       sev.signal_kind = kFlutterPointerSignalKindScroll;
+      sev.device_kind = kFlutterPointerDeviceKindMouse;
       sev.scroll_delta_x = libinput_event_pointer_get_scroll_value(
           pe, LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
       sev.scroll_delta_y = -libinput_event_pointer_get_scroll_value(
@@ -1066,8 +1231,8 @@ static void input_dispatch() {
       fev.struct_size = sizeof(fev);
       fev.timestamp = pGetTime();
       fev.type = down ? kFlutterKeyEventTypeDown : kFlutterKeyEventTypeUp;
-      fev.physical = code + 8;
-      fev.logical = code + 8;
+      fev.physical = key_physical(code);
+      fev.logical = key_logical(code);
       pSendKey(engine, &fev, nullptr, nullptr);
     }
     libinput_event_destroy(ev);
@@ -1076,7 +1241,34 @@ static void input_dispatch() {
 
 // ---- task runner ----------------------------------------------------------------
 
-static FlutterTask g_task = {};
+static std::mutex g_task_mu;
+static std::deque<FlutterTask> g_tasks;
+static int g_wake_fd = -1;
+
+static void post_flutter_task(FlutterTask task) {
+  {
+    std::lock_guard<std::mutex> lk(g_task_mu);
+    g_tasks.push_back(task);
+  }
+  if (g_wake_fd >= 0) {
+    const uint64_t one = 1;
+    ssize_t unused = write(g_wake_fd, &one, sizeof(one));
+    (void)unused;
+  }
+}
+
+static void run_flutter_tasks() {
+  for (;;) {
+    FlutterTask t;
+    {
+      std::lock_guard<std::mutex> lk(g_task_mu);
+      if (g_tasks.empty()) return;
+      t = g_tasks.front();
+      g_tasks.pop_front();
+    }
+    pRunTask(engine, &t);
+  }
+}
 
 int main(int argc, char** argv) {
   const char* bundle = argc > 1 ? argv[1] : "./bundle";
@@ -1129,7 +1321,7 @@ int main(int argc, char** argv) {
       [](void*) { return false; };
   task_desc.post_task_callback =
       [](FlutterTask task, uint64_t, void*) {
-        g_task = task;
+        post_flutter_task(task);
       };
   task_desc.identifier = 1;
   static FlutterCustomTaskRunners runners = {};
@@ -1142,6 +1334,9 @@ int main(int argc, char** argv) {
   args.icu_data_path = icu.c_str();
   args.platform_message_callback = platform_message_cb;
   args.custom_task_runners = &runners;
+
+  g_wake_fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+  if (g_wake_fd < 0) die("eventfd");
 
   if (pRun(FLUTTER_ENGINE_VERSION, &rc, &args, nullptr, &engine) !=
       kSuccess) {
@@ -1164,15 +1359,12 @@ int main(int argc, char** argv) {
     int nf = 0;
     fds[nf++] = {g_input.fd, POLLIN, 0};
     fds[nf++] = {g_drm.fd, POLLIN, 0};
+    fds[nf++] = {g_wake_fd, POLLIN, 0};
     if (wlfd < 0 && g_core->running()) wlfd = g_core->fd();
     if (!g_core->running()) wlfd = -1;
     if (wlfd >= 0) fds[nf++] = {wlfd, POLLIN, 0};
     int ret = poll(fds, nf, 50);
-    if (g_task.runner != 0) {
-      FlutterTask t = g_task;
-      g_task = {};
-      pRunTask(engine, &t);
-    }
+    run_flutter_tasks();
     if (++rescans >= 20) {
       rescans = 0;
       if (heads_hotplugged(g_drm)) {
@@ -1192,6 +1384,10 @@ int main(int argc, char** argv) {
         input_dispatch();
       } else if (fds[i].fd == g_drm.fd && (fds[i].revents & POLLIN)) {
         drmHandleEvent(g_drm.fd, &evctx);
+      } else if (fds[i].fd == g_wake_fd && (fds[i].revents & POLLIN)) {
+        uint64_t n;
+        ssize_t unused = read(g_wake_fd, &n, sizeof(n));
+        (void)unused;
       } else if (fds[i].fd == wlfd && (fds[i].revents & POLLIN)) {
         g_core->dispatch();
       }
