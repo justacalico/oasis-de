@@ -62,9 +62,6 @@ class _LandingAppState extends State<LandingApp> {
 
   @override
   Widget build(BuildContext context) {
-    final platformDark =
-        View.of(context).platformDispatcher.platformBrightness ==
-            Brightness.dark;
     return AnimatedBuilder(
       animation: _appearance,
       builder: (context, _) {
@@ -72,7 +69,7 @@ class _LandingAppState extends State<LandingApp> {
           debugShowCheckedModeBanner: false,
           onGenerateTitle: (context) =>
               OasisLocalizations.of(context).appName,
-          theme: _appearance.themeForBrightness(platformDark),
+          theme: _appearance.theme,
           locale: _locale,
           supportedLocales: OasisLocalizations.supportedLocales,
           localizationsDelegates: const [

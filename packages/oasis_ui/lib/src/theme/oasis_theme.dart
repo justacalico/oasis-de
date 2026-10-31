@@ -106,13 +106,13 @@ class OasisTheme {
 
   static ThemeData oled() => fromPalette(OasisPalette.oled);
 
-  static ThemeData resolve(OasisThemeMode mode, {required bool platformDark}) =>
-      fromPalette(OasisPalette.of(mode, platformDark: platformDark));
+  static ThemeData resolve(OasisThemeMode mode) =>
+      fromPalette(OasisPalette.of(mode));
 }
 
 class OasisAppearance extends ChangeNotifier {
   OasisAppearance({
-    OasisThemeMode themeMode = OasisThemeMode.system,
+    OasisThemeMode themeMode = OasisThemeMode.light,
     Color? accent,
   })  : _themeMode = themeMode,
         _accent = accent;
@@ -135,11 +135,8 @@ class OasisAppearance extends ChangeNotifier {
     notifyListeners();
   }
 
-  ThemeData themeFor(BuildContext context) => themeForBrightness(
-      MediaQuery.platformBrightnessOf(context) == Brightness.dark);
-
-  ThemeData themeForBrightness(bool platformDark) {
-    var palette = OasisPalette.of(_themeMode, platformDark: platformDark);
+  ThemeData get theme {
+    var palette = OasisPalette.of(_themeMode);
     final custom = _accent;
     if (custom != null) {
       palette = OasisPalette(

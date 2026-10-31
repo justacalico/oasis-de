@@ -125,7 +125,6 @@
   "settingsLanguage": "Language",
   "settingsWifiBody": "Toggle Wi-Fi on or off.",
   "settingsBluetoothBody": "Toggle Bluetooth on or off.",
-  "themeSystem": "System",
   "themeLight": "Light",
   "themeDark": "Dark",
   "themeOled": "OLED",

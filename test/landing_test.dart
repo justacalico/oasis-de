@@ -208,9 +208,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(OasisPopupMenuButton<OasisThemeMode>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Light').last);
+    await tester.tap(find.text('Dark').last);
     await tester.pumpAndSettle();
-    expect(modes, contains(OasisThemeMode.light));
+    expect(modes, contains(OasisThemeMode.dark));
   });
 
   testWidgets('landing narrow showcase column', (tester) async {

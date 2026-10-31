@@ -287,9 +287,6 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get settingsBluetoothBody => 'Включение и отключение Bluetooth.';
 
   @override
-  String get themeSystem => 'Как в системе';
-
-  @override
   String get themeLight => 'Светлая';
 
   @override

@@ -270,8 +270,6 @@ class _ThemeMenu extends StatelessWidget {
     final l10n = OasisLocalizations.of(context);
     final p = OasisStyle.of(context).palette;
     final entries = [
-      (OasisThemeMode.system, l10n.themeSystem,
-          Icons.brightness_auto),
       (OasisThemeMode.light, l10n.themeLight, Icons.light_mode),
       (OasisThemeMode.dark, l10n.themeDark, Icons.dark_mode),
       (OasisThemeMode.oled, l10n.themeOled, Icons.contrast),

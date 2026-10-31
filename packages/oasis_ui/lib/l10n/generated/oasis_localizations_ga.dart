@@ -289,9 +289,6 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get settingsBluetoothBody => 'Cas Bluetooth air nó as.';
 
   @override
-  String get themeSystem => 'Córas';
-
-  @override
   String get themeLight => 'Solas';
 
   @override
