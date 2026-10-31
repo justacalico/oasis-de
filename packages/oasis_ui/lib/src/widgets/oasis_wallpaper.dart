@@ -22,30 +22,12 @@ class OasisWallpaper extends StatelessWidget {
   }
 
   Widget _build(BuildContext context, OasisWallpaperService? s) {
-    final p = OasisStyle.of(context).palette;
     final path = s?.imagePath;
-    OasisWallpaperPreset? preset;
-    if (s != null) {
-      for (final e in oasisWallpaperPresets) {
-        if (e.id == s.preset) preset = e;
-      }
-    }
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        CustomPaint(
-          painter: OasisDunesPainter(
-            skyTop: preset?.top ?? p.desktopGradientStart,
-            skyBottom: preset?.mid ?? p.desktopGradientMid,
-            duneFar: preset?.bottom ?? p.desktopGradientEnd,
-            duneNear: p.isDark
-                ? p.desktopGradientEnd.withValues(alpha: 0.55)
-                : p.desktopGradientEnd.withValues(alpha: 0.85),
-            night: p.isDark,
-          ),
-          child: const SizedBox.expand(),
-        ),
-        if (!kIsWeb && path != null)
+    if (!kIsWeb && path != null) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          const ColoredBox(color: Color(0xFF000000)),
           Image.file(
             File(path),
             fit: s?.fit ?? BoxFit.cover,
@@ -53,7 +35,27 @@ class OasisWallpaper extends StatelessWidget {
             errorBuilder: (context, error, stackTrace) =>
                 const SizedBox.shrink(),
           ),
-      ],
+        ],
+      );
+    }
+    final p = OasisStyle.of(context).palette;
+    OasisWallpaperPreset? preset;
+    if (s != null) {
+      for (final e in oasisWallpaperPresets) {
+        if (e.id == s.preset) preset = e;
+      }
+    }
+    return CustomPaint(
+      painter: OasisDunesPainter(
+        skyTop: preset?.top ?? p.desktopGradientStart,
+        skyBottom: preset?.mid ?? p.desktopGradientMid,
+        duneFar: preset?.bottom ?? p.desktopGradientEnd,
+        duneNear: p.isDark
+            ? p.desktopGradientEnd.withValues(alpha: 0.55)
+            : p.desktopGradientEnd.withValues(alpha: 0.85),
+        night: p.isDark,
+      ),
+      child: const SizedBox.expand(),
     );
   }
 

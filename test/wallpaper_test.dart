@@ -125,6 +125,12 @@ void main() {
     s.imagePath = file.path;
     await tester.pump();
     expect(find.byType(Image), findsOneWidget);
+    expect(
+      find.descendant(
+          of: find.byType(OasisWallpaper),
+          matching: find.byType(CustomPaint)),
+      findsNothing,
+    );
 
     await tester.runAsync(() async {
       s.imagePath = '/definitely/missing.png';
@@ -133,6 +139,12 @@ void main() {
       await tester.pump();
     });
     expect(find.byType(OasisWallpaper), findsOneWidget);
+    expect(
+      find.descendant(
+          of: find.byType(OasisWallpaper),
+          matching: find.byType(CustomPaint)),
+      findsNothing,
+    );
   });
 
   testWidgets('wallpaper pane applies custom image, fit and reset',
