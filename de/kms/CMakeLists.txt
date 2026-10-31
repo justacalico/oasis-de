@@ -12,7 +12,7 @@ pkg_check_modules(KMS REQUIRED IMPORTED_TARGET
   wayland-server
   pixman-1
 )
-pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET wlroots-0.19)
+pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET wlroots-0.20)
 
 set(COMPOSITOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../compositor")
 

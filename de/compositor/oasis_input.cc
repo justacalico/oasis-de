@@ -4,19 +4,10 @@
 
 #include <wayland-server.h>
 
-extern "C" {
-#include <wlr/types/wlr_compositor.h>
-#include <wlr/interfaces/wlr_keyboard.h>
-#include <wlr/types/wlr_keyboard.h>
-#include <wlr/types/wlr_seat.h>
-}
 #include <pthread.h>
 #include <unistd.h>
-#define class class_
-extern "C" {
-#include <wlr/xwayland/xwayland.h>
-}
-#undef class
+
+#include "oasis_wlr.h"
 
 _Pragma("GCC diagnostic ignored \"-Winvalid-offsetof\"")
 
