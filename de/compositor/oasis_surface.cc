@@ -149,6 +149,8 @@ void free_surface(Surface* s) {
     delete k;
   }
   s->ks_inhibitors.clear();
+  if (s->rb_tex != nullptr) wlr_texture_destroy(s->rb_tex);
+  if (s->readback != nullptr) wlr_buffer_drop(s->readback);
   drop_texture(s);
   c->by_id.erase(s->public_id);
   if (s->wlr != nullptr) c->by_wlr.erase(s->wlr);
@@ -297,6 +299,89 @@ static void ensure_texture(Surface* s, int kind) {
   }
 }
 
+static bool img_ensure(Surface* s, int w, int h) {
+  if (s->iw == w && s->ih == h && s->img != nullptr) return true;
+  s->img.reset(new (std::nothrow) uint8_t[(size_t)w * h * 4]);
+  if (s->img == nullptr) {
+    s->iw = s->ih = 0;
+    return false;
+  }
+  s->iw = w;
+  s->ih = h;
+  return true;
+}
+
+// Preferred readback formats come back BGR-ordered; swap to RGBA in place.
+static bool texture_read_rgba(wlr_texture* tex, uint8_t* px, int w, int h) {
+  wlr_texture_read_pixels_options opts = {};
+  opts.data = px;
+  opts.format = wlr_texture_preferred_read_format(tex);
+  opts.stride = (uint32_t)w * 4;
+  if (!wlr_texture_read_pixels(tex, &opts)) return false;
+  for (size_t i = 0; i < (size_t)w * h; i++) {
+    uint8_t t = px[i * 4];
+    px[i * 4] = px[i * 4 + 2];
+    px[i * 4 + 2] = t;
+  }
+  return true;
+}
+
+static void push_img(Surface* s) {
+  if (s->texture_id >= 0 && s->img != nullptr) {
+    s->comp->host->pushPixels(s->texture_id, s->img.get(), s->iw, s->ih);
+  }
+}
+
+// Some client buffers can't be imported by the host GL display. Render them
+// through the compositor's own renderer into an allocated buffer and read
+// the pixels back instead.
+static bool readback_dmabuf(Surface* s, wlr_buffer* buf) {
+  OasisPrivate* c = s->comp;
+  int w = buf->width, h = buf->height;
+  if (c->renderer == nullptr || c->allocator == nullptr || w <= 0 || h <= 0 ||
+      w > 16384 || h > 16384) {
+    return false;
+  }
+  if (s->readback == nullptr || s->rb_w != w || s->rb_h != h) {
+    if (s->rb_tex != nullptr) {
+      wlr_texture_destroy(s->rb_tex);
+      s->rb_tex = nullptr;
+    }
+    if (s->readback != nullptr) {
+      wlr_buffer_drop(s->readback);
+      s->readback = nullptr;
+    }
+    wlr_drm_format fmt = {};
+    fmt.format = DRM_FORMAT_ARGB8888;
+    s->readback = wlr_allocator_create_buffer(c->allocator, w, h, &fmt);
+    s->rb_w = w;
+    s->rb_h = h;
+    if (s->readback != nullptr) {
+      s->rb_tex = wlr_texture_from_buffer(c->renderer, s->readback);
+    }
+  }
+  wlr_texture* src = wlr_texture_from_buffer(c->renderer, buf);
+  if (src == nullptr || s->readback == nullptr || s->rb_tex == nullptr) {
+    if (src != nullptr) wlr_texture_destroy(src);
+    return false;
+  }
+  bool ok = false;
+  wlr_render_pass* pass =
+      wlr_renderer_begin_buffer_pass(c->renderer, s->readback, nullptr);
+  if (pass != nullptr) {
+    wlr_render_texture_options opts = {};
+    opts.texture = src;
+    opts.dst_box = wlr_box{0, 0, w, h};
+    wlr_render_pass_add_texture(pass, &opts);
+    if (wlr_render_pass_submit(pass)) {
+      ok = img_ensure(s, w, h) &&
+           texture_read_rgba(s->rb_tex, s->img.get(), w, h);
+    }
+  }
+  wlr_texture_destroy(src);
+  return ok;
+}
+
 static void export_buffer(Surface* s) {
   wlr_surface* wlr = s->wlr;
   wlr_buffer* buf = wlr != nullptr ? wlr->current.buffer : nullptr;
@@ -309,56 +394,44 @@ static void export_buffer(Surface* s) {
   if (cb != nullptr && cb->texture != nullptr) {
     ensure_texture(s, 1);
     int w = buf->width, h = buf->height;
-    if (w > 0 && h > 0 && w <= 16384 && h <= 16384) {
-      if (s->iw != w || s->ih != h || s->img == nullptr) {
-        s->img.reset(new (std::nothrow) uint8_t[(size_t)w * h * 4]);
-        s->iw = w;
-        s->ih = h;
-      }
-      if (s->img != nullptr) {
-        wlr_texture_read_pixels_options opts = {};
-        opts.data = s->img.get();
-        opts.format = wlr_texture_preferred_read_format(cb->texture);
-        opts.stride = (uint32_t)w * 4;
-        wlr_texture_read_pixels(cb->texture, &opts);
-        uint8_t* px = s->img.get();
-        for (size_t i = 0; i < (size_t)w * h; i++) {
-          uint8_t b = px[i * 4 + 0];
-          uint8_t g = px[i * 4 + 1];
-          uint8_t r = px[i * 4 + 2];
-          uint8_t a = px[i * 4 + 3];
-          px[i * 4 + 0] = r;
-          px[i * 4 + 1] = g;
-          px[i * 4 + 2] = b;
-          px[i * 4 + 3] = a;
-        }
-        if (s->texture_id >= 0) {
-          s->comp->host->pushPixels(s->texture_id, s->img.get(), w, h);
-        }
-      }
+    if (w > 0 && h > 0 && w <= 16384 && h <= 16384 &&
+        img_ensure(s, w, h) &&
+        texture_read_rgba(cb->texture, s->img.get(), w, h)) {
+      push_img(s);
     }
     return;
   }
   wlr_dmabuf_attributes attrs;
   if (wlr_buffer_get_dmabuf(buf, &attrs)) {
-    ensure_texture(s, 2);
-    DmabufInfo info;
-    info.w = attrs.width;
-    info.h = attrs.height;
-    info.format = attrs.format;
-    info.nplanes = attrs.n_planes;
-    for (int i = 0; i < attrs.n_planes && i < 4; i++) {
-      info.fds[i] = fcntl(attrs.fd[i], F_DUPFD_CLOEXEC, 0);
-      info.offsets[i] = attrs.offset[i];
-      info.strides[i] = attrs.stride[i];
-      info.mods[i] = attrs.modifier;
+    if (!s->dmabuf_broken && s->tex_kind == 2 && s->texture_id >= 0 &&
+        s->comp->host->dmabufImportFailed(s->texture_id)) {
+      // The host GL display can't present this dmabuf; stop retrying the
+      // import every frame and read the buffer back on the CPU instead.
+      s->dmabuf_broken = true;
     }
-    s->iw = info.w;
-    s->ih = info.h;
-    if (s->texture_id >= 0) {
-      s->comp->host->pushDmabuf(s->texture_id, info);
+    if (!s->dmabuf_broken) {
+      ensure_texture(s, 2);
+      DmabufInfo info;
+      info.w = attrs.width;
+      info.h = attrs.height;
+      info.format = attrs.format;
+      info.nplanes = attrs.n_planes;
+      for (int i = 0; i < attrs.n_planes && i < 4; i++) {
+        info.fds[i] = fcntl(attrs.fd[i], F_DUPFD_CLOEXEC, 0);
+        info.offsets[i] = attrs.offset[i];
+        info.strides[i] = attrs.stride[i];
+        info.mods[i] = attrs.modifier;
+      }
+      s->iw = info.w;
+      s->ih = info.h;
+      if (s->texture_id >= 0) {
+        s->comp->host->pushDmabuf(s->texture_id, info);
+      }
+      info.close_fds();
+    } else {
+      ensure_texture(s, 1);
+      if (readback_dmabuf(s, buf)) push_img(s);
     }
-    info.close_fds();
     wlr_dmabuf_attributes_finish(&attrs);
     return;
   }
@@ -378,15 +451,9 @@ static void export_buffer(Surface* s) {
     return;
   }
   ensure_texture(s, 1);
-  if (s->iw != w || s->ih != h || s->img == nullptr) {
-    s->img.reset(new (std::nothrow) uint8_t[(size_t)w * h * 4]);
-    if (s->img == nullptr) {
-      wlr_buffer_end_data_ptr_access(buf);
-      s->iw = s->ih = 0;
-      return;
-    }
-    s->iw = w;
-    s->ih = h;
+  if (!img_ensure(s, w, h)) {
+    wlr_buffer_end_data_ptr_access(buf);
+    return;
   }
   const uint8_t* src = static_cast<const uint8_t*>(data);
   for (int y = 0; y < h; y++) {
@@ -403,9 +470,7 @@ static void export_buffer(Surface* s) {
     }
   }
   wlr_buffer_end_data_ptr_access(buf);
-  if (s->texture_id >= 0) {
-    s->comp->host->pushPixels(s->texture_id, s->img.get(), w, h);
-  }
+  push_img(s);
 }
 
 void send_frame_done(Surface* s) {

@@ -80,6 +80,7 @@ class OasisHost {
   virtual int64_t createTexture(bool dmabuf) = 0;
   virtual void pushPixels(int64_t id, const uint8_t* rgba, int w, int h) = 0;
   virtual void pushDmabuf(int64_t id, const DmabufInfo& buf) = 0;
+  virtual bool dmabufImportFailed(int64_t id) { return false; }
   virtual void frameAvailable(int64_t id) = 0;
   virtual void destroyTexture(int64_t id) = 0;
   virtual std::vector<HostOutput> outputs() = 0;

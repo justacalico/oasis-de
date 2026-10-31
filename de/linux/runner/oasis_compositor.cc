@@ -103,6 +103,13 @@ class GtkHost : public OasisHost {
     oasis_gl_texture_set_dmabuf(OASIS_GL_TEXTURE(it->second), buf);
   }
 
+  bool dmabufImportFailed(int64_t id) override {
+    auto it = c_->textures.find(id);
+    if (it == c_->textures.end()) return false;
+    return oasis_gl_texture_import_failed(OASIS_GL_TEXTURE(it->second)) ==
+           TRUE;
+  }
+
   void frameAvailable(int64_t id) override {
     auto it = c_->textures.find(id);
     if (it == c_->textures.end()) return;

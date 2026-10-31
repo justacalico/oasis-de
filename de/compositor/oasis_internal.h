@@ -44,6 +44,7 @@ struct wlr_primary_selection_v1_device_manager;
 struct wlr_keyboard;
 struct wlr_data_source;
 struct wlr_buffer;
+struct wlr_texture;
 struct wlr_subsurface;
 struct wlr_layer_shell_v1;
 struct wlr_layer_surface_v1;
@@ -163,6 +164,10 @@ struct Surface {
 
   int tex_kind = 0;
   int64_t texture_id = -1;
+  bool dmabuf_broken = false;
+  wlr_buffer* readback = nullptr;
+  wlr_texture* rb_tex = nullptr;
+  int rb_w = 0, rb_h = 0;
   std::unique_ptr<uint8_t[]> img;
   int iw = 0, ih = 0;
 

@@ -108,6 +108,7 @@ struct _OasisGLTexture {
   DmabufInfo dmabuf;
   bool has_dmabuf = false;
   bool dirty = true;
+  bool failed = false;
   EGLImage image = EGL_NO_IMAGE;
   EGLDisplay img_dpy = EGL_NO_DISPLAY;
   GLuint gl_name = 0;
@@ -193,6 +194,7 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
     self->dirty = false;
     if (self->image == EGL_NO_IMAGE) {
       if (eglGetError() == EGL_CONTEXT_LOST) self->gl_name = 0;
+      self->failed = true;
       g_mutex_unlock(&self->mutex);
       g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
                   "dmabuf import failed");
@@ -205,6 +207,7 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
         eglGetProcAddress("glEGLImageTargetTexture2DOES"));
   }
   if (image_target == nullptr) {
+    self->failed = true;
     g_mutex_unlock(&self->mutex);
     g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
                 "glEGLImageTargetTexture2DOES unavailable");
@@ -228,6 +231,13 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
   *height = self->h;
   g_mutex_unlock(&self->mutex);
   return TRUE;
+}
+
+gboolean oasis_gl_texture_import_failed(OasisGLTexture* self) {
+  g_mutex_lock(&self->mutex);
+  gboolean failed = self->failed;
+  g_mutex_unlock(&self->mutex);
+  return failed;
 }
 
 void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, const DmabufInfo& db) {
