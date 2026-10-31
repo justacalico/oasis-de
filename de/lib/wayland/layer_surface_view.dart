@@ -177,8 +177,12 @@ class _LayerSurfaceViewState extends State<LayerSurfaceView> {
       focusNode: _keys,
       autofocus: widget.surface.layerKeyboard == 1,
       canRequestFocus: _interactive,
-      onKeyEvent: (node, event) =>
-          waylandKeyEvent(widget.service, _pressed, event),
+      onKeyEvent: (node, event) => waylandKeyEvent(
+        widget.service,
+        _pressed,
+        event,
+        inhibited: widget.surface.shortcutsInhibited,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final box = constraints.biggest;
@@ -252,8 +256,12 @@ class _LockSurfaceViewState extends State<LockSurfaceView> {
     return Focus(
       focusNode: _keys,
       autofocus: true,
-      onKeyEvent: (node, event) =>
-          waylandKeyEvent(widget.service, _pressed, event),
+      onKeyEvent: (node, event) => waylandKeyEvent(
+        widget.service,
+        _pressed,
+        event,
+        inhibited: widget.surface.shortcutsInhibited,
+      ),
       child: _ClientSurfaceGesture(
         surface: widget.surface,
         service: widget.service,

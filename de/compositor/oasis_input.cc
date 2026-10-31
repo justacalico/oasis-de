@@ -15,9 +15,81 @@ _Pragma("GCC diagnostic ignored \"-Winvalid-offsetof\"")
 
 namespace oasis {
 
+void constraint_drop(OasisPrivate* c) {
+  if (c->constraint == nullptr) return;
+  Surface* s = surface_of(c, c->constraint->surface);
+  bool locked = c->constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED;
+  wl_list_remove(&c->constraint_destroy.link);
+  wl_list_init(&c->constraint_destroy.link);
+  wlr_pointer_constraint_v1_send_deactivated(c->constraint);
+  c->constraint = nullptr;
+  if (locked && s != nullptr && s->announced) {
+    OEvent m;
+    m["on"] = false;
+    emit_id(s, "pointerLock", std::move(m));
+  }
+}
+
+void constraint_activate(OasisPrivate* c, Surface* s, double sx, double sy) {
+  if (c->constraints_mgr == nullptr || s == nullptr || s->wlr == nullptr) {
+    return;
+  }
+  auto* con = wlr_pointer_constraints_v1_constraint_for_surface(
+      c->constraints_mgr, s->wlr, c->seat);
+  if (con == c->constraint) return;
+  constraint_drop(c);
+  if (con == nullptr) return;
+  c->constraint = con;
+  c->constraint_destroy.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, constraint_destroy);
+    auto* con = static_cast<wlr_pointer_constraint_v1*>(data);
+    Surface* s = surface_of(c, con->surface);
+    if (con->type == WLR_POINTER_CONSTRAINT_V1_LOCKED && s != nullptr &&
+        s->announced) {
+      OEvent m;
+      m["on"] = false;
+      emit_id(s, "pointerLock", std::move(m));
+    }
+    c->constraint = nullptr;
+    wl_list_remove(&listener->link);
+    wl_list_init(&listener->link);
+  };
+  wl_signal_add(&con->events.destroy, &c->constraint_destroy);
+  wlr_pointer_constraint_v1_send_activated(con);
+  if (con->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
+    c->lock_sx = sx;
+    c->lock_sy = sy;
+    if (s->announced) {
+      OEvent m;
+      m["on"] = true;
+      emit_id(s, "pointerLock", std::move(m));
+    }
+  }
+}
+
+void ksi_sync(Surface* s) {
+  bool focused = s->comp->kb_focus == s;
+  for (KsInhibitor* k : s->ks_inhibitors) {
+    if (focused == k->inh->active) continue;
+    if (focused) {
+      wlr_keyboard_shortcuts_inhibitor_v1_activate(k->inh);
+    } else {
+      wlr_keyboard_shortcuts_inhibitor_v1_deactivate(k->inh);
+    }
+    if (s->announced) {
+      OEvent m;
+      m["on"] = focused;
+      emit_id(s, "shortcutsInhibit", std::move(m));
+    }
+  }
+}
+
 void seat_focus(OasisPrivate* c, Surface* s) {
   if (c->kb_focus == s) return;
+  Surface* old = c->kb_focus;
   c->kb_focus = s;
+  if (old != nullptr) ksi_sync(old);
+  if (s != nullptr) ksi_sync(s);
   if (s == nullptr || s->wlr == nullptr) {
     wlr_seat_keyboard_notify_clear_focus(c->seat);
     sync_text_input_focus(c);
@@ -41,16 +113,53 @@ void OasisCore::pointerMotion(int64_t id, double x, double y) {
   idle_activity(p);
   Surface* s = surface_by_id(p, id);
   if (s == nullptr || s->wlr == nullptr) return;
+  if (p->constraint != nullptr && s->wlr != p->constraint->surface) {
+    s = surface_of(p, p->constraint->surface);
+    if (s == nullptr || s->wlr == nullptr) {
+      constraint_drop(p);
+      return;
+    }
+  }
+  double dx = 0, dy = 0;
+  if (p->ptr_in_id == id) {
+    dx = x - p->ptr_in_x;
+    dy = y - p->ptr_in_y;
+  }
+  p->ptr_in_id = id;
+  p->ptr_in_x = x;
+  p->ptr_in_y = y;
+  if (p->constraint == nullptr) constraint_activate(p, s, x, y);
   if (p->ptr_focus != s) {
     p->ptr_focus = s;
     wlr_seat_pointer_notify_enter(p->seat, s->wlr, x, y);
   }
-  wlr_seat_pointer_notify_motion(p->seat, now_ms(), x, y);
+  if ((dx != 0 || dy != 0) && p->rel_ptr_mgr != nullptr) {
+    wlr_relative_pointer_manager_v1_send_relative_motion(
+        p->rel_ptr_mgr, p->seat, (uint64_t)now_ms() * 1000, dx, dy, dx, dy);
+  }
+  if (p->constraint != nullptr &&
+      p->constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
+    wlr_seat_pointer_notify_motion(p->seat, now_ms(), p->lock_sx,
+                                   p->lock_sy);
+  } else {
+    if (p->constraint != nullptr) {
+      auto* b = pixman_region32_extents(&p->constraint->region);
+      if (b->x2 > b->x1 && b->y2 > b->y1) {
+        if (x < b->x1) x = b->x1;
+        if (x > b->x2 - 1) x = b->x2 - 1;
+        if (y < b->y1) y = b->y1;
+        if (y > b->y2 - 1) y = b->y2 - 1;
+      }
+    }
+    wlr_seat_pointer_notify_motion(p->seat, now_ms(), x, y);
+  }
   wlr_seat_pointer_notify_frame(p->seat);
   comp_flush(p);
 }
 
 void OasisCore::pointerExit() {
+  p->ptr_in_id = -1;
+  if (p->constraint != nullptr) return;
   wlr_seat_pointer_notify_clear_focus(p->seat);
   p->ptr_focus = nullptr;
   if (p->cursor_surface != nullptr) {

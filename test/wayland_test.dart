@@ -240,6 +240,25 @@ void main() {
     service.dispose();
   });
 
+  test('service tracks shortcut inhibit and pointer lock', () async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    addTearDown(service.dispose);
+    await service.start();
+    host.emit({'event': 'toplevel', 'id': 1});
+    host.emit({'event': 'shortcutsInhibit', 'id': 1, 'on': true});
+    host.emit({'event': 'shortcutsInhibit', 'id': 9, 'on': true});
+    host.emit({'event': 'pointerLock', 'id': 1, 'on': true});
+    await pumpEventQueue();
+    expect(service.surfaces[1]!.shortcutsInhibited, isTrue);
+    expect(service.pointerLocked, isTrue);
+    host.emit({'event': 'shortcutsInhibit', 'id': 1, 'on': false});
+    host.emit({'event': 'pointerLock', 'id': 1, 'on': false});
+    await pumpEventQueue();
+    expect(service.surfaces[1]!.shortcutsInhibited, isFalse);
+    expect(service.pointerLocked, isFalse);
+  });
+
   test('service adopts pending subsurfaces and stops', () async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
@@ -950,6 +969,36 @@ void surfaceViewCoverage() {
     other.requestFocus();
     await tester.pump();
     expect(host.calls, contains('key:29:false'));
+  });
+
+  testWidgets('inhibited surface forwards shell chords', (tester) async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    addTearDown(service.dispose);
+    await service.start();
+    final surface = WaylandSurface(id: 1);
+    service.surfaces[1] = surface;
+    await pumpOasis(
+      tester,
+      WaylandSurfaceView(
+        surface: surface,
+        service: service,
+        focused: true,
+        maximized: false,
+      ),
+      size: const Size(400, 300),
+    );
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+    expect(host.calls, isNot(contains('key:15:true')));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+    surface.shortcutsInhibited = true;
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    expect(host.calls, contains('key:56:true'));
+    expect(host.calls, contains('key:15:true'));
+    expect(host.calls, contains('key:15:false'));
   });
 
   testWidgets('surface view handles cancel and trackpad gestures',

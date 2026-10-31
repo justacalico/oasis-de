@@ -54,6 +54,11 @@ struct wlr_idle_notifier_v1;
 struct wlr_ext_output_image_capture_source_manager_v1;
 struct wlr_ext_image_copy_capture_manager_v1;
 struct wlr_output_power_manager_v1;
+struct wlr_pointer_constraints_v1;
+struct wlr_pointer_constraint_v1;
+struct wlr_relative_pointer_manager_v1;
+struct wlr_keyboard_shortcuts_inhibit_manager_v1;
+struct wlr_keyboard_shortcuts_inhibitor_v1;
 
 namespace oasis {
 
@@ -70,6 +75,12 @@ enum Role {
 struct Inhibitor {
   wl_listener destroy = {};
   wlr_idle_inhibitor_v1* inh = nullptr;
+  struct Surface* surface = nullptr;
+};
+
+struct KsInhibitor {
+  wl_listener destroy = {};
+  wlr_keyboard_shortcuts_inhibitor_v1* inh = nullptr;
   struct Surface* surface = nullptr;
 };
 
@@ -139,6 +150,7 @@ struct Surface {
   bool input_reported = false;
   bool reported_inhibit = false;
   std::vector<Inhibitor*> inhibitors;
+  std::vector<KsInhibitor*> ks_inhibitors;
 
   int rep_w = 0, rep_h = -1, rep_bw = -1, rep_bh = -1;
   int rep_gx = 0, rep_gy = 0;
@@ -214,6 +226,13 @@ struct OasisPrivate {
       nullptr;
   wlr_ext_image_copy_capture_manager_v1* copy_capture_mgr = nullptr;
   wlr_output_power_manager_v1* power_mgr = nullptr;
+  wlr_pointer_constraints_v1* constraints_mgr = nullptr;
+  wlr_relative_pointer_manager_v1* rel_ptr_mgr = nullptr;
+  wlr_keyboard_shortcuts_inhibit_manager_v1* ksi_mgr = nullptr;
+  wlr_pointer_constraint_v1* constraint = nullptr;
+  double lock_sx = 0, lock_sy = 0;
+  double ptr_in_x = 0, ptr_in_y = 0;
+  int64_t ptr_in_id = -1;
 
   wlr_keyboard* vkb = nullptr;
   xkb_context* xkb_ctx = nullptr;
@@ -241,6 +260,9 @@ struct OasisPrivate {
   wl_listener lock_unlock = {};
   wl_listener lock_destroy = {};
   wl_listener power_set_mode = {};
+  wl_listener new_constraint = {};
+  wl_listener constraint_destroy = {};
+  wl_listener new_ksi = {};
   wl_listener output_needs_frame = {};
   wl_listener kb_key = {};
   wl_listener kb_mods = {};
@@ -286,6 +308,9 @@ void announce_toplevel(Surface* s);
 void send_frame_done(Surface* s);
 void sync_text_input_focus(OasisPrivate* c);
 void seat_focus(OasisPrivate* c, Surface* s);
+void constraint_activate(OasisPrivate* c, Surface* s, double sx, double sy);
+void constraint_drop(OasisPrivate* c);
+void ksi_sync(Surface* s);
 void toplevel_configure(Surface* s, int w, int h, bool maximized, bool active,
                         bool fullscreen, bool resizing);
 void popup_position(Surface* s, int* x, int* y);

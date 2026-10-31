@@ -144,6 +144,11 @@ void free_surface(Surface* s) {
     delete inh;
   }
   s->inhibitors.clear();
+  for (KsInhibitor* k : s->ks_inhibitors) {
+    wl_list_remove(&k->destroy.link);
+    delete k;
+  }
+  s->ks_inhibitors.clear();
   drop_texture(s);
   c->by_id.erase(s->public_id);
   if (s->wlr != nullptr) c->by_wlr.erase(s->wlr);
@@ -439,6 +444,14 @@ void announce_toplevel(Surface* s) {
     OEvent im;
     im["on"] = true;
     emit_id(s, "idleInhibit", std::move(im));
+  }
+  for (KsInhibitor* k : s->ks_inhibitors) {
+    if (k->inh->active) {
+      OEvent im;
+      im["on"] = true;
+      emit_id(s, "shortcutsInhibit", std::move(im));
+      break;
+    }
   }
 }
 

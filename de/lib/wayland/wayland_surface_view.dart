@@ -73,6 +73,7 @@ KeyEventResult waylandKeyEvent(
   Set<int> pressed,
   KeyEvent event, {
   bool escReserved = false,
+  bool inhibited = false,
 }) {
   final hw = HardwareKeyboard.instance;
   final shellChord = switch (event.logicalKey) {
@@ -83,7 +84,7 @@ KeyEventResult waylandKeyEvent(
     LogicalKeyboardKey.escape => escReserved,
     _ => false,
   };
-  if (shellChord) return KeyEventResult.ignored;
+  if (shellChord && !inhibited) return KeyEventResult.ignored;
   final code = evdevCodeFor(event.physicalKey);
   if (code == null) return KeyEventResult.ignored;
   if (event is KeyUpEvent) {
@@ -307,6 +308,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
         _pressed,
         event,
         escReserved: widget.escReserved,
+        inhibited: surface.shortcutsInhibited,
       );
 
   @override
