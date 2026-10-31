@@ -16,7 +16,9 @@ abstract class WaylandHost {
     bool fullscreen = false,
     bool resizing = false,
   });
+  Future<void> configureLayer(int id, int width, int height);
   Future<void> close(int id);
+  Future<void> sessionUnlock();
   Future<void> focus(int? id);
   Future<void> pointerMotion(int id, double x, double y);
   Future<void> pointerExit(int id);
@@ -76,7 +78,18 @@ class ChannelWaylandHost extends WaylandHost {
   });
 
   @override
+  Future<void> configureLayer(int id, int width, int height) =>
+      _methods.invokeMethod('configureLayer', {
+        'id': id,
+        'w': width,
+        'h': height,
+      });
+
+  @override
   Future<void> close(int id) => _methods.invokeMethod('close', {'id': id});
+
+  @override
+  Future<void> sessionUnlock() => _methods.invokeMethod('sessionUnlock');
 
   @override
   Future<void> focus(int? id) =>

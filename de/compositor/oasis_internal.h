@@ -45,10 +45,27 @@ struct wlr_keyboard;
 struct wlr_data_source;
 struct wlr_buffer;
 struct wlr_subsurface;
+struct wlr_layer_shell_v1;
+struct wlr_layer_surface_v1;
+struct wlr_session_lock_manager_v1;
+struct wlr_session_lock_v1;
+struct wlr_session_lock_surface_v1;
+struct wlr_idle_notifier_v1;
+struct wlr_ext_output_image_capture_source_manager_v1;
+struct wlr_ext_image_copy_capture_manager_v1;
+struct wlr_output_power_manager_v1;
 
 namespace oasis {
 
-enum Role { ROLE_NONE, ROLE_TOPLEVEL, ROLE_POPUP, ROLE_SUBSURFACE, ROLE_CURSOR };
+enum Role {
+  ROLE_NONE,
+  ROLE_TOPLEVEL,
+  ROLE_POPUP,
+  ROLE_SUBSURFACE,
+  ROLE_CURSOR,
+  ROLE_LAYER,
+  ROLE_LOCK,
+};
 
 struct Inhibitor {
   wl_listener destroy = {};
@@ -65,6 +82,8 @@ struct Surface {
 
   wlr_xdg_surface* xdg = nullptr;
   wlr_xwayland_surface* xsurface = nullptr;
+  wlr_layer_surface_v1* layer = nullptr;
+  wlr_session_lock_surface_v1* lock_surface = nullptr;
   Surface* parent = nullptr;
   Surface* tl_parent = nullptr;
 
@@ -103,6 +122,9 @@ struct Surface {
   wl_listener xs_request_maximize = {};
   wl_listener xs_request_fullscreen = {};
   wl_listener xs_request_close = {};
+  wl_listener layer_destroy = {};
+  wl_listener layer_new_popup = {};
+  wl_listener lock_surf_destroy = {};
 
   int tex_kind = 0;
   int64_t texture_id = -1;
@@ -125,6 +147,10 @@ struct Surface {
   int rep_scale = 0, rep_transform = -1;
 
   int rep_min_w = -1, rep_min_h = -1, rep_max_w = -1, rep_max_h = -1;
+  int rep_anchor = -1, rep_exclusive = -1, rep_edge = -1, rep_kb = -1;
+  int rep_layer = -1, rep_mt = -1, rep_mr = -1, rep_mb = -1, rep_ml = -1;
+  int rep_dw = -1, rep_dh = -1;
+  std::string rep_ns;
   bool cfg_sent = false;
   wlr_xdg_toplevel_decoration_v1* deco = nullptr;
   wl_listener deco_destroy = {};
@@ -180,6 +206,14 @@ struct OasisPrivate {
   wlr_linux_dmabuf_v1* dmabuf_v1 = nullptr;
   wlr_data_device_manager* data_device_mgr = nullptr;
   wlr_primary_selection_v1_device_manager* primary_mgr = nullptr;
+  wlr_layer_shell_v1* layer_shell = nullptr;
+  wlr_session_lock_manager_v1* lock_mgr = nullptr;
+  wlr_session_lock_v1* lock = nullptr;
+  wlr_idle_notifier_v1* idle_notifier = nullptr;
+  wlr_ext_output_image_capture_source_manager_v1* capture_src_mgr =
+      nullptr;
+  wlr_ext_image_copy_capture_manager_v1* copy_capture_mgr = nullptr;
+  wlr_output_power_manager_v1* power_mgr = nullptr;
 
   wlr_keyboard* vkb = nullptr;
   xkb_context* xkb_ctx = nullptr;
@@ -201,6 +235,13 @@ struct OasisPrivate {
   wl_listener new_decoration = {};
   wl_listener request_shape = {};
   wl_listener new_inhibitor = {};
+  wl_listener new_layer_surface = {};
+  wl_listener new_lock = {};
+  wl_listener lock_new_surface = {};
+  wl_listener lock_unlock = {};
+  wl_listener lock_destroy = {};
+  wl_listener power_set_mode = {};
+  wl_listener output_needs_frame = {};
   wl_listener kb_key = {};
   wl_listener kb_mods = {};
 
@@ -229,6 +270,8 @@ struct OasisPrivate {
   std::vector<std::string> host_mimes;
   std::string xwayland_display;
   bool stopping = false;
+  int active_inhibitors = 0;
+  bool power_on = true;
 };
 
 Surface* surface_of(OasisPrivate* c, wlr_surface* wlr);
@@ -253,6 +296,18 @@ void init_surface_listeners(Surface* s);
 void attach_wlr(Surface* s, wlr_surface* wlr);
 void toplevel_new(OasisPrivate* c, wlr_xdg_toplevel* toplevel);
 void popup_new(OasisPrivate* c, wlr_xdg_popup* popup);
+void layer_new(OasisPrivate* c, wlr_layer_surface_v1* layer_surface);
+void announce_layer(Surface* s);
+void emit_layer_current(Surface* s);
+void lock_surface_new(OasisPrivate* c,
+                      wlr_session_lock_surface_v1* lock_surface);
+void announce_lock_surface(Surface* s);
+void session_lock_new(OasisPrivate* c, wlr_session_lock_v1* lock);
+void idle_activity(OasisPrivate* c);
+void idle_resync_inhibit(OasisPrivate* c);
+void capture_check(OasisPrivate* c);
+void output_needs_frame(wl_listener* listener, void* data);
+void power_mode_set(OasisPrivate* c, wlr_output* output, uint32_t mode);
 void xwayland_new_surface(OasisPrivate* c, wlr_xwayland_surface* xsurface);
 uint32_t now_ms();
 void build_keymap(OasisPrivate* c);

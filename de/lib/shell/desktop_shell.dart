@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
+import '../wayland/layer_surface_view.dart';
 import '../wayland/wayland_service.dart';
 import '../wayland/wayland_surface_view.dart';
 import 'control_center.dart';
@@ -96,6 +97,8 @@ class _DesktopShellState extends State<DesktopShell> {
       animation: controller,
       builder: (context, _) {
         final menus = widget.menusBuilder();
+        final exclusive =
+            controller.wayland?.exclusiveInsets ?? EdgeInsets.zero;
         return CallbackShortcuts(
           bindings: {
             const SingleActivator(LogicalKeyboardKey.tab, alt: true): () =>
@@ -140,6 +143,8 @@ class _DesktopShellState extends State<DesktopShell> {
                     child: OasisWallpaper(service: widget.wallpaper),
                   ),
                 ),
+                for (final s in _layerItems(0)) s,
+                for (final s in _layerItems(1)) s,
                 for (final w in controller.windows)
                   if (w.workspace == controller.activeWorkspace &&
                       (!w.minimized ||
@@ -149,19 +154,34 @@ class _DesktopShellState extends State<DesktopShell> {
                       builder: (context) {
                         final screen = MediaQuery.sizeOf(context);
                         final target = Rect.fromLTWH(
-                          w.zoomed || w.fullscreen ? 0 : w.position.dx,
                           w.zoomed
-                              ? kMenuBarHeight + 4
+                              ? exclusive.left
+                              : w.fullscreen
+                              ? 0
+                              : w.position.dx,
+                          w.zoomed
+                              ? kMenuBarHeight + 4 + exclusive.top
                               : w.fullscreen
                               ? 0
                               : w.position.dy,
-                          w.zoomed || w.fullscreen
+                          w.zoomed
+                              ? math.max(
+                                  0,
+                                  screen.width - exclusive.horizontal,
+                                )
+                              : w.fullscreen
                               ? screen.width
                               : _windowSize(w, screen).width,
                           w.fullscreen
                               ? screen.height
                               : w.zoomed
-                              ? screen.height - kMenuBarHeight - 8
+                              ? math.max(
+                                  0,
+                                  screen.height -
+                                      kMenuBarHeight -
+                                      8 -
+                                      exclusive.vertical,
+                                )
                               : _windowSize(w, screen).height,
                         );
                         return TweenAnimationBuilder<Rect?>(
@@ -211,6 +231,7 @@ class _DesktopShellState extends State<DesktopShell> {
                         );
                       },
                     ),
+                for (final s in _layerItems(2)) s,
                 if (controller.wayland != null)
                   for (final popup in controller.wayland!.popups)
                     Builder(
@@ -335,9 +356,31 @@ class _DesktopShellState extends State<DesktopShell> {
                   ),
                 if (controller.launcherOpen)
                   Positioned.fill(child: ShellLauncher(controller: controller)),
+                for (final s in _layerItems(3)) s,
+                if (controller.wayland?.sessionLocked ?? false)
+                  const Positioned.fill(
+                    child: ColoredBox(color: Color(0xFF000000)),
+                  ),
+                if (controller.wayland != null)
+                  for (final s in controller.wayland!.lockSurfaces)
+                    Positioned.fill(
+                      key: ValueKey('lock-${s.id}'),
+                      child: LockSurfaceView(
+                        surface: s,
+                        service: controller.wayland!,
+                      ),
+                    ),
                 if (controller.locked)
                   Positioned.fill(
                     child: ShellLockScreen(controller: controller),
+                  ),
+                if (controller.wayland?.displayOff ?? false)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {},
+                      child: const ColoredBox(color: Color(0xFF000000)),
+                    ),
                   ),
               ],
             ),
@@ -449,6 +492,25 @@ class _DesktopShellState extends State<DesktopShell> {
     ]);
   }
 
+  List<Widget> _layerItems(int layer) {
+    final service = controller.wayland;
+    if (service == null) return const [];
+    final screen = MediaQuery.sizeOf(context);
+    return [
+      for (final s in service.layerSurfaces(layer))
+        if (s.size.width > 0 && s.size.height > 0)
+          () {
+            final rect = layerSurfaceRect(s, screen);
+            s.layerRect = rect;
+            return Positioned.fromRect(
+              key: ValueKey('layer-${s.id}'),
+              rect: rect,
+              child: LayerSurfaceView(surface: s, service: service),
+            );
+          }(),
+    ];
+  }
+
   Offset? _popupOffset(WaylandSurface popup) {
     final service = controller.wayland!;
     var offset = popup.offset;
@@ -458,6 +520,26 @@ class _DesktopShellState extends State<DesktopShell> {
       parent = service.surfaces[parent.parentId];
     }
     if (parent == null) return null;
+    if (parent.isLayer) {
+      final base = parent.layerRect;
+      if (base == null) return null;
+      final lbuf = logicalSurfaceSize(parent);
+      final lsx = lbuf.width > 0 ? base.width / lbuf.width : 1.0;
+      final lsy = lbuf.height > 0 ? base.height / lbuf.height : 1.0;
+      final lpos =
+          base.topLeft + Offset(offset.dx * lsx, offset.dy * lsy);
+      final lscreen = MediaQuery.sizeOf(context);
+      return Offset(
+        lpos.dx.clamp(
+          0,
+          math.max(0, lscreen.width - popup.size.width),
+        ),
+        lpos.dy.clamp(
+          0,
+          math.max(0, lscreen.height - popup.size.height),
+        ),
+      );
+    }
     final w = controller.windowForSurface(parent.id);
     if (w == null) return null;
     if (w.minimized || w.workspace != controller.activeWorkspace) {

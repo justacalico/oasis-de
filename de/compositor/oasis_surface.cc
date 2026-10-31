@@ -64,6 +64,9 @@ void remove_listeners(Surface* s) {
   wl_list_remove(&s->xs_request_maximize.link);
   wl_list_remove(&s->xs_request_fullscreen.link);
   wl_list_remove(&s->xs_request_close.link);
+  wl_list_remove(&s->layer_destroy.link);
+  wl_list_remove(&s->layer_new_popup.link);
+  wl_list_remove(&s->lock_surf_destroy.link);
   wl_list_remove(&s->deco_destroy.link);
 }
 
@@ -103,16 +106,26 @@ void init_surface_listeners(Surface* s) {
   wl_list_init(&s->xs_request_maximize.link);
   wl_list_init(&s->xs_request_fullscreen.link);
   wl_list_init(&s->xs_request_close.link);
+  wl_list_init(&s->layer_destroy.link);
+  wl_list_init(&s->layer_new_popup.link);
+  wl_list_init(&s->lock_surf_destroy.link);
   wl_list_init(&s->deco_destroy.link);
 }
 
 void free_surface(Surface* s) {
   OasisPrivate* c = s->comp;
   if (s->announced && !c->stopping) {
-    const char* name = s->role == ROLE_POPUP      ? "popupClosed"
-                       : s->role == ROLE_SUBSURFACE ? "subsurfaceClosed"
-                                                   : "toplevelClosed";
-    emit_id(s, name);
+    if (s->role == ROLE_POPUP) {
+      emit_id(s, "popupClosed");
+    } else if (s->role == ROLE_SUBSURFACE) {
+      emit_id(s, "subsurfaceClosed");
+    } else if (s->role == ROLE_LAYER) {
+      emit_id(s, "layerClosed");
+    } else if (s->role == ROLE_LOCK) {
+      emit_id(s, "lockSurfaceClosed");
+    } else {
+      emit_id(s, "toplevelClosed");
+    }
   }
   s->announced = false;
   if (c->kb_focus == s) c->kb_focus = nullptr;
@@ -430,9 +443,13 @@ void announce_toplevel(Surface* s) {
 }
 
 static void maybe_announce(Surface* s) {
-  if (s->announced) return;
-  if (s->role == ROLE_TOPLEVEL && s->wlr != nullptr && s->wlr->mapped) {
+  if (s->announced || s->wlr == nullptr || !s->wlr->mapped) return;
+  if (s->role == ROLE_TOPLEVEL) {
     announce_toplevel(s);
+  } else if (s->role == ROLE_LAYER) {
+    announce_layer(s);
+  } else if (s->role == ROLE_LOCK) {
+    announce_lock_surface(s);
   }
 }
 
@@ -521,6 +538,9 @@ static void surface_commit(wl_listener* listener, void*) {
     emit_input_region(s);
     check_minmax(s);
     check_position(s);
+    if (s->role == ROLE_LAYER && s->layer != nullptr) {
+      emit_layer_current(s);
+    }
   }
   if (s->parent != nullptr) check_child_order(s->parent);
   if (s->texture_id >= 0 &&
