@@ -10,7 +10,6 @@ class AboutWindow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = OasisLocalizations.of(context);
     final p = OasisStyle.of(context).palette;
-    final host = OasisHost.maybeOf(context);
 
     return Padding(
       padding: const EdgeInsets.all(28),
@@ -36,14 +35,6 @@ class AboutWindow extends StatelessWidget {
                 .bodyMedium
                 ?.copyWith(color: p.textSecondary),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: 340,
-            child: host == null
-                ? null
-                : UpdateCheckTile(
-                    service: host.updates!, onOpenUrl: host.openUrl),
           ),
         ],
       ),
