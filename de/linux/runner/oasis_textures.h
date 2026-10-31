@@ -26,5 +26,6 @@ void oasis_texture_push(OasisTexture* self,
                         uint32_t w,
                         uint32_t h);
 void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, const DmabufInfo& db);
+gboolean oasis_gl_texture_import_failed(OasisGLTexture* self);
 
 #endif
