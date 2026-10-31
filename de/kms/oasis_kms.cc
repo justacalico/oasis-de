@@ -518,6 +518,27 @@ class KmsHost : public OasisHost {
     done(nullptr, 0);
   }
   void hostClipboardWriteText(const std::string&) override {}
+  bool captureOutput(std::vector<uint8_t>& rgba, int& w,
+                     int& h) override {
+    w = g_drm.width;
+    h = g_drm.height;
+    if (w <= 0 || h <= 0) return false;
+    eng_make_current(nullptr);
+    rgba.resize((size_t)w * h * 4);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+    size_t row_bytes = (size_t)w * 4;
+    std::vector<uint8_t> row(row_bytes);
+    for (int y = 0; y < h / 2; y++) {
+      uint8_t* top = rgba.data() + (size_t)y * row_bytes;
+      uint8_t* bottom =
+          rgba.data() + (size_t)(h - 1 - y) * row_bytes;
+      memcpy(row.data(), top, row_bytes);
+      memcpy(top, bottom, row_bytes);
+      memcpy(bottom, row.data(), row_bytes);
+    }
+    return true;
+  }
 };
 
 struct PendingReply {
@@ -561,8 +582,15 @@ static void handle_method(const Mc& mc,
                       cv_int(mc.args, "fullscreen"),
                       cv_int(mc.args, "resizing"));
     platform_reply(h, Cv{std::monostate{}});
+  } else if (n == "configureLayer") {
+    g_core->configureLayer(cv_int(mc.args, "id"), (int)cv_int(mc.args, "w"),
+                           (int)cv_int(mc.args, "h"));
+    platform_reply(h, Cv{std::monostate{}});
   } else if (n == "close") {
     g_core->closeSurface(cv_int(mc.args, "id"));
+    platform_reply(h, Cv{std::monostate{}});
+  } else if (n == "sessionUnlock") {
+    g_core->sessionUnlock();
     platform_reply(h, Cv{std::monostate{}});
   } else if (n == "focus") {
     g_core->focus(cv_int(mc.args, "id"));

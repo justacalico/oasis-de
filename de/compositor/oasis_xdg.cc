@@ -305,6 +305,7 @@ void popup_new(OasisPrivate* c, wlr_xdg_popup* popup) {
     s = surface_of(c, xdg->surface);
   }
   Surface* parent = surface_of(c, popup->parent);
+  if (s->role == ROLE_POPUP && s->xdg == xdg) return;
   s->xdg = xdg;
   s->role = ROLE_POPUP;
   s->announced = true;

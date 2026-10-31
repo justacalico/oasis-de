@@ -67,6 +67,9 @@ class OasisHost {
     done(nullptr, 0);
   }
   virtual void hostClipboardWriteText(const std::string& text) {}
+  virtual bool captureOutput(std::vector<uint8_t>& rgba, int& w, int& h) {
+    return false;
+  }
 };
 
 namespace oasis { struct OasisPrivate; }
@@ -90,7 +93,9 @@ class OasisCore {
   void replayEvents();
   void configure(int64_t id, int w, int h, bool maximized, bool fullscreen,
                  bool resizing);
+  void configureLayer(int64_t id, int w, int h);
   void closeSurface(int64_t id);
+  void sessionUnlock();
   void focus(int64_t id);
   void pointerMotion(int64_t id, double x, double y);
   void pointerExit();

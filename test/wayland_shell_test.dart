@@ -9,6 +9,7 @@ import 'package:oasis_de/app.dart';
 import 'package:oasis_de/shell/desktop_shell.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_de/shell/window_switcher.dart';
+import 'package:oasis_de/wayland/layer_surface_view.dart';
 import 'package:oasis_de/wayland/wayland_service.dart';
 import 'package:oasis_de/wayland/wayland_surface_view.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -259,6 +260,50 @@ void main() {
     await tester.pump();
     expect(host.calls, contains('close:2'));
     expect(host.calls, contains('close:3'));
+    c.dispose();
+    service.dispose();
+  });
+
+  testWidgets('layer lock and power surfaces render', (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    host.emit({
+      'event': 'layer',
+      'id': 5,
+      'textureId': 70,
+      'layer': 3,
+      'anchor': 5,
+      'dw': 200,
+      'dh': 40,
+    });
+    host.emit({'event': 'size', 'id': 5, 'w': 200, 'h': 40});
+    host.emit({
+      'event': 'popup',
+      'id': 6,
+      'parent': 5,
+      'textureId': 71,
+      'x': 10,
+      'y': 10,
+    });
+    host.emit({'event': 'size', 'id': 6, 'w': 30, 'h': 20});
+    host.emit({'event': 'lockSurface', 'id': 7, 'textureId': 72});
+    host.emit({'event': 'sessionLock'});
+    host.emit({'event': 'outputPower', 'on': false});
+    await tester.pump();
+    await pumpOasis(
+      tester,
+      DesktopShell(controller: c, menusBuilder: () => const []),
+      size: const Size(1280, 800),
+    );
+    await tester.pump();
+    expect(find.byType(LayerSurfaceView), findsOneWidget);
+    expect(find.byType(LockSurfaceView), findsOneWidget);
+    expect(find.byType(WaylandPopupView), findsOneWidget);
+    await tester.tapAt(const Offset(600, 400));
+    await tester.pump();
+    host.emit({'event': 'outputPower', 'on': true});
+    await tester.pump();
     c.dispose();
     service.dispose();
   });

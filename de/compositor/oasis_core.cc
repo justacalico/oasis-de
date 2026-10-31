@@ -402,6 +402,8 @@ static void inhibitor_destroyed(wl_listener* listener, void* data) {
   v.erase(std::remove(v.begin(), v.end(), inh), v.end());
   wl_list_remove(&inh->destroy.link);
   delete inh;
+  s->comp->active_inhibitors--;
+  idle_resync_inhibit(s->comp);
   if (s->announced) {
     OEvent m;
     m["on"] = !s->inhibitors.empty();
@@ -420,6 +422,8 @@ static void handle_new_inhibitor(wl_listener* listener, void* data) {
   inh->destroy.notify = inhibitor_destroyed;
   wl_signal_add(&wlr_inh->events.destroy, &inh->destroy);
   s->inhibitors.push_back(inh);
+  c->active_inhibitors++;
+  idle_resync_inhibit(c);
   if (s->inhibitors.size() == 1 && s->announced) {
     OEvent m;
     m["on"] = true;
@@ -583,6 +587,13 @@ void OasisCore::outputChanged() {
   p->phys_h = ph > 0 ? ph : 190;
   output_apply(p);
   output_notify_surfaces(p);
+  for (Surface* s : p->surfaces) {
+    if (s->role == ROLE_LOCK && s->lock_surface != nullptr) {
+      wlr_session_lock_surface_v1_configure(s->lock_surface, p->out_w,
+                                            p->out_h);
+    }
+  }
+  comp_flush(p);
 }
 
 bool OasisCore::start(std::string* error) {
@@ -636,6 +647,14 @@ bool OasisCore::start(std::string* error) {
   p->primary_mgr = wlr_primary_selection_v1_device_manager_create(p->display);
   p->presentation =
       wlr_presentation_create(p->display, p->backend, 1);
+  p->layer_shell = wlr_layer_shell_v1_create(p->display, 5);
+  p->lock_mgr = wlr_session_lock_manager_v1_create(p->display);
+  p->idle_notifier = wlr_idle_notifier_v1_create(p->display);
+  p->capture_src_mgr =
+      wlr_ext_output_image_capture_source_manager_v1_create(p->display, 1);
+  p->copy_capture_mgr =
+      wlr_ext_image_copy_capture_manager_v1_create(p->display, 1);
+  p->power_mgr = wlr_output_power_manager_v1_create(p->display);
 
   p->vkb = static_cast<wlr_keyboard*>(calloc(1, sizeof(wlr_keyboard)));
   wlr_keyboard_init(p->vkb, &vkb_impl, "oasis-virtual");
@@ -654,6 +673,8 @@ bool OasisCore::start(std::string* error) {
   wlr_output_set_description(p->output, "Oasis embedded output");
   wlr_output_init_render(p->output, p->allocator, p->renderer);
   wlr_output_create_global(p->output, p->display);
+  p->output_needs_frame.notify = output_needs_frame;
+  wl_signal_add(&p->output->events.needs_frame, &p->output_needs_frame);
   outputChanged();
 
   p->xwayland = wlr_xwayland_create(p->display, p->compositor, false);
@@ -726,6 +747,23 @@ bool OasisCore::start(std::string* error) {
                 &p->request_shape);
   p->new_inhibitor.notify = handle_new_inhibitor;
   wl_signal_add(&p->inhibit_mgr->events.new_inhibitor, &p->new_inhibitor);
+  p->new_layer_surface.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, new_layer_surface);
+    layer_new(c, static_cast<wlr_layer_surface_v1*>(data));
+  };
+  wl_signal_add(&p->layer_shell->events.new_surface, &p->new_layer_surface);
+  p->new_lock.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, new_lock);
+    session_lock_new(c, static_cast<wlr_session_lock_v1*>(data));
+  };
+  wl_signal_add(&p->lock_mgr->events.new_lock, &p->new_lock);
+  p->power_set_mode.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, power_set_mode);
+    auto* ev =
+        static_cast<wlr_output_power_v1_set_mode_event*>(data);
+    power_mode_set(c, ev->output, (uint32_t)ev->mode);
+  };
+  wl_signal_add(&p->power_mgr->events.set_mode, &p->power_set_mode);
 
   const char* name = wl_display_add_socket_auto(p->display);
   if (name == nullptr) {
@@ -806,6 +844,9 @@ void OasisCore::stop() {
   p->ptr_focus = nullptr;
   p->cursor_surface = nullptr;
   p->pressed.clear();
+  p->lock = nullptr;
+  p->active_inhibitors = 0;
+  p->power_on = true;
   p->stopping = false;
 }
 
@@ -832,6 +873,13 @@ void OasisCore::replayEvents() {
       m["x"] = s->sx;
       m["y"] = s->sy;
       emit_id(s, "subsurface", std::move(m));
+    } else if (s->role == ROLE_LAYER && s->layer != nullptr) {
+      s->rep_anchor = -1;
+      emit_layer_current(s);
+    } else if (s->role == ROLE_LOCK) {
+      OEvent m;
+      m["textureId"] = s->texture_id;
+      emit_id(s, "lockSurface", std::move(m));
     }
     if (s->tex_kind != 0) {
       OEvent m;
@@ -843,6 +891,12 @@ void OasisCore::replayEvents() {
     s->rep_bw = -1;
     s->rep_bh = -1;
     emit_size(s);
+  }
+  if (p->lock != nullptr) emit(p, "sessionLock");
+  if (!p->power_on) {
+    OEvent m;
+    m["on"] = false;
+    emit(p, "outputPower", std::move(m));
   }
   emit_cursor(p);
 }
@@ -869,13 +923,39 @@ void OasisCore::closeSurface(int64_t id) {
   } else if (s->role == ROLE_POPUP && s->xdg != nullptr) {
     wlr_xdg_popup_destroy(s->xdg->popup);
     comp_flush(p);
+  } else if (s->role == ROLE_LAYER && s->layer != nullptr) {
+    wlr_layer_surface_v1_destroy(s->layer);
+    comp_flush(p);
   }
+}
+
+void OasisCore::configureLayer(int64_t id, int w, int h) {
+  Surface* s = surface_by_id(p, id);
+  if (s == nullptr || s->role != ROLE_LAYER || s->layer == nullptr) return;
+  wlr_layer_surface_v1_configure(s->layer, w > 0 ? (uint32_t)w : 0,
+                                 h > 0 ? (uint32_t)h : 0);
+  comp_flush(p);
+}
+
+void OasisCore::sessionUnlock() {
+  if (p->lock == nullptr) return;
+  wlr_session_lock_v1_destroy(p->lock);
+  comp_flush(p);
 }
 
 void OasisCore::focus(int64_t id) {
   Surface* s = surface_by_id(p, id);
+  if (p->lock != nullptr) {
+    seat_focus(p, s != nullptr && s->role == ROLE_LOCK ? s : nullptr);
+    comp_flush(p);
+    return;
+  }
+  bool layer_ok = s != nullptr && s->role == ROLE_LAYER &&
+                  s->layer != nullptr &&
+                  s->layer->current.keyboard_interactive !=
+                      ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
   if (s != nullptr &&
-      (s->role == ROLE_TOPLEVEL || s->role == ROLE_POPUP)) {
+      (s->role == ROLE_TOPLEVEL || s->role == ROLE_POPUP || layer_ok)) {
     seat_focus(p, s);
     if (s->role == ROLE_TOPLEVEL && p->activated != s) {
       if (p->activated != nullptr && p->activated->role == ROLE_TOPLEVEL) {

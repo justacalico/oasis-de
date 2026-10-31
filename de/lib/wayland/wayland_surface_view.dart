@@ -33,6 +33,69 @@ Size logicalSurfaceSize(WaylandSurface s) {
   return s.size;
 }
 
+Offset surfaceCoordsAt(WaylandSurface surface, Offset local, Size box) {
+  final src = surface.vpSrc;
+  final s = src != null ? src.size : logicalSurfaceSize(surface);
+  if (s.width <= 0 || s.height <= 0) return local;
+  return Offset(
+    (src?.left ?? 0) + local.dx * s.width / box.width,
+    (src?.top ?? 0) + local.dy * s.height / box.height,
+  );
+}
+
+(WaylandSurface, Offset)? subSurfaceHit(
+  WaylandService service,
+  WaylandSurface root,
+  Offset p,
+) {
+  for (final id in root.children.reversed) {
+    final sub = service.surfaces[id];
+    if (sub == null) continue;
+    final lp = p - sub.offset;
+    final size = logicalSurfaceSize(sub);
+    if (lp.dx < 0 ||
+        lp.dy < 0 ||
+        lp.dx >= size.width ||
+        lp.dy >= size.height) {
+      continue;
+    }
+    final region = sub.inputRegion;
+    if (region != null && !region.any((r) => r.contains(lp))) {
+      continue;
+    }
+    return subSurfaceHit(service, sub, lp) ?? (sub, lp);
+  }
+  return null;
+}
+
+KeyEventResult waylandKeyEvent(
+  WaylandService service,
+  Set<int> pressed,
+  KeyEvent event, {
+  bool escReserved = false,
+}) {
+  final hw = HardwareKeyboard.instance;
+  final shellChord = switch (event.logicalKey) {
+    LogicalKeyboardKey.tab => hw.isAltPressed,
+    LogicalKeyboardKey.keyD => hw.isMetaPressed,
+    LogicalKeyboardKey.arrowUp => hw.isMetaPressed,
+    LogicalKeyboardKey.space => hw.isMetaPressed || hw.isControlPressed,
+    LogicalKeyboardKey.escape => escReserved,
+    _ => false,
+  };
+  if (shellChord) return KeyEventResult.ignored;
+  final code = evdevCodeFor(event.physicalKey);
+  if (code == null) return KeyEventResult.ignored;
+  if (event is KeyUpEvent) {
+    pressed.remove(code);
+    service.key(code, false);
+  } else if (event is KeyDownEvent) {
+    pressed.add(code);
+    service.key(code, true);
+  }
+  return KeyEventResult.handled;
+}
+
 Widget applyBufferTransform(Widget child, int transform) {
   switch (transform) {
     case 1:
@@ -228,40 +291,9 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
     _keys.requestFocus();
   }
 
-  Offset _surfaceCoords(Offset local, Size box) {
-    final src = surface.vpSrc;
-    final s = src != null ? src.size : logicalSurfaceSize(surface);
-    if (s.width <= 0 || s.height <= 0) return local;
-    return Offset(
-      (src?.left ?? 0) + local.dx * s.width / box.width,
-      (src?.top ?? 0) + local.dy * s.height / box.height,
-    );
-  }
-
-  (WaylandSurface, Offset)? _subHit(WaylandSurface root, Offset p) {
-    for (final id in root.children.reversed) {
-      final sub = service.surfaces[id];
-      if (sub == null) continue;
-      final lp = p - sub.offset;
-      final size = logicalSurfaceSize(sub);
-      if (lp.dx < 0 ||
-          lp.dy < 0 ||
-          lp.dx >= size.width ||
-          lp.dy >= size.height) {
-        continue;
-      }
-      final region = sub.inputRegion;
-      if (region != null && !region.any((r) => r.contains(lp))) {
-        continue;
-      }
-      return _subHit(sub, lp) ?? (sub, lp);
-    }
-    return null;
-  }
-
   void _motion(PointerEvent e, Size box) {
-    final p = _surfaceCoords(e.localPosition, box);
-    final hit = _subHit(surface, p);
+    final p = surfaceCoordsAt(surface, e.localPosition, box);
+    final hit = subSurfaceHit(service, surface, p);
     if (hit != null) {
       service.pointerMotion(hit.$1.id, hit.$2.dx, hit.$2.dy);
       return;
@@ -269,28 +301,13 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
     service.pointerMotion(surface.id, p.dx, p.dy);
   }
 
-  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    final hw = HardwareKeyboard.instance;
-    final shellChord = switch (event.logicalKey) {
-      LogicalKeyboardKey.tab => hw.isAltPressed,
-      LogicalKeyboardKey.keyD => hw.isMetaPressed,
-      LogicalKeyboardKey.arrowUp => hw.isMetaPressed,
-      LogicalKeyboardKey.space => hw.isMetaPressed || hw.isControlPressed,
-      LogicalKeyboardKey.escape => widget.escReserved,
-      _ => false,
-    };
-    if (shellChord) return KeyEventResult.ignored;
-    final code = evdevCodeFor(event.physicalKey);
-    if (code == null) return KeyEventResult.ignored;
-    if (event is KeyUpEvent) {
-      _pressed.remove(code);
-      service.key(code, false);
-    } else if (event is KeyDownEvent) {
-      _pressed.add(code);
-      service.key(code, true);
-    }
-    return KeyEventResult.handled;
-  }
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) =>
+      waylandKeyEvent(
+        service,
+        _pressed,
+        event,
+        escReserved: widget.escReserved,
+      );
 
   @override
   void dispose() {
@@ -347,7 +364,11 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                     },
                     onPointerMove: (e) {
                       if (e.kind == PointerDeviceKind.touch) {
-                        final p = _surfaceCoords(e.localPosition, box);
+                        final p = surfaceCoordsAt(
+                          surface,
+                          e.localPosition,
+                          box,
+                        );
                         service.touchMotion(e.pointer, p.dx, p.dy);
                         return;
                       }
@@ -355,7 +376,11 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
                       _buttons = e.buttons;
                     },
                     onPointerDown: (e) {
-                      final p = _surfaceCoords(e.localPosition, box);
+                      final p = surfaceCoordsAt(
+                        surface,
+                        e.localPosition,
+                        box,
+                      );
                       if (e.kind == PointerDeviceKind.touch) {
                         service.touchDown(
                           surface.id,
@@ -447,38 +472,13 @@ class WaylandPopupView extends StatefulWidget {
 class _WaylandPopupViewState extends State<WaylandPopupView> {
   var _buttons = 0;
 
-  (WaylandSurface, Offset)? _subHit(WaylandSurface root, Offset p) {
-    for (final id in root.children.reversed) {
-      final sub = widget.service.surfaces[id];
-      if (sub == null) continue;
-      final lp = p - sub.offset;
-      final size = logicalSurfaceSize(sub);
-      if (lp.dx < 0 ||
-          lp.dy < 0 ||
-          lp.dx >= size.width ||
-          lp.dy >= size.height) {
-        continue;
-      }
-      final region = sub.inputRegion;
-      if (region != null && !region.any((r) => r.contains(lp))) {
-        continue;
-      }
-      return _subHit(sub, lp) ?? (sub, lp);
-    }
-    return null;
-  }
-
   void _motion(PointerEvent e) {
-    final size = widget.surface.size;
-    final src = widget.surface.vpSrc;
-    final logical = src != null ? src.size : logicalSurfaceSize(widget.surface);
-    final p = Offset(
-      (src?.left ?? 0) +
-          e.localPosition.dx * logical.width / size.width,
-      (src?.top ?? 0) +
-          e.localPosition.dy * logical.height / size.height,
+    final p = surfaceCoordsAt(
+      widget.surface,
+      e.localPosition,
+      widget.surface.size,
     );
-    final hit = _subHit(widget.surface, p);
+    final hit = subSurfaceHit(widget.service, widget.surface, p);
     if (hit != null) {
       widget.service.pointerMotion(hit.$1.id, hit.$2.dx, hit.$2.dy);
       return;

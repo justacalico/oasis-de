@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 
 import 'wayland_host.dart';
@@ -38,7 +39,19 @@ class WaylandSurface {
   Size minSize = Size.zero;
   Size maxSize = Size.zero;
 
-  bool get isPopup => parentId != null && !isSub;
+  bool isLayer = false;
+  bool isLock = false;
+  int layerIndex = 0;
+  String layerNamespace = '';
+  int layerAnchor = 0;
+  int layerExclusive = 0;
+  int layerExclusiveEdge = 0;
+  EdgeInsets layerMargins = EdgeInsets.zero;
+  int layerKeyboard = 0;
+  Size layerDesired = Size.zero;
+  Rect? layerRect;
+
+  bool get isPopup => parentId != null && !isSub && !isLayer && !isLock;
 }
 
 enum WaylandRequestType {
@@ -158,11 +171,45 @@ class WaylandService extends ChangeNotifier {
   }
 
   List<WaylandSurface> get toplevels => surfaces.values
-      .where((s) => !s.isPopup && !s.isSub)
+      .where((s) => !s.isPopup && !s.isSub && !s.isLayer && !s.isLock)
       .toList(growable: false);
 
   List<WaylandSurface> get popups =>
       surfaces.values.where((s) => s.isPopup).toList(growable: false);
+
+  List<WaylandSurface> layerSurfaces(int layer) => surfaces.values
+      .where((s) => s.isLayer && s.layerIndex == layer)
+      .toList(growable: false);
+
+  List<WaylandSurface> get lockSurfaces => surfaces.values
+      .where((s) => s.isLock)
+      .toList(growable: false);
+
+  bool sessionLocked = false;
+  bool displayOff = false;
+
+  EdgeInsets get exclusiveInsets {
+    var left = 0.0, top = 0.0, right = 0.0, bottom = 0.0;
+    for (final s in surfaces.values) {
+      if (!s.isLayer || s.layerExclusive <= 0 || s.size.isEmpty) {
+        continue;
+      }
+      final edge = s.layerExclusiveEdge != 0
+          ? s.layerExclusiveEdge
+          : s.layerAnchor;
+      final zone = s.layerExclusive.toDouble();
+      if (edge == 1) {
+        top = zone > top ? zone : top;
+      } else if (edge == 2) {
+        bottom = zone > bottom ? zone : bottom;
+      } else if (edge == 4) {
+        left = zone > left ? zone : left;
+      } else if (edge == 8) {
+        right = zone > right ? zone : right;
+      }
+    }
+    return EdgeInsets.fromLTRB(left, top, right, bottom);
+  }
 
   void _onEvent(Map<String, Object?> e) {
     final id = (e['id'] as num?)?.toInt() ?? -1;
@@ -348,6 +395,41 @@ class WaylandService extends ChangeNotifier {
         );
       case 'minimize':
         _requests.add(WaylandRequest(WaylandRequestType.minimize, id));
+      case 'layer':
+        final s = surfaces.putIfAbsent(id, () => WaylandSurface(id: id))
+          ..isLayer = true;
+        s.textureId = (e['textureId'] as num?)?.toInt() ?? s.textureId;
+        s.layerNamespace = e['ns'] as String? ?? '';
+        s.layerIndex = (e['layer'] as num?)?.toInt() ?? 0;
+        s.layerAnchor = (e['anchor'] as num?)?.toInt() ?? 0;
+        s.layerExclusive = (e['exclusive'] as num?)?.toInt() ?? 0;
+        s.layerExclusiveEdge = (e['edge'] as num?)?.toInt() ?? 0;
+        s.layerKeyboard = (e['kb'] as num?)?.toInt() ?? 0;
+        s.layerMargins = EdgeInsets.fromLTRB(
+          (e['ml'] as num?)?.toDouble() ?? 0,
+          (e['mt'] as num?)?.toDouble() ?? 0,
+          (e['mr'] as num?)?.toDouble() ?? 0,
+          (e['mb'] as num?)?.toDouble() ?? 0,
+        );
+        s.layerDesired = Size(
+          (e['dw'] as num?)?.toDouble() ?? 0,
+          (e['dh'] as num?)?.toDouble() ?? 0,
+        );
+      case 'layerClosed':
+        surfaces.remove(id);
+      case 'lockSurface':
+        surfaces[id] = WaylandSurface(
+          id: id,
+          textureId: (e['textureId'] as num?)?.toInt() ?? -1,
+        )..isLock = true;
+      case 'lockSurfaceClosed':
+        surfaces.remove(id);
+      case 'sessionLock':
+        sessionLocked = true;
+      case 'sessionUnlock':
+        sessionLocked = false;
+      case 'outputPower':
+        displayOff = e['on'] == false;
       case 'configureAcked':
         surfaces[id]?.ackedSerial =
             (e['serial'] as num?)?.toInt() ?? 0;
@@ -387,7 +469,14 @@ class WaylandService extends ChangeNotifier {
         )
       : Future.value();
 
+  Future<void> configureLayer(int id, int width, int height) => available
+      ? _host.configureLayer(id, width, height)
+      : Future.value();
+
   Future<void> close(int id) => available ? _host.close(id) : Future.value();
+
+  Future<void> sessionUnlock() =>
+      available ? _host.sessionUnlock() : Future.value();
 
   Future<void> focus(int? id) => available ? _host.focus(id) : Future.value();
 
