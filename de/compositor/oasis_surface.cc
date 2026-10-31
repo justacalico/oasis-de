@@ -353,6 +353,9 @@ static bool readback_dmabuf(Surface* s, wlr_buffer* buf) {
     }
     wlr_drm_format fmt = {};
     fmt.format = DRM_FORMAT_ARGB8888;
+    uint64_t linear = DRM_FORMAT_MOD_LINEAR;
+    fmt.modifiers = &linear;
+    fmt.len = 1;
     s->readback = wlr_allocator_create_buffer(c->allocator, w, h, &fmt);
     s->rb_w = w;
     s->rb_h = h;
@@ -432,7 +435,6 @@ static void export_buffer(Surface* s) {
       ensure_texture(s, 1);
       if (readback_dmabuf(s, buf)) push_img(s);
     }
-    wlr_dmabuf_attributes_finish(&attrs);
     return;
   }
   void* data = nullptr;

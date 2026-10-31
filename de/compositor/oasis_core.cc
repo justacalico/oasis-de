@@ -214,6 +214,20 @@ void send_modifiers(OasisPrivate* c) {
   wlr_seat_keyboard_notify_modifiers(c->seat, &c->vkb->modifiers);
 }
 
+// wlroots' default dmabuf check only accepts buffers that live on the
+// compositor's DRM device, and a failed create_immed is a fatal protocol
+// error. As a nested compositor the buffers may come from anywhere, so check
+// importability on our own renderer instead; buffers we can't consume at all
+// still get rejected so clients can fall back to shm.
+static bool dmabuf_check(wlr_dmabuf_attributes* attribs, void* data) {
+  auto* c = static_cast<OasisPrivate*>(data);
+  if (c->renderer == nullptr) return true;
+  wlr_texture* tex = wlr_texture_from_dmabuf(c->renderer, attribs);
+  if (tex == nullptr) return false;
+  wlr_texture_destroy(tex);
+  return true;
+}
+
 // ---- EGL debug filter ------------------------------------------------------
 
 // wlroots hooks EGL_KHR_debug so driver reports reach wlr_log. GTK's Wayland
@@ -657,6 +671,10 @@ bool OasisCore::start(std::string* error) {
   p->viewporter = wlr_viewporter_create(p->display);
   p->dmabuf_v1 =
       wlr_linux_dmabuf_v1_create_with_renderer(p->display, 5, p->renderer);
+  if (p->dmabuf_v1 != nullptr) {
+    wlr_linux_dmabuf_v1_set_check_dmabuf_callback(p->dmabuf_v1,
+                                                dmabuf_check, p);
+  }
   p->fs_mgr = wlr_fractional_scale_manager_v1_create(p->display, 1);
   p->inhibit_mgr = wlr_idle_inhibit_v1_create(p->display);
   p->cursor_shape_mgr = wlr_cursor_shape_manager_v1_create(p->display, 1);
