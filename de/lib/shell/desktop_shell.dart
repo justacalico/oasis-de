@@ -328,7 +328,9 @@ class _DesktopShellState extends State<DesktopShell> {
                       builder: (context, pos, _) {
                         final wl = controller.wayland;
                         final cursor = wl?.cursor;
-                        if (cursor == null || !wl!.pointerOverClient) {
+                        if (cursor == null ||
+                            !wl!.pointerOverClient ||
+                            wl.pointerLocked) {
                           return const SizedBox.shrink();
                         }
                         return Transform.translate(

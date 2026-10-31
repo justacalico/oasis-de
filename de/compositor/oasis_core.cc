@@ -431,6 +431,42 @@ static void handle_new_inhibitor(wl_listener* listener, void* data) {
   }
 }
 
+static void handle_new_constraint(wl_listener* listener, void* data) {
+  OasisPrivate* c = wl_container_of(listener, c, new_constraint);
+  auto* con = static_cast<wlr_pointer_constraint_v1*>(data);
+  if (c->ptr_focus != nullptr && c->ptr_focus->wlr == con->surface) {
+    constraint_activate(c, c->ptr_focus, c->ptr_in_x, c->ptr_in_y);
+  }
+}
+
+static void ksi_destroyed(wl_listener* listener, void*) {
+  KsInhibitor* k = wl_container_of(listener, k, destroy);
+  Surface* s = k->surface;
+  auto& v = s->ks_inhibitors;
+  v.erase(std::remove(v.begin(), v.end(), k), v.end());
+  wl_list_remove(&k->destroy.link);
+  if (k->inh->active && s->announced) {
+    OEvent m;
+    m["on"] = false;
+    emit_id(s, "shortcutsInhibit", std::move(m));
+  }
+  delete k;
+}
+
+static void handle_new_ksi(wl_listener* listener, void* data) {
+  OasisPrivate* c = wl_container_of(listener, c, new_ksi);
+  auto* wlr_inh = static_cast<wlr_keyboard_shortcuts_inhibitor_v1*>(data);
+  Surface* s = surface_of(c, wlr_inh->surface);
+  if (s == nullptr) return;
+  auto* k = new KsInhibitor();
+  k->inh = wlr_inh;
+  k->surface = s;
+  k->destroy.notify = ksi_destroyed;
+  wl_signal_add(&wlr_inh->events.destroy, &k->destroy);
+  s->ks_inhibitors.push_back(k);
+  ksi_sync(s);
+}
+
 static void deco_destroyed(wl_listener* listener, void*) {
   Surface* s = wl_container_of(listener, s, deco_destroy);
   s->deco = nullptr;
@@ -655,6 +691,9 @@ bool OasisCore::start(std::string* error) {
   p->copy_capture_mgr =
       wlr_ext_image_copy_capture_manager_v1_create(p->display, 1);
   p->power_mgr = wlr_output_power_manager_v1_create(p->display);
+  p->constraints_mgr = wlr_pointer_constraints_v1_create(p->display);
+  p->rel_ptr_mgr = wlr_relative_pointer_manager_v1_create(p->display);
+  p->ksi_mgr = wlr_keyboard_shortcuts_inhibit_v1_create(p->display);
 
   p->vkb = static_cast<wlr_keyboard*>(calloc(1, sizeof(wlr_keyboard)));
   wlr_keyboard_init(p->vkb, &vkb_impl, "oasis-virtual");
@@ -764,6 +803,11 @@ bool OasisCore::start(std::string* error) {
     power_mode_set(c, ev->output, (uint32_t)ev->mode);
   };
   wl_signal_add(&p->power_mgr->events.set_mode, &p->power_set_mode);
+  p->new_constraint.notify = handle_new_constraint;
+  wl_signal_add(&p->constraints_mgr->events.new_constraint,
+                &p->new_constraint);
+  p->new_ksi.notify = handle_new_ksi;
+  wl_signal_add(&p->ksi_mgr->events.new_inhibitor, &p->new_ksi);
 
   const char* name = wl_display_add_socket_auto(p->display);
   if (name == nullptr) {
@@ -804,6 +848,11 @@ void OasisCore::stop() {
       delete inh;
     }
     s->inhibitors.clear();
+    for (KsInhibitor* k : s->ks_inhibitors) {
+      wl_list_remove(&k->destroy.link);
+      delete k;
+    }
+    s->ks_inhibitors.clear();
     delete s;
   }
   p->surfaces.clear();
@@ -843,6 +892,8 @@ void OasisCore::stop() {
   p->activated = nullptr;
   p->ptr_focus = nullptr;
   p->cursor_surface = nullptr;
+  p->constraint = nullptr;
+  p->ptr_in_id = -1;
   p->pressed.clear();
   p->lock = nullptr;
   p->active_inhibitors = 0;
@@ -893,6 +944,15 @@ void OasisCore::replayEvents() {
     emit_size(s);
   }
   if (p->lock != nullptr) emit(p, "sessionLock");
+  if (p->constraint != nullptr &&
+      p->constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
+    Surface* s = surface_of(p, p->constraint->surface);
+    if (s != nullptr && s->announced) {
+      OEvent m;
+      m["on"] = true;
+      emit_id(s, "pointerLock", std::move(m));
+    }
+  }
   if (!p->power_on) {
     OEvent m;
     m["on"] = false;

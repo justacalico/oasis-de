@@ -36,6 +36,7 @@ class WaylandSurface {
   int transform = 0;
   List<Rect>? inputRegion;
   bool idleInhibit = false;
+  bool shortcutsInhibited = false;
   Size minSize = Size.zero;
   Size maxSize = Size.zero;
 
@@ -117,6 +118,7 @@ class WaylandService extends ChangeNotifier {
   WaylandCursor? cursor;
   int cursorShape = 0;
   bool pointerOverClient = false;
+  bool pointerLocked = false;
 
   var socket = '';
   var started = false;
@@ -279,6 +281,10 @@ class WaylandService extends ChangeNotifier {
       case 'idleInhibit':
         final s = surfaces[id];
         if (s != null) s.idleInhibit = e['on'] == true;
+      case 'shortcutsInhibit':
+        surfaces[id]?.shortcutsInhibited = e['on'] == true;
+      case 'pointerLock':
+        pointerLocked = e['on'] == true;
       case 'inputRegion':
         final s = surfaces[id];
         final rects = e['rects'] as List<Object?>?;
