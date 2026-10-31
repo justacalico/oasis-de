@@ -2,10 +2,12 @@
 #define _GNU_SOURCE
 #endif
 
+#include <dirent.h>
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <gbm.h>
 #include <libinput.h>
+#include <libudev.h>
 #include <linux/input-event-codes.h>
 #include <poll.h>
 #include <signal.h>
@@ -38,6 +40,10 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
+
+extern "C" {
+#include <libseat.h>
+}
 
 extern "C" {
 #include "flutter_embedder.h"
@@ -494,13 +500,66 @@ static const drmModeModeInfo* head_find_mode(Head& hd, int w, int h,
   return best;
 }
 
+// ---- seat --------------------------------------------------------------------
+//
+// Device nodes under /dev/dri and /dev/input are root-owned and typically
+// not readable by the session user. libseat acquires fds through logind or
+// seatd, which is also what grants drm master; without it the shell would
+// present but open() of every evdev node fails and input is silently dead.
+
+static libseat* g_seat = nullptr;
+static bool g_seat_active = false;
+static std::unordered_map<int, int> g_seat_devs;
+
+static void seat_enable(libseat*, void*) { g_seat_active = true; }
+static void seat_disable(libseat* seat, void*) {
+  g_seat_active = false;
+  libseat_disable_seat(seat);
+}
+static libseat_seat_listener g_seat_listener = {
+    .enable_seat = seat_enable,
+    .disable_seat = seat_disable,
+};
+
+static void seat_init() {
+  g_seat = libseat_open_seat(&g_seat_listener, nullptr);
+  if (g_seat == nullptr) return;
+  for (int i = 0; i < 20 && !g_seat_active; i++) {
+    libseat_dispatch(g_seat, 50);
+  }
+}
+
+static int seat_dev_open(const char* path, int flags) {
+  if (g_seat != nullptr) {
+    int fd = -1;
+    int id = libseat_open_device(g_seat, path, &fd);
+    if (id >= 0 && fd >= 0) {
+      g_seat_devs[fd] = id;
+      return fd;
+    }
+  }
+  return open(path, flags | O_CLOEXEC);
+}
+
+// libseat_close_device also closes the fd for seat-opened devices.
+static void seat_dev_close(int fd) {
+  auto it = g_seat_devs.find(fd);
+  if (it == g_seat_devs.end()) {
+    close(fd);
+    return;
+  }
+  if (g_seat != nullptr) libseat_close_device(g_seat, it->second);
+  g_seat_devs.erase(it);
+}
+
 static void drm_init(Drm& d) {
   const char* nodes[] = {"/dev/dri/card1", "/dev/dri/card0", "/dev/dri/card2"};
   for (auto n : nodes) {
-    d.fd = open(n, O_RDWR | O_CLOEXEC);
+    d.fd = seat_dev_open(n, O_RDWR);
     if (d.fd >= 0) break;
   }
   if (d.fd < 0) die("no drm device");
+  drmSetMaster(d.fd);
   heads_scan(d);
   if (d.heads.empty()) die("no connected connector");
   layout_bounds(d, d.width, d.height);
@@ -632,6 +691,7 @@ static int64_t g_next_tex = 1;
 static struct {
   int fd = -1;
   libinput* li = nullptr;
+  udev* ud = nullptr;
   xkb_context* xkb = nullptr;
   xkb_keymap* map = nullptr;
   xkb_state* state = nullptr;
@@ -833,6 +893,32 @@ static void platform_reply(const FlutterPlatformMessageResponseHandle* h,
   pSendResponse(engine, hh, payload.data(), payload.size());
 }
 
+static void launch_app(const std::vector<std::string>& argv) {
+  pid_t pid = fork();
+  if (pid != 0) return;
+  setsid();
+  setenv("WAYLAND_DISPLAY", g_core->socketName(), 1);
+  if (g_core->xwaylandDisplay() != nullptr) {
+    setenv("DISPLAY", g_core->xwaylandDisplay(), 1);
+  } else {
+    unsetenv("DISPLAY");
+  }
+  unsetenv("XAUTHORITY");
+  setenv("GDK_BACKEND", "wayland", 1);
+  setenv("GTK_CSD", "0", 1);
+  setenv("QT_QPA_PLATFORM", "wayland", 1);
+  setenv("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1", 1);
+  setenv("SDL_VIDEODRIVER", "wayland", 1);
+  setenv("XDG_SESSION_TYPE", "wayland", 1);
+  setenv("MOZ_ENABLE_WAYLAND", "1", 1);
+  setenv("WINIT_UNIX_BACKEND", "wayland", 1);
+  std::vector<char*> cargv;
+  for (const auto& s : argv) cargv.push_back(const_cast<char*>(s.c_str()));
+  cargv.push_back(nullptr);
+  execvp(cargv[0], cargv.data());
+  _exit(127);
+}
+
 static void handle_method(const Mc& mc,
                           const FlutterPlatformMessageResponseHandle* h) {
   const std::string& n = mc.name;
@@ -852,6 +938,24 @@ static void handle_method(const Mc& mc,
     platform_reply(h, socket);
   } else if (n == "stop") {
     g_core->stop();
+    platform_reply(h, Cv{std::monostate{}});
+  } else if (n == "launch") {
+    std::vector<std::string> spawn;
+    if (auto* args = std::get_if<std::map<std::string, Cv>>(&mc.args.v)) {
+      auto it = args->find("argv");
+      if (it != args->end()) {
+        if (auto* l = std::get_if<std::vector<Cv>>(&it->second.v)) {
+          for (auto& e : *l) {
+            if (auto* s = std::get_if<std::string>(&e.v)) {
+              spawn.push_back(*s);
+            }
+          }
+        }
+      }
+    }
+    if (!spawn.empty() && g_core->socketName() != nullptr) {
+      launch_app(spawn);
+    }
     platform_reply(h, Cv{std::monostate{}});
   } else if (n == "configure") {
     g_core->configure(cv_int(mc.args, "id"), (int)cv_int(mc.args, "w"),
@@ -972,17 +1076,38 @@ static void platform_message_cb(const FlutterPlatformMessage* msg, void*) {
 // ---- input ----------------------------------------------------------------
 
 static int input_open(const char* path, int flags, void*) {
-  return open(path, flags);
+  return seat_dev_open(path, flags);
 }
-static void input_close(int fd, void*) { close(fd); }
+static void input_close(int fd, void*) { seat_dev_close(fd); }
 static const libinput_interface input_iface = {.open_restricted = input_open,
                                                .close_restricted = input_close};
 
 static void input_init() {
-  g_input.li = libinput_path_create_context(&input_iface, nullptr);
-  const char* devs[] = {"/dev/input/event0", "/dev/input/event1",
-                        "/dev/input/event2", "/dev/input/event3"};
-  for (auto d : devs) libinput_path_add_device(g_input.li, d);
+  const char* seat = g_seat != nullptr ? libseat_seat_name(g_seat)
+                                       : getenv("XDG_SEAT");
+  if (seat == nullptr) seat = "seat0";
+  g_input.ud = udev_new();
+  if (g_input.ud != nullptr) {
+    g_input.li = libinput_udev_create_context(&input_iface, nullptr,
+                                              g_input.ud);
+    if (g_input.li != nullptr &&
+        libinput_udev_assign_seat(g_input.li, seat) != 0) {
+      libinput_unref(g_input.li);
+      g_input.li = nullptr;
+    }
+  }
+  if (g_input.li == nullptr) {
+    g_input.li = libinput_path_create_context(&input_iface, nullptr);
+    if (DIR* dir = opendir("/dev/input")) {
+      while (dirent* de = readdir(dir)) {
+        if (strncmp(de->d_name, "event", 5) != 0) continue;
+        char path[64];
+        snprintf(path, sizeof(path), "/dev/input/%s", de->d_name);
+        libinput_path_add_device(g_input.li, path);
+      }
+      closedir(dir);
+    }
+  }
   g_input.fd = libinput_get_fd(g_input.li);
   g_input.xkb = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
   xkb_rule_names names = {};
@@ -1233,6 +1358,13 @@ static void input_dispatch() {
       fev.type = down ? kFlutterKeyEventTypeDown : kFlutterKeyEventTypeUp;
       fev.physical = key_physical(code);
       fev.logical = key_logical(code);
+      fev.device_type = kFlutterKeyEventDeviceTypeKeyboard;
+      char utf8[32];
+      if (down && g_input.state != nullptr &&
+          xkb_state_key_get_utf8(g_input.state, code + 8, utf8,
+                                 sizeof(utf8)) > 0) {
+        fev.character = utf8;
+      }
       pSendKey(engine, &fev, nullptr, nullptr);
     }
     libinput_event_destroy(ev);
@@ -1275,6 +1407,8 @@ int main(int argc, char** argv) {
   std::string assets = std::string(bundle) + "/data/flutter_assets";
   std::string icu = std::string(bundle) + "/data/icudtl.dat";
 
+  signal(SIGCHLD, SIG_IGN);
+  seat_init();
   drm_init(g_drm);
   gbm_init(g_drm);
   eng_make_current(nullptr);
@@ -1353,13 +1487,15 @@ int main(int argc, char** argv) {
   evctx.page_flip_handler = on_flip;
 
   int wlfd = -1;
+  int seatfd = g_seat != nullptr ? libseat_get_fd(g_seat) : -1;
   int rescans = 0;
   while (true) {
-    pollfd fds[4] = {};
+    pollfd fds[5] = {};
     int nf = 0;
     fds[nf++] = {g_input.fd, POLLIN, 0};
     fds[nf++] = {g_drm.fd, POLLIN, 0};
     fds[nf++] = {g_wake_fd, POLLIN, 0};
+    if (seatfd >= 0) fds[nf++] = {seatfd, POLLIN, 0};
     if (wlfd < 0 && g_core->running()) wlfd = g_core->fd();
     if (!g_core->running()) wlfd = -1;
     if (wlfd >= 0) fds[nf++] = {wlfd, POLLIN, 0};
@@ -1388,6 +1524,8 @@ int main(int argc, char** argv) {
         uint64_t n;
         ssize_t unused = read(g_wake_fd, &n, sizeof(n));
         (void)unused;
+      } else if (fds[i].fd == seatfd && (fds[i].revents & POLLIN)) {
+        libseat_dispatch(g_seat, 0);
       } else if (fds[i].fd == wlfd && (fds[i].revents & POLLIN)) {
         g_core->dispatch();
       }
