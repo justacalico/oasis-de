@@ -198,6 +198,9 @@ void exerciseStrings(OasisLocalizations l) {
   l.displaysRotation;
   l.displaysRotationNone;
   l.displaysScale;
+  l.soundOutput;
+  l.soundInput;
+  l.soundProfiles;
   l.updateInstall;
   l.updateInstallFailed;
   l.updateInstalled;

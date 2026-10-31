@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -145,6 +146,127 @@ void main() {
     expect(calls, ['nmcli device wifi connect Cafe']);
   });
 
+  test('cli backend lists and selects audio devices', () async {
+    final calls = <String>[];
+    Future<ProcessResult> fakeRun(String exe, List<String> args) async {
+      calls.add('$exe ${args.join(' ')}');
+      final out = switch (args.join(' ')) {
+        '--format=json list sinks' => jsonEncode([
+            {'name': 'spk', 'description': 'Speakers'},
+            {'name': 'hdmi', 'description': 'HDMI Out'},
+            {'description': 'unnamed'},
+            'garbage',
+          ]),
+        'get-default-sink' => 'hdmi\n',
+        '--format=json list sources' => jsonEncode([
+            {'name': 'mic', 'description': 'Mic', 'monitor_source': ''},
+            {
+              'name': 'spk.monitor',
+              'description': 'Monitor',
+              'monitor_source': 'spk',
+            },
+            {'name': 'cam', 'description': 'Webcam', 'monitor_of_sink': 4},
+            {'name': 'line', 'monitor_of_sink': null},
+          ]),
+        'get-default-source' => 'mic\n',
+        '--format=json list cards' => jsonEncode([
+            {
+              'name': 'card_a',
+              'properties': {'device.description': 'Built-in Audio'},
+              'active_profile': 'analog',
+              'profiles': {
+                'analog': {'description': 'Analog Stereo', 'available': true},
+                'pro': {'available': false},
+                'off': 'not-a-map',
+              },
+            },
+            {
+              'name': 'card_b',
+              'properties': {},
+              'profiles': 'junk',
+            },
+            {'name': 'card_c'},
+            {'description': 'unnamed'},
+          ]),
+        _ => '',
+      };
+      return ProcessResult(0, 0, out, '');
+    }
+
+    final b = CliSystemBackend(run: fakeRun);
+
+    final outs = await b.audioOutputs();
+    expect(outs.map((d) => d.name), ['spk', 'hdmi']);
+    expect(outs[0].description, 'Speakers');
+    expect(outs[0].isDefault, isFalse);
+    expect(outs[1].isDefault, isTrue);
+
+    final ins = await b.audioInputs();
+    expect(ins.map((d) => d.name), ['mic', 'line']);
+    expect(ins[0].isDefault, isTrue);
+    expect(ins[1].isDefault, isFalse);
+    expect(ins[1].description, 'line');
+
+    final cards = await b.audioCards();
+    expect(cards.map((c) => c.name), ['card_a', 'card_b', 'card_c']);
+    expect(cards[2].description, 'card_c');
+    expect(cards[0].description, 'Built-in Audio');
+    expect(cards[0].activeProfile, 'analog');
+    expect(cards[0].profiles.map((p) => p.name), ['analog', 'pro']);
+    expect(cards[0].profiles[0].description, 'Analog Stereo');
+    expect(cards[0].profiles[0].available, isTrue);
+    expect(cards[0].profiles[1].description, 'pro');
+    expect(cards[0].profiles[1].available, isFalse);
+    expect(cards[1].description, 'card_b');
+    expect(cards[1].activeProfile, isEmpty);
+    expect(cards[1].profiles, isEmpty);
+
+    const dev = OasisAudioDevice(
+      name: 'x',
+      description: 'd',
+      isDefault: true,
+    );
+    expect(dev.copyWith().isDefault, isTrue);
+    const card = OasisAudioCard(name: 'c', activeProfile: 'p');
+    expect(card.copyWith().activeProfile, 'p');
+
+    calls.clear();
+    await b.setAudioOutput('spk');
+    await b.setAudioInput('mic');
+    await b.setAudioCardProfile('card_a', 'pro');
+    expect(calls, [
+      'pactl set-default-sink spk',
+      'pactl set-default-source mic',
+      'pactl set-card-profile card_a pro',
+    ]);
+  });
+
+  test('cli backend returns no audio on failure or bad output', () async {
+    Future<ProcessResult> failing(String exe, List<String> args) async {
+      return ProcessResult(0, 1, '', '');
+    }
+
+    var b = CliSystemBackend(run: failing);
+    expect(await b.audioOutputs(), isEmpty);
+    expect(await b.audioInputs(), isEmpty);
+    expect(await b.audioCards(), isEmpty);
+
+    Future<ProcessResult> odd(String exe, List<String> args) async {
+      final out = switch (args.last) {
+        'sinks' => 'not json',
+        'sources' => '{}',
+        'cards' => 'not json',
+        _ => '',
+      };
+      return ProcessResult(0, 0, out, '');
+    }
+
+    b = CliSystemBackend(run: odd);
+    expect(await b.audioOutputs(), isEmpty);
+    expect(await b.audioInputs(), isEmpty);
+    expect(await b.audioCards(), isEmpty);
+  });
+
   test('cli backend returns no networks on failure', () async {
     Future<ProcessResult> fakeRun(String exe, List<String> args) async {
       return ProcessResult(0, 1, '', '');
@@ -169,6 +291,13 @@ void main() {
       (await NoopSystemBackend().read()).wifi,
       isNull,
     );
+    NoopSystemBackend()
+      ..setAudioOutput('x')
+      ..setAudioInput('x')
+      ..setAudioCardProfile('c', 'p');
+    expect(await NoopSystemBackend().audioOutputs(), isEmpty);
+    expect(await NoopSystemBackend().audioInputs(), isEmpty);
+    expect(await NoopSystemBackend().audioCards(), isEmpty);
     expect(await NoopSystemBackend().wifiNetworks(), isEmpty);
     expect((await NoopSystemBackend().battery()).level, isNull);
     expect(
@@ -286,6 +415,24 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<void> volume(double level) async => calls.add('volume');
+
+  @override
+  Future<List<OasisAudioDevice>> audioOutputs() async => const [];
+
+  @override
+  Future<List<OasisAudioDevice>> audioInputs() async => const [];
+
+  @override
+  Future<List<OasisAudioCard>> audioCards() async => const [];
+
+  @override
+  Future<void> setAudioOutput(String name) async {}
+
+  @override
+  Future<void> setAudioInput(String name) async {}
+
+  @override
+  Future<void> setAudioCardProfile(String card, String profile) async {}
 
   @override
   Future<void> nightLight(bool enabled) async => calls.add('nightLight');

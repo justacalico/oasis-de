@@ -253,5 +253,8 @@
   "displaysScale": "Масштаб",
   "displaysRotation": "Поворот",
   "displaysRotationNone": "Обычный",
-  "displaysPrimary": "основной"
+  "displaysPrimary": "основной",
+  "soundOutput": "Вывод",
+  "soundInput": "Ввод",
+  "soundProfiles": "Профили устройств"
 }

@@ -624,4 +624,13 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get displaysPrimary => 'primary';
+
+  @override
+  String get soundOutput => 'Output';
+
+  @override
+  String get soundInput => 'Input';
+
+  @override
+  String get soundProfiles => 'Device profiles';
 }

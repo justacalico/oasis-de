@@ -617,4 +617,13 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get displaysPrimary => '主显示器';
+
+  @override
+  String get soundOutput => '输出';
+
+  @override
+  String get soundInput => '输入';
+
+  @override
+  String get soundProfiles => '设备配置';
 }

@@ -626,4 +626,13 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get displaysPrimary => 'príomh';
+
+  @override
+  String get soundOutput => 'Aschur';
+
+  @override
+  String get soundInput => 'Ionchur';
+
+  @override
+  String get soundProfiles => 'Próifílí gléas';
 }

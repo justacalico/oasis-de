@@ -431,6 +431,139 @@ void main() {
     plain.dispose();
   });
 
+  test('SettingsState refreshes and selects audio devices', () async {
+    final calls = <String>[];
+    final s = SettingsState(
+      store: MemorySettingsStore(),
+      backend: _StubBackend(
+        calls,
+        outputs: const [
+          OasisAudioDevice(
+            name: 'spk',
+            description: 'Speakers',
+            isDefault: true,
+          ),
+          OasisAudioDevice(name: 'hdmi', description: 'HDMI'),
+        ],
+        inputs: const [
+          OasisAudioDevice(name: 'mic', description: 'Mic'),
+        ],
+        cards: const [
+          OasisAudioCard(
+            name: 'card',
+            description: 'Card',
+            activeProfile: 'a',
+            profiles: [
+              OasisAudioProfile(name: 'a'),
+              OasisAudioProfile(name: 'b'),
+            ],
+          ),
+          OasisAudioCard(name: 'card2', activeProfile: 'x'),
+        ],
+      ),
+    );
+    await s.refreshAudio();
+    expect(s.audioOutputs.length, 2);
+    expect(s.audioInputs.length, 1);
+    expect(s.audioCards.length, 2);
+
+    await s.selectAudioOutput('hdmi');
+    expect(calls, contains('output:hdmi'));
+    expect(s.audioOutputs[0].isDefault, isFalse);
+    expect(s.audioOutputs[1].isDefault, isTrue);
+
+    await s.selectAudioInput('mic');
+    expect(calls, contains('input:mic'));
+    expect(s.audioInputs[0].isDefault, isTrue);
+
+    await s.selectAudioProfile('card', 'b');
+    expect(calls, contains('profile:card:b'));
+    expect(s.audioCards[0].activeProfile, 'b');
+    expect(s.audioCards[0].profiles.length, 2);
+    expect(s.audioCards[1].activeProfile, 'x');
+
+    final plain = SettingsState();
+    await plain.refreshAudio();
+    await plain.selectAudioOutput('x');
+    await plain.selectAudioInput('x');
+    await plain.selectAudioProfile('c', 'p');
+    expect(plain.audioOutputs, isEmpty);
+    s.dispose();
+    plain.dispose();
+  });
+
+  testWidgets('sound pane picks devices and profiles', (tester) async {
+    final calls = <String>[];
+    final s = SettingsState(
+      store: MemorySettingsStore(),
+      backend: _StubBackend(
+        calls,
+        outputs: const [
+          OasisAudioDevice(
+            name: 'spk',
+            description: 'Speakers',
+            isDefault: true,
+          ),
+          OasisAudioDevice(name: 'hdmi'),
+        ],
+        inputs: const [
+          OasisAudioDevice(name: 'mic', description: 'Microphone'),
+        ],
+        cards: const [
+          OasisAudioCard(
+            name: 'card1',
+            description: 'Built-in Audio',
+            activeProfile: 'stereo',
+            profiles: [
+              OasisAudioProfile(
+                name: 'stereo',
+                description: 'Analog Stereo',
+              ),
+              OasisAudioProfile(name: 'pro', description: 'Pro Audio'),
+            ],
+          ),
+          OasisAudioCard(name: 'card2'),
+          OasisAudioCard(
+            name: 'card3',
+            activeProfile: 'ghost',
+            profiles: [OasisAudioProfile(name: 'off')],
+          ),
+        ],
+      ),
+    );
+    await pumpOasis(
+      tester,
+      _host(child: SettingsHome(state: s)),
+      size: const Size(900, 620),
+    );
+    await tester.tap(find.text('Sound'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Output'), findsOneWidget);
+    expect(find.text('Speakers'), findsOneWidget);
+    expect(find.text('hdmi'), findsOneWidget);
+    expect(find.text('Input'), findsOneWidget);
+    expect(find.text('Microphone'), findsOneWidget);
+    expect(find.text('Device profiles'), findsOneWidget);
+    expect(find.text('Built-in Audio'), findsOneWidget);
+    expect(find.text('card3'), findsOneWidget);
+
+    await tester.tap(find.text('hdmi'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('output:hdmi'));
+
+    await tester.tap(find.text('Microphone'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('input:mic'));
+
+    await tester.tap(find.byType(DropdownButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pro Audio').last);
+    await tester.pumpAndSettle();
+    expect(calls, contains('profile:card1:pro'));
+    s.dispose();
+  });
+
   testWidgets('settings sidebar search filters panes', (tester) async {
     await pumpOasis(
       tester,
@@ -502,11 +635,42 @@ void main() {
 }
 
 class _StubBackend extends NoopSystemBackend {
-  _StubBackend(this.calls, {this.state = const OasisSystemState(), this.batteryValue});
+  _StubBackend(
+    this.calls, {
+    this.state = const OasisSystemState(),
+    this.batteryValue,
+    this.outputs = const [],
+    this.inputs = const [],
+    this.cards = const [],
+  });
 
   final List<String> calls;
   final OasisSystemState state;
   final OasisBattery? batteryValue;
+  final List<OasisAudioDevice> outputs;
+  final List<OasisAudioDevice> inputs;
+  final List<OasisAudioCard> cards;
+
+  @override
+  Future<List<OasisAudioDevice>> audioOutputs() async => outputs;
+
+  @override
+  Future<List<OasisAudioDevice>> audioInputs() async => inputs;
+
+  @override
+  Future<List<OasisAudioCard>> audioCards() async => cards;
+
+  @override
+  Future<void> setAudioOutput(String name) async =>
+      calls.add('output:$name');
+
+  @override
+  Future<void> setAudioInput(String name) async =>
+      calls.add('input:$name');
+
+  @override
+  Future<void> setAudioCardProfile(String card, String profile) async =>
+      calls.add('profile:$card:$profile');
 
   @override
   Future<OasisSystemState> read() async => state;

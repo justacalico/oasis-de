@@ -4,6 +4,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 import '../state/settings_state.dart';
 import 'displays_pane.dart';
 import 'panes.dart';
+import 'sound_pane.dart';
 import 'wallpaper_pane.dart';
 
 class SettingsHome extends StatefulWidget {

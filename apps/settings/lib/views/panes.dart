@@ -400,43 +400,6 @@ class _AboutPaneState extends State<AboutPane> {
   }
 }
 
-class SoundPane extends StatelessWidget {
-  const SoundPane({super.key, required this.state});
-
-  final SettingsState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = OasisLocalizations.of(context);
-    final text = Theme.of(context).textTheme;
-    final b = state.backend;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.settingsSound, style: text.titleLarge),
-        const SizedBox(height: 16),
-        OasisSection(
-          children: [
-            OasisRow(
-              leading: const Icon(Icons.volume_up, size: 20),
-              title: l10n.settingsVolume,
-              trailing: SizedBox(
-                width: 180,
-                child: OasisSlider(
-                  value: state.volume,
-                  onChanged:
-                      b == null ? null : (v) => state.volumeLevel = v,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 class PowerPane extends StatelessWidget {
   const PowerPane({super.key, required this.state});
 

@@ -1289,6 +1289,24 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'primary'**
   String get displaysPrimary;
+
+  /// No description provided for @soundOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Output'**
+  String get soundOutput;
+
+  /// No description provided for @soundInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Input'**
+  String get soundInput;
+
+  /// No description provided for @soundProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Device profiles'**
+  String get soundProfiles;
 }
 
 class _OasisLocalizationsDelegate

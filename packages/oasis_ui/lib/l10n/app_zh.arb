@@ -253,5 +253,8 @@
   "displaysScale": "缩放",
   "displaysRotation": "旋转",
   "displaysRotationNone": "默认",
-  "displaysPrimary": "主显示器"
+  "displaysPrimary": "主显示器",
+  "soundOutput": "输出",
+  "soundInput": "输入",
+  "soundProfiles": "设备配置"
 }

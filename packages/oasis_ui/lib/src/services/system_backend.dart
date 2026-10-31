@@ -37,6 +37,57 @@ class OasisWifiNetwork {
   final bool connected;
 }
 
+class OasisAudioDevice {
+  const OasisAudioDevice({
+    required this.name,
+    this.description = '',
+    this.isDefault = false,
+  });
+
+  final String name;
+  final String description;
+  final bool isDefault;
+
+  OasisAudioDevice copyWith({bool? isDefault}) => OasisAudioDevice(
+        name: name,
+        description: description,
+        isDefault: isDefault ?? this.isDefault,
+      );
+}
+
+class OasisAudioProfile {
+  const OasisAudioProfile({
+    required this.name,
+    this.description = '',
+    this.available = true,
+  });
+
+  final String name;
+  final String description;
+  final bool available;
+}
+
+class OasisAudioCard {
+  const OasisAudioCard({
+    required this.name,
+    this.description = '',
+    this.activeProfile = '',
+    this.profiles = const [],
+  });
+
+  final String name;
+  final String description;
+  final String activeProfile;
+  final List<OasisAudioProfile> profiles;
+
+  OasisAudioCard copyWith({String? activeProfile}) => OasisAudioCard(
+        name: name,
+        description: description,
+        activeProfile: activeProfile ?? this.activeProfile,
+        profiles: profiles,
+      );
+}
+
 abstract class OasisSystemBackend {
   Future<void> wifi(bool enabled);
   Future<List<OasisWifiNetwork>> wifiNetworks();
@@ -44,6 +95,12 @@ abstract class OasisSystemBackend {
   Future<void> bluetooth(bool enabled);
   Future<void> brightness(double level);
   Future<void> volume(double level);
+  Future<List<OasisAudioDevice>> audioOutputs();
+  Future<List<OasisAudioDevice>> audioInputs();
+  Future<List<OasisAudioCard>> audioCards();
+  Future<void> setAudioOutput(String name);
+  Future<void> setAudioInput(String name);
+  Future<void> setAudioCardProfile(String card, String profile);
   Future<void> nightLight(bool enabled);
   Future<OasisSystemState> read();
   Future<OasisBattery> battery();
@@ -92,6 +149,24 @@ class NoopSystemBackend implements OasisSystemBackend {
 
   @override
   Future<void> volume(double level) async {}
+
+  @override
+  Future<List<OasisAudioDevice>> audioOutputs() async => const [];
+
+  @override
+  Future<List<OasisAudioDevice>> audioInputs() async => const [];
+
+  @override
+  Future<List<OasisAudioCard>> audioCards() async => const [];
+
+  @override
+  Future<void> setAudioOutput(String name) async {}
+
+  @override
+  Future<void> setAudioInput(String name) async {}
+
+  @override
+  Future<void> setAudioCardProfile(String card, String profile) async {}
 
   @override
   Future<void> nightLight(bool enabled) async {}

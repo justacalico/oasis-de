@@ -33,6 +33,47 @@ class _InfoBackend extends NoopSystemBackend {
   );
 }
 
+class _AudioBackend extends _InfoBackend {
+  const _AudioBackend();
+
+  @override
+  Future<List<OasisAudioDevice>> audioOutputs() async => const [
+        OasisAudioDevice(
+          name: 'spk',
+          description: 'Built-in Speakers',
+          isDefault: true,
+        ),
+        OasisAudioDevice(name: 'hdmi', description: 'HDMI Audio'),
+      ];
+
+  @override
+  Future<List<OasisAudioDevice>> audioInputs() async => const [
+        OasisAudioDevice(
+          name: 'mic',
+          description: 'Internal Microphone',
+          isDefault: true,
+        ),
+        OasisAudioDevice(name: 'usbmic', description: 'USB Microphone'),
+      ];
+
+  @override
+  Future<List<OasisAudioCard>> audioCards() async => const [
+        OasisAudioCard(
+          name: 'card0',
+          description: 'Built-in Audio',
+          activeProfile: 'analog-stereo',
+          profiles: [
+            OasisAudioProfile(
+              name: 'analog-stereo',
+              description: 'Analog Stereo Duplex',
+            ),
+            OasisAudioProfile(name: 'pro', description: 'Pro Audio'),
+            OasisAudioProfile(name: 'off', description: 'Off'),
+          ],
+        ),
+      ];
+}
+
 class _WifiBackend extends NoopSystemBackend {
   const _WifiBackend();
 
@@ -517,6 +558,24 @@ void main() {
       );
     });
   }
+
+  testWidgets('settings sound', (tester) async {
+    await _size(tester, const Size(1000, 700));
+    final s = SettingsState(backend: const _AudioBackend())
+      ..selectPane(SettingsPane.sound);
+    await tester.pumpWidget(
+      OasisSettingsApp(
+        state: s,
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        updateChecker: _FakeChecker(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/settings_sound.png'),
+    );
+  });
 
   for (final locale in const [
     Locale('zh'),

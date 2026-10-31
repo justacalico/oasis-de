@@ -72,6 +72,53 @@ class SettingsState extends ChangeNotifier {
   Future<void> identifyDisplays() =>
       displayBackend?.identifyDisplays() ?? Future.value();
 
+  List<OasisAudioDevice> audioOutputs = const [];
+  List<OasisAudioDevice> audioInputs = const [];
+  List<OasisAudioCard> audioCards = const [];
+
+  Future<void> refreshAudio() async {
+    final b = backend;
+    if (b == null) return;
+    final results = await Future.wait([
+      b.audioOutputs(),
+      b.audioInputs(),
+      b.audioCards(),
+    ]);
+    audioOutputs = results[0] as List<OasisAudioDevice>;
+    audioInputs = results[1] as List<OasisAudioDevice>;
+    audioCards = results[2] as List<OasisAudioCard>;
+    notifyListeners();
+  }
+
+  Future<void> selectAudioOutput(String name) async {
+    await backend?.setAudioOutput(name);
+    audioOutputs = _markDefault(audioOutputs, name);
+    notifyListeners();
+  }
+
+  Future<void> selectAudioInput(String name) async {
+    await backend?.setAudioInput(name);
+    audioInputs = _markDefault(audioInputs, name);
+    notifyListeners();
+  }
+
+  Future<void> selectAudioProfile(String card, String profile) async {
+    await backend?.setAudioCardProfile(card, profile);
+    audioCards = [
+      for (final c in audioCards)
+        c.name == card ? c.copyWith(activeProfile: profile) : c,
+    ];
+    notifyListeners();
+  }
+
+  static List<OasisAudioDevice> _markDefault(
+    List<OasisAudioDevice> devices,
+    String name,
+  ) =>
+      [
+        for (final d in devices) d.copyWith(isDefault: d.name == name),
+      ];
+
   var pane = SettingsPane.appearance;
   var wifiOn = true;
   var bluetoothOn = true;
