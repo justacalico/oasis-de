@@ -579,7 +579,10 @@ static void surface_unmap(wl_listener* listener, void*) {
 
 static void surface_destroyed(wl_listener* listener, void*) {
   Surface* s = wl_container_of(listener, s, destroy);
-  s->wlr = nullptr;
+  if (s->wlr != nullptr) {
+    s->comp->by_wlr.erase(s->wlr);
+    s->wlr = nullptr;
+  }
   free_surface(s);
 }
 
