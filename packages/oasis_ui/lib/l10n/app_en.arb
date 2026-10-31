@@ -253,5 +253,8 @@
   "displaysScale": "Scale",
   "displaysRotation": "Rotation",
   "displaysRotationNone": "Default",
-  "displaysPrimary": "primary"
+  "displaysPrimary": "primary",
+  "soundOutput": "Output",
+  "soundInput": "Input",
+  "soundProfiles": "Device profiles"
 }

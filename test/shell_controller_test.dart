@@ -770,6 +770,24 @@ class _BatteryBackend implements OasisSystemBackend {
   Future<void> volume(double level) async {}
 
   @override
+  Future<List<OasisAudioDevice>> audioOutputs() async => const [];
+
+  @override
+  Future<List<OasisAudioDevice>> audioInputs() async => const [];
+
+  @override
+  Future<List<OasisAudioCard>> audioCards() async => const [];
+
+  @override
+  Future<void> setAudioOutput(String name) async {}
+
+  @override
+  Future<void> setAudioInput(String name) async {}
+
+  @override
+  Future<void> setAudioCardProfile(String card, String profile) async {}
+
+  @override
   Future<void> nightLight(bool enabled) async {}
 
   @override
@@ -805,6 +823,27 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<void> volume(double level) async => calls.add('volume');
+
+  @override
+  Future<List<OasisAudioDevice>> audioOutputs() async => const [];
+
+  @override
+  Future<List<OasisAudioDevice>> audioInputs() async => const [];
+
+  @override
+  Future<List<OasisAudioCard>> audioCards() async => const [];
+
+  @override
+  Future<void> setAudioOutput(String name) async =>
+      calls.add('output:$name');
+
+  @override
+  Future<void> setAudioInput(String name) async =>
+      calls.add('input:$name');
+
+  @override
+  Future<void> setAudioCardProfile(String card, String profile) async =>
+      calls.add('profile:$card:$profile');
 
   @override
   Future<void> nightLight(bool enabled) async => calls.add('nightLight');

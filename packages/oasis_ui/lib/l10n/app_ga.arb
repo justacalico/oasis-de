@@ -253,5 +253,8 @@
   "displaysScale": "Scála",
   "displaysRotation": "Rothlú",
   "displaysRotationNone": "Réamhshocraithe",
-  "displaysPrimary": "príomh"
+  "displaysPrimary": "príomh",
+  "soundOutput": "Aschur",
+  "soundInput": "Ionchur",
+  "soundProfiles": "Próifílí gléas"
 }

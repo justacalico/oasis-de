@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -112,6 +113,93 @@ class CliSystemBackend implements OasisSystemBackend {
     final v = level.clamp(0.0, 1.0);
     return _exec('wpctl', ['set-volume', '@DEFAULT_AUDIO_SINK@', '$v']);
   }
+
+  @override
+  Future<List<OasisAudioDevice>> audioOutputs() => _audioNodes('sink');
+
+  @override
+  Future<List<OasisAudioDevice>> audioInputs() => _audioNodes('source');
+
+  Future<List<OasisAudioDevice>> _audioNodes(String kind) async {
+    final results = await Future.wait([
+      _read('pactl', ['--format=json', 'list', '${kind}s']),
+      _read('pactl', ['get-default-$kind']),
+    ]);
+    final out = results[0];
+    if (out == null) return const [];
+    try {
+      final list = jsonDecode(out);
+      if (list is! List) return const [];
+      final defaultName = results[1]?.trim();
+      return [
+        for (final e in list)
+          if (e is Map &&
+              e['name'] is String &&
+              (kind == 'sink' || !_isMonitor(e)))
+            OasisAudioDevice(
+              name: e['name'] as String,
+              description: '${e['description'] ?? e['name']}',
+              isDefault: e['name'] == defaultName,
+            ),
+      ];
+    } on FormatException {
+      return const [];
+    }
+  }
+
+  static bool _isMonitor(Map e) =>
+      '${e['monitor_source'] ?? ''}'.isNotEmpty ||
+      e['monitor_of_sink'] != null;
+
+  @override
+  Future<List<OasisAudioCard>> audioCards() async {
+    final out = await _read('pactl', ['--format=json', 'list', 'cards']);
+    if (out == null) return const [];
+    try {
+      final list = jsonDecode(out);
+      if (list is! List) return const [];
+      return [
+        for (final e in list)
+          if (e is Map && e['name'] is String) _audioCard(e),
+      ];
+    } on FormatException {
+      return const [];
+    }
+  }
+
+  static OasisAudioCard _audioCard(Map e) {
+    final props = e['properties'];
+    final profiles = e['profiles'];
+    return OasisAudioCard(
+      name: e['name'] as String,
+      description: props is Map
+          ? '${props['device.description'] ?? e['name']}'
+          : e['name'] as String,
+      activeProfile: '${e['active_profile'] ?? ''}',
+      profiles: [
+        if (profiles is Map)
+          for (final p in profiles.entries)
+            if (p.value is Map)
+              OasisAudioProfile(
+                name: '${p.key}',
+                description: '${p.value['description'] ?? p.key}',
+                available: p.value['available'] != false,
+              ),
+      ],
+    );
+  }
+
+  @override
+  Future<void> setAudioOutput(String name) =>
+      _exec('pactl', ['set-default-sink', name]);
+
+  @override
+  Future<void> setAudioInput(String name) =>
+      _exec('pactl', ['set-default-source', name]);
+
+  @override
+  Future<void> setAudioCardProfile(String card, String profile) =>
+      _exec('pactl', ['set-card-profile', card, profile]);
 
   @override
   Future<void> nightLight(bool enabled) {

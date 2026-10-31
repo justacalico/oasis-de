@@ -625,4 +625,13 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get displaysPrimary => 'основной';
+
+  @override
+  String get soundOutput => 'Вывод';
+
+  @override
+  String get soundInput => 'Ввод';
+
+  @override
+  String get soundProfiles => 'Профили устройств';
 }
