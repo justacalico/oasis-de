@@ -335,6 +335,14 @@ void main() {
   });
 
   test('cli backend reads system info', () async {
+    final proc = Directory.systemTemp.createTempSync('proc');
+    addTearDown(() => proc.delete(recursive: true));
+    File('${proc.path}/cpuinfo')
+        .writeAsStringSync('model name\t: Test CPU\n');
+    File('${proc.path}/meminfo')
+        .writeAsStringSync('MemTotal:       16384000 kB\n');
+    File('${proc.path}/version')
+        .writeAsStringSync('Linux version 6.0.0-test\n');
     Future<ProcessResult> fakeRun(String exe, List<String> args) async {
       return ProcessResult(
         0,
@@ -344,9 +352,10 @@ void main() {
       );
     }
 
-    final i = await CliSystemBackend(run: fakeRun).systemInfo();
+    final i = await CliSystemBackend(run: fakeRun, procDir: proc)
+        .systemInfo();
     expect(i.kernel, contains('Linux'));
-    expect(i.cpu, isNotEmpty);
+    expect(i.cpu, 'Test CPU');
     expect(i.memory, endsWith('GB'));
     expect(i.disk, '512G (120G used)');
     expect(i.osName, isNotEmpty);

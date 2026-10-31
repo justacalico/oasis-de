@@ -13,6 +13,7 @@ class CliSystemBackend implements OasisSystemBackend {
     this.userName,
     this.drmDir,
     this.sessionId,
+    this.procDir,
   });
 
   final Future<ProcessResult> Function(String, List<String>)? run;
@@ -21,6 +22,7 @@ class CliSystemBackend implements OasisSystemBackend {
   final String Function()? userName;
   final Directory? drmDir;
   final String Function()? sessionId;
+  final Directory? procDir;
 
   Future<void> _exec(String exe, List<String> args) async {
     if (kIsWeb) return;
@@ -332,11 +334,12 @@ class CliSystemBackend implements OasisSystemBackend {
       }
     }
 
-    final cpuLine = read('/proc/cpuinfo')
+    final proc = procDir?.path ?? '/proc';
+    final cpuLine = read('$proc/cpuinfo')
         .split('\n')
         .firstWhere((l) => l.startsWith('model name'), orElse: () => '');
     final memKb = RegExp(r'MemTotal:\s+(\d+)')
-        .firstMatch(read('/proc/meminfo'))
+        .firstMatch(read('$proc/meminfo'))
         ?.group(1);
     String disk = '';
     try {
@@ -370,7 +373,7 @@ class CliSystemBackend implements OasisSystemBackend {
     return OasisSystemInfo(
       deviceName: Platform.localHostname,
       osName: osName,
-      kernel: read('/proc/version').split(' ').take(3).join(' '),
+      kernel: read('$proc/version').split(' ').take(3).join(' '),
       cpu: cpuLine.contains(':') ? cpuLine.split(':').last.trim() : '',
       memory: memKb == null
           ? ''
