@@ -18,6 +18,7 @@ List<OasisApp> buildShellApps(
   ValueChanged<String>? openUrl,
   OasisStore? store,
   OasisSystemBackend? backend,
+  OasisDisplayBackend? displayBackend,
 }) {
   SettingsState? settingsState;
   return [
@@ -37,6 +38,7 @@ List<OasisApp> buildShellApps(
           state: settingsState ??= SettingsState(
             store: store,
             backend: backend,
+            displayBackend: displayBackend,
           ),
         ),
       ),

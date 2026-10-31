@@ -582,4 +582,37 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get lockUnlock => 'Unlock';
+
+  @override
+  String get displaysIdentify => 'Identify';
+
+  @override
+  String get displaysNone => 'No displays found';
+
+  @override
+  String get displaysArrangeHint => 'Drag displays to arrange them.';
+
+  @override
+  String get displaysApply => 'Apply';
+
+  @override
+  String get displaysRevert => 'Revert';
+
+  @override
+  String get displaysResolution => 'Resolution';
+
+  @override
+  String get displaysRefresh => 'Refresh rate';
+
+  @override
+  String get displaysScale => 'Scale';
+
+  @override
+  String get displaysRotation => 'Rotation';
+
+  @override
+  String get displaysRotationNone => 'Default';
+
+  @override
+  String get displaysPrimary => 'primary';
 }

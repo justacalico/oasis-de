@@ -59,6 +59,26 @@ class FakeWaylandHost extends WaylandHost {
   }
 
   @override
+  Future<void> surfaceOutputs(int id, List<int> outputs) async {
+    calls.add('surfaceOutputs:$id:${outputs.join('+')}');
+  }
+
+  @override
+  Future<void> configureOutput(
+    String name, {
+    int? x,
+    int? y,
+    int? width,
+    int? height,
+    int? refreshMhz,
+    double? scale,
+    int? transform,
+    bool? enabled,
+  }) async {
+    calls.add('configureOutput:$name:${x ?? -1}:${y ?? -1}:$enabled');
+  }
+
+  @override
   Future<void> close(int id) async {
     calls.add('close:$id');
   }

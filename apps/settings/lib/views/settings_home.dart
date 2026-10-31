@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import '../state/settings_state.dart';
+import 'displays_pane.dart';
 import 'panes.dart';
 import 'wallpaper_pane.dart';
 

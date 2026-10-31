@@ -14,7 +14,11 @@ Future<void> main() async {
   final store = PrefsOasisStore(prefs);
   runApp(OasisSettingsApp(
     wallpaper: OasisWallpaperService(store: store),
-    state: SettingsState(store: store, backend: const CliSystemBackend()),
+    state: SettingsState(
+      store: store,
+      backend: const CliSystemBackend(),
+      displayBackend: const CliDisplayBackend(),
+    ),
     openUrl: (url) async {
       final uri = Uri.tryParse(url);
       if (uri != null) await launchUrl(uri);

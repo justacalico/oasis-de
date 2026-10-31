@@ -400,53 +400,6 @@ class _AboutPaneState extends State<AboutPane> {
   }
 }
 
-class DisplaysPane extends StatelessWidget {
-  const DisplaysPane({super.key, required this.state});
-
-  final SettingsState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = OasisLocalizations.of(context);
-    final text = Theme.of(context).textTheme;
-    final b = state.backend;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.settingsDisplays, style: text.titleLarge),
-        const SizedBox(height: 16),
-        OasisSection(
-          children: [
-            OasisRow(
-              leading: const Icon(Icons.brightness_6, size: 20),
-              title: l10n.settingsBrightness,
-              trailing: SizedBox(
-                width: 180,
-                child: OasisSlider(
-                  value: state.brightness,
-                  onChanged: b == null
-                      ? null
-                      : (v) => state.brightnessLevel = v,
-                ),
-              ),
-            ),
-            OasisRow(
-              leading: const Icon(Icons.nightlight, size: 20),
-              title: l10n.settingsNightLight,
-              trailing: OasisToggle(
-                value: state.nightLightOn,
-                onChanged:
-                    b == null ? null : (v) => state.nightLightEnabled = v,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 class SoundPane extends StatelessWidget {
   const SoundPane({super.key, required this.state});
 

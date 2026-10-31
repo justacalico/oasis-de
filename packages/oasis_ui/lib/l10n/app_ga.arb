@@ -239,5 +239,16 @@
   "tipControlCenter": "Lárionad Rialaithe",
   "lockHint": "Cuir isteach do phasfhocal",
   "lockWrong": "Pasfhocal mícheart",
-  "lockUnlock": "Díghlasáil"
+  "lockUnlock": "Díghlasáil",
+  "displaysIdentify": "Aithin",
+  "displaysNone": "Níor aimsíodh aon taispeáin",
+  "displaysArrangeHint": "Tarraing na taispeántais chun iad a shocrú.",
+  "displaysApply": "Cuir i bhfeidhm",
+  "displaysRevert": "Fill siar",
+  "displaysResolution": "Taifeach",
+  "displaysRefresh": "Ráta athnuachana",
+  "displaysScale": "Scála",
+  "displaysRotation": "Rothlú",
+  "displaysRotationNone": "Réamhshocraithe",
+  "displaysPrimary": "príomh"
 }

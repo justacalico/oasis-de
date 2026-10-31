@@ -1205,6 +1205,72 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Unlock'**
   String get lockUnlock;
+
+  /// No description provided for @displaysIdentify.
+  ///
+  /// In en, this message translates to:
+  /// **'Identify'**
+  String get displaysIdentify;
+
+  /// No description provided for @displaysNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No displays found'**
+  String get displaysNone;
+
+  /// No description provided for @displaysArrangeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag displays to arrange them.'**
+  String get displaysArrangeHint;
+
+  /// No description provided for @displaysApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get displaysApply;
+
+  /// No description provided for @displaysRevert.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert'**
+  String get displaysRevert;
+
+  /// No description provided for @displaysResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get displaysResolution;
+
+  /// No description provided for @displaysRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh rate'**
+  String get displaysRefresh;
+
+  /// No description provided for @displaysScale.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale'**
+  String get displaysScale;
+
+  /// No description provided for @displaysRotation.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotation'**
+  String get displaysRotation;
+
+  /// No description provided for @displaysRotationNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get displaysRotationNone;
+
+  /// No description provided for @displaysPrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'primary'**
+  String get displaysPrimary;
 }
 
 class _OasisLocalizationsDelegate

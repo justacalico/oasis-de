@@ -12,7 +12,9 @@
 
 _Pragma("GCC diagnostic ignored \"-Winvalid-offsetof\"")
 
+extern "C" {
 #include <wlr/interfaces/wlr_buffer.h>
+}
 
 #include "oasis_internal.h"
 
@@ -45,13 +47,15 @@ static const wlr_buffer_impl pixels_buffer_impl = {
     .end_data_ptr_access = nullptr,
 };
 
-void capture_check(OasisPrivate* c) {
-  if (c->output == nullptr) return;
+void capture_check(OasisOutput* o) {
+  if (o == nullptr) return;
+  OasisPrivate* c = o->comp;
+  int w = o->width, h = o->height;
+  if (w <= 0 || h <= 0) return;
   std::vector<uint8_t> px;
-  int w = c->out_w, h = c->out_h;
-  if (!c->power_on || c->lock != nullptr) {
+  if (!o->powered || !c->power_on || c->lock != nullptr) {
     px.assign((size_t)w * h * 4, 0);
-  } else if (!c->host->captureOutput(px, w, h) || px.empty()) {
+  } else if (!c->host->captureOutput(px, o->x, o->y, w, h) || px.empty()) {
     return;
   }
   auto* buf = new PixelsBuffer();
@@ -63,20 +67,23 @@ void capture_check(OasisPrivate* c) {
   pixman_region32_t damage;
   pixman_region32_init_rect(&damage, 0, 0, w, h);
   wlr_output_state_set_damage(&st, &damage);
-  wlr_output_commit_state(c->output, &st);
+  wlr_output_commit_state(o->wlr, &st);
   wlr_output_state_finish(&st);
   pixman_region32_fini(&damage);
   wlr_buffer_drop(&buf->base);
 }
 
-void output_needs_frame(wl_listener* listener, void*) {
-  OasisPrivate* c = wl_container_of(listener, c, output_needs_frame);
-  capture_check(c);
-}
-
 void power_mode_set(OasisPrivate* c, wlr_output* output, uint32_t mode) {
-  if (output != c->output) return;
-  output_power_set(c, mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
+  OasisOutput* o = output_of(c, output);
+  if (o == nullptr) return;
+  bool on = mode == ZWLR_OUTPUT_POWER_V1_MODE_ON;
+  if (o->powered == on) return;
+  o->powered = on;
+  bool any = false;
+  for (OasisOutput* x : c->outputs) {
+    if (x->powered) any = true;
+  }
+  output_power_set(c, any);
 }
 
 }  // namespace oasis

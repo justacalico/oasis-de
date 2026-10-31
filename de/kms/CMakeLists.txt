@@ -23,6 +23,7 @@ add_executable(oasis_kms
   "${COMPOSITOR_DIR}/oasis_input.cc"
   "${COMPOSITOR_DIR}/oasis_layer.cc"
   "${COMPOSITOR_DIR}/oasis_lock.cc"
+  "${COMPOSITOR_DIR}/oasis_output.cc"
   "${COMPOSITOR_DIR}/oasis_surface.cc"
   "${COMPOSITOR_DIR}/oasis_xdg.cc"
   "${COMPOSITOR_DIR}/oasis_xwayland.cc"

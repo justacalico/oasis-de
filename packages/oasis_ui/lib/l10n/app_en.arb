@@ -239,5 +239,16 @@
   "tipControlCenter": "Control Center",
   "lockHint": "Enter your password",
   "lockWrong": "Wrong password",
-  "lockUnlock": "Unlock"
+  "lockUnlock": "Unlock",
+  "displaysIdentify": "Identify",
+  "displaysNone": "No displays found",
+  "displaysArrangeHint": "Drag displays to arrange them.",
+  "displaysApply": "Apply",
+  "displaysRevert": "Revert",
+  "displaysResolution": "Resolution",
+  "displaysRefresh": "Refresh rate",
+  "displaysScale": "Scale",
+  "displaysRotation": "Rotation",
+  "displaysRotationNone": "Default",
+  "displaysPrimary": "primary"
 }

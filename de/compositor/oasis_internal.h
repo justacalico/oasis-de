@@ -59,6 +59,10 @@ struct wlr_pointer_constraint_v1;
 struct wlr_relative_pointer_manager_v1;
 struct wlr_keyboard_shortcuts_inhibit_manager_v1;
 struct wlr_keyboard_shortcuts_inhibitor_v1;
+struct wlr_output_layout;
+struct wlr_output_manager_v1;
+struct wlr_output_mode;
+struct wlr_output_configuration_v1;
 
 namespace oasis {
 
@@ -82,6 +86,26 @@ struct KsInhibitor {
   wl_listener destroy = {};
   wlr_keyboard_shortcuts_inhibitor_v1* inh = nullptr;
   struct Surface* surface = nullptr;
+};
+
+struct OasisOutput {
+  OasisPrivate* comp = nullptr;
+  wlr_output* wlr = nullptr;
+  int64_t public_id = 0;
+  std::string name;
+  std::string description;
+  bool enabled = true;
+  bool primary = false;
+  bool powered = true;
+  int32_t x = 0, y = 0;
+  double scale = 1;
+  int32_t transform = 0;
+  int32_t width = 0, height = 0;
+  int32_t refresh = 60000;
+  int32_t phys_w = 0, phys_h = 0;
+  std::vector<wlr_output_mode*> modes;
+  wl_listener destroy = {};
+  wl_listener needs_frame = {};
 };
 
 struct Surface {
@@ -152,6 +176,10 @@ struct Surface {
   std::vector<Inhibitor*> inhibitors;
   std::vector<KsInhibitor*> ks_inhibitors;
 
+  std::unordered_set<struct OasisOutput*> outputs;
+  bool outputs_reported = false;
+  double entered_scale = 0;
+
   int rep_w = 0, rep_h = -1, rep_bw = -1, rep_bh = -1;
   int rep_gx = 0, rep_gy = 0;
   double rep_vsw = -1, rep_vsh = -1;
@@ -205,7 +233,8 @@ struct OasisPrivate {
   wlr_subcompositor* subcompositor = nullptr;
   wlr_xdg_shell* xdg_shell = nullptr;
   wlr_seat* seat = nullptr;
-  wlr_output* output = nullptr;
+  wlr_output_layout* output_layout = nullptr;
+  wlr_output_manager_v1* output_mgr = nullptr;
   wlr_xwayland* xwayland = nullptr;
   wlr_presentation* presentation = nullptr;
   wlr_xdg_activation_v1* activation = nullptr;
@@ -263,7 +292,9 @@ struct OasisPrivate {
   wl_listener new_constraint = {};
   wl_listener constraint_destroy = {};
   wl_listener new_ksi = {};
-  wl_listener output_needs_frame = {};
+  wl_listener backend_new_output = {};
+  wl_listener output_config_apply = {};
+  wl_listener output_config_test = {};
   wl_listener kb_key = {};
   wl_listener kb_mods = {};
 
@@ -271,6 +302,11 @@ struct OasisPrivate {
   std::unordered_map<int64_t, Surface*> by_id;
   std::unordered_map<wlr_surface*, Surface*> by_wlr;
   std::unordered_map<wlr_xwayland_surface*, Surface*> by_xsurface;
+  std::vector<OasisOutput*> outputs;
+  std::unordered_map<wlr_output*, OasisOutput*> output_by_wlr;
+  std::unordered_map<std::string, OasisOutput*> output_by_name;
+  int64_t next_output_id = 1;
+  bool outputs_inited = false;
   std::vector<TextInputCtx*> text_inputs;
   int64_t next_id = 1;
   Surface* kb_focus = nullptr;
@@ -281,9 +317,6 @@ struct OasisPrivate {
   uint32_t last_button_serial = 0;
   std::set<uint32_t> pressed;
   int32_t touch_id = -1;
-
-  int out_w = 1920, out_h = 1080, out_scale = 1;
-  int phys_w = 340, phys_h = 190;
 
   wl_event_source* ping_timer = nullptr;
   wl_event_source* idle_off_timer = nullptr;
@@ -300,6 +333,20 @@ struct OasisPrivate {
 
 Surface* surface_of(OasisPrivate* c, wlr_surface* wlr);
 Surface* surface_by_id(OasisPrivate* c, int64_t id);
+OasisOutput* output_of(OasisPrivate* c, wlr_output* wlr);
+OasisOutput* output_primary(OasisPrivate* c);
+OasisOutput* output_for_surface(Surface* s);
+void outputs_sync_host(OasisPrivate* c);
+void outputs_apply_config(OasisPrivate* c, const HostOutput& cfg);
+void outputs_emit(OasisPrivate* c);
+void outputs_manager_push(OasisPrivate* c);
+void outputs_layout_normalize(OasisPrivate* c);
+void outputs_init(OasisPrivate* c);
+void outputs_finish(OasisPrivate* c);
+void output_apply_state(OasisOutput* o);
+void output_notify_surfaces(OasisPrivate* c);
+void surface_sync_outputs(Surface* s);
+double surface_preferred_scale(Surface* s);
 void emit(OasisPrivate* c, const char* name, OEvent fields = {});
 void emit_id(Surface* s, const char* name, OEvent fields = {});
 void emit_size(Surface* s);
@@ -336,8 +383,7 @@ void idle_resync_inhibit(OasisPrivate* c);
 bool idle_wake(OasisPrivate* c);
 void idle_off_timer_start(OasisPrivate* c);
 void output_power_set(OasisPrivate* c, bool on);
-void capture_check(OasisPrivate* c);
-void output_needs_frame(wl_listener* listener, void* data);
+void capture_check(OasisOutput* o);
 void power_mode_set(OasisPrivate* c, wlr_output* output, uint32_t mode);
 void xwayland_new_surface(OasisPrivate* c, wlr_xwayland_surface* xsurface);
 uint32_t now_ms();

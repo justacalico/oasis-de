@@ -119,26 +119,42 @@ class GtkHost : public OasisHost {
     c_->textures.erase(it);
   }
 
-  void outputMetrics(int& w, int& h, int& scale, int& phys_w,
-                     int& phys_h) override {
-    scale = 1;
-    w = 1280;
-    h = 720;
-    phys_w = 340;
-    phys_h = 190;
-    if (c_->view == nullptr) return;
-    scale = gtk_widget_get_scale_factor(c_->view);
-    w = gtk_widget_get_allocated_width(c_->view) * scale;
-    h = gtk_widget_get_allocated_height(c_->view) * scale;
-    if (gtk_widget_get_window(c_->view) != nullptr) {
-      GdkDisplay* dpy = gtk_widget_get_display(c_->view);
-      GdkMonitor* mon = gdk_display_get_monitor_at_window(
-          dpy, gtk_widget_get_window(c_->view));
-      if (mon != nullptr) {
-        phys_w = gdk_monitor_get_width_mm(mon);
-        phys_h = gdk_monitor_get_height_mm(mon);
+  std::vector<HostOutput> outputs() override {
+    HostOutput o;
+    o.name = "oasis-embedded";
+    o.description = "Oasis embedded output";
+    o.enabled = true;
+    o.primary = true;
+    o.scale = 1;
+    o.refresh = 60000;
+    int scale = 1, w = 1280, h = 720;
+    if (c_->view != nullptr) {
+      scale = gtk_widget_get_scale_factor(c_->view);
+      w = gtk_widget_get_allocated_width(c_->view) * scale;
+      h = gtk_widget_get_allocated_height(c_->view) * scale;
+      if (gtk_widget_get_window(c_->view) != nullptr) {
+        GdkDisplay* dpy = gtk_widget_get_display(c_->view);
+        GdkMonitor* mon = gdk_display_get_monitor_at_window(
+            dpy, gtk_widget_get_window(c_->view));
+        if (mon != nullptr) {
+          o.phys_w = gdk_monitor_get_width_mm(mon);
+          o.phys_h = gdk_monitor_get_height_mm(mon);
+          o.refresh = gdk_monitor_get_refresh_rate(mon) > 0
+                          ? gdk_monitor_get_refresh_rate(mon)
+                          : 60000;
+          const char* model = gdk_monitor_get_model(mon);
+          if (model != nullptr) {
+            o.description = model;
+            o.name = model;
+          }
+        }
       }
     }
+    o.scale = scale;
+    o.w = w;
+    o.h = h;
+    o.modes.push_back({w, h, o.refresh, true});
+    return {o};
   }
 
   std::vector<std::string> hostClipboardMimes() override {
@@ -200,16 +216,15 @@ class GtkHost : public OasisHost {
     gtk_clipboard_set_text(cb, text.c_str(), -1);
   }
 
-  bool captureOutput(std::vector<uint8_t>& rgba, int& w,
-                     int& h) override {
+  bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int w,
+                     int h) override {
     if (c_->view == nullptr) return false;
     GdkWindow* win = gtk_widget_get_window(c_->view);
     if (win == nullptr) return false;
-    int aw = gtk_widget_get_allocated_width(c_->view);
-    int ah = gtk_widget_get_allocated_height(c_->view);
+    int aw = w, ah = h;
     if (aw <= 0 || ah <= 0) return false;
     G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-    GdkPixbuf* pb = gdk_pixbuf_get_from_window(win, 0, 0, aw, ah);
+    GdkPixbuf* pb = gdk_pixbuf_get_from_window(win, x, y, aw, ah);
     G_GNUC_END_IGNORE_DEPRECATIONS
     if (pb == nullptr) return false;
     w = gdk_pixbuf_get_width(pb);
@@ -378,6 +393,34 @@ static void method_call_cb(FlMethodChannel*, FlMethodCall* call,
   } else if (g_strcmp0(name, "configureLayer") == 0) {
     c->core->configureLayer(arg_int(args, "id"), (int)arg_int(args, "w"),
                             (int)arg_int(args, "h"));
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(name, "surfaceOutputs") == 0) {
+    std::vector<int64_t> ids;
+    FlValue* list = fl_value_lookup_string(args, "outputs");
+    if (list != nullptr &&
+        fl_value_get_type(list) == FL_VALUE_TYPE_LIST) {
+      for (size_t i = 0; i < fl_value_get_length(list); i++) {
+        ids.push_back(
+            fl_value_get_int(fl_value_get_list_value(list, i)));
+      }
+    }
+    c->core->surfaceOutputs(arg_int(args, "id"), ids);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(name, "configureOutput") == 0) {
+    HostOutput cfg;
+    FlValue* nm = fl_value_lookup_string(args, "name");
+    if (nm != nullptr && fl_value_get_type(nm) == FL_VALUE_TYPE_STRING) {
+      cfg.name = fl_value_get_string(nm);
+    }
+    cfg.enabled = arg_int(args, "enabled") != 0;
+    cfg.x = (int32_t)arg_int(args, "x");
+    cfg.y = (int32_t)arg_int(args, "y");
+    cfg.w = (int32_t)arg_int(args, "w");
+    cfg.h = (int32_t)arg_int(args, "h");
+    cfg.refresh = (int32_t)arg_int(args, "refresh");
+    cfg.scale = arg_double(args, "scale");
+    cfg.transform = (int32_t)arg_int(args, "transform");
+    c->core->configureOutput(cfg);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (g_strcmp0(name, "close") == 0) {
     c->core->closeSurface(arg_int(args, "id"));
