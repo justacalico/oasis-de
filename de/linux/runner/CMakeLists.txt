@@ -20,6 +20,31 @@ pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET
   wlroots-0.20
 )
 
+# wlroots does not install generated protocol headers; compositors must
+# produce them from the wlr-protocols XML definitions (wlr-protocols-devel).
+find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
+pkg_get_variable(WLR_PROTOCOLS_DIR wlr-protocols pkgdatadir)
+if(NOT WLR_PROTOCOLS_DIR)
+  set(WLR_PROTOCOLS_DIR "/usr/share/wlr-protocols")
+endif()
+
+set(PROTOCOL_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/protocols")
+file(MAKE_DIRECTORY "${PROTOCOL_GEN_DIR}")
+set(PROTOCOL_HEADERS "")
+foreach(proto
+    wlr-layer-shell-unstable-v1
+    wlr-output-power-management-unstable-v1)
+  set(xml "${WLR_PROTOCOLS_DIR}/unstable/${proto}.xml")
+  set(header "${PROTOCOL_GEN_DIR}/${proto}-protocol.h")
+  add_custom_command(
+    OUTPUT "${header}"
+    COMMAND "${WAYLAND_SCANNER}" server-header "${xml}" "${header}"
+    DEPENDS "${xml}"
+    VERBATIM)
+  list(APPEND PROTOCOL_HEADERS "${header}")
+endforeach()
+add_custom_target(wlr_protocols_gen DEPENDS ${PROTOCOL_HEADERS})
+
 set(COMPOSITOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../compositor")
 
 add_executable(${BINARY_NAME}
@@ -44,6 +69,8 @@ add_executable(${BINARY_NAME}
 apply_standard_settings(${BINARY_NAME})
 
 target_include_directories(${BINARY_NAME} PRIVATE "${COMPOSITOR_DIR}")
+target_include_directories(${BINARY_NAME} PRIVATE "${PROTOCOL_GEN_DIR}")
+add_dependencies(${BINARY_NAME} wlr_protocols_gen)
 
 # Add preprocessor definitions for the application ID.
 add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
