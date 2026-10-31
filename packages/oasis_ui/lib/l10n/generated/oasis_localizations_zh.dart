@@ -215,6 +215,35 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get settingsPowerOff => '关机';
 
   @override
+  String get powerDisplayOffAfter => '关闭显示器时间';
+
+  @override
+  String get powerSleepAfter => '进入睡眠时间';
+
+  @override
+  String get powerNever => '从不';
+
+  @override
+  String powerMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 分钟',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String powerHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 小时',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsLogout => '退出登录';
 
   @override

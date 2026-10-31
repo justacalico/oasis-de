@@ -814,6 +814,7 @@ bool OasisCore::start(std::string* error) {
   p->ping_timer = wl_event_loop_add_timer(p->loop, ping_tick, p);
   wl_event_source_timer_update(p->ping_timer, 5000);
   idle_off_timer_start(p);
+  idle_suspend_timer_start(p);
   comp_flush(p);
   return true;
 }
@@ -828,6 +829,10 @@ void OasisCore::stop() {
   if (p->idle_off_timer != nullptr) {
     wl_event_source_remove(p->idle_off_timer);
     p->idle_off_timer = nullptr;
+  }
+  if (p->idle_suspend_timer != nullptr) {
+    wl_event_source_remove(p->idle_suspend_timer);
+    p->idle_suspend_timer = nullptr;
   }
   for (KillCheck* k : p->kill_checks) {
     if (k->timer != nullptr) wl_event_source_remove(k->timer);
@@ -1002,6 +1007,13 @@ void OasisCore::sessionUnlock() {
   if (p->lock == nullptr) return;
   wlr_session_lock_v1_destroy(p->lock);
   comp_flush(p);
+}
+
+void OasisCore::setIdleTimeouts(int64_t displayOffMs, int64_t suspendMs) {
+  p->idle_off_ms =
+      displayOffMs > 0 ? static_cast<int>(displayOffMs) : 0;
+  p->idle_suspend_ms = suspendMs > 0 ? static_cast<int>(suspendMs) : 0;
+  idle_arm(p);
 }
 
 void OasisCore::focus(int64_t id) {

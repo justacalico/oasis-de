@@ -16,11 +16,20 @@ _Pragma("GCC diagnostic ignored \"-Winvalid-offsetof\"")
 namespace oasis {
 
 void idle_arm(OasisPrivate* c) {
-  if (c->idle_off_timer == nullptr) return;
-  if (c->power_on && c->active_inhibitors == 0) {
-    wl_event_source_timer_update(c->idle_off_timer, c->idle_off_ms);
-  } else {
-    wl_event_source_timer_update(c->idle_off_timer, 0);
+  if (c->idle_off_timer != nullptr) {
+    if (c->power_on && c->active_inhibitors == 0 && c->idle_off_ms > 0) {
+      wl_event_source_timer_update(c->idle_off_timer, c->idle_off_ms);
+    } else {
+      wl_event_source_timer_update(c->idle_off_timer, 0);
+    }
+  }
+  if (c->idle_suspend_timer != nullptr) {
+    if (c->active_inhibitors == 0 && c->idle_suspend_ms > 0) {
+      wl_event_source_timer_update(c->idle_suspend_timer,
+                                   c->idle_suspend_ms);
+    } else {
+      wl_event_source_timer_update(c->idle_suspend_timer, 0);
+    }
   }
 }
 
@@ -64,6 +73,20 @@ static int idle_off(void* data) {
 
 void idle_off_timer_start(OasisPrivate* c) {
   c->idle_off_timer = wl_event_loop_add_timer(c->loop, idle_off, c);
+  idle_arm(c);
+}
+
+static int idle_suspend(void* data) {
+  auto* c = static_cast<OasisPrivate*>(data);
+  emit(c, "idleSuspend");
+  comp_flush(c);
+  idle_arm(c);
+  return 0;
+}
+
+void idle_suspend_timer_start(OasisPrivate* c) {
+  c->idle_suspend_timer =
+      wl_event_loop_add_timer(c->loop, idle_suspend, c);
   idle_arm(c);
 }
 

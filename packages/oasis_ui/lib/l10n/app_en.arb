@@ -94,6 +94,25 @@
   "settingsSuspend": "Suspend",
   "settingsReboot": "Restart",
   "settingsPowerOff": "Power off",
+  "powerDisplayOffAfter": "Turn display off after",
+  "powerSleepAfter": "Sleep after",
+  "powerNever": "Never",
+  "powerMinutes": "{count, plural, =1{1 minute} other{{count} minutes}}",
+  "@powerMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "powerHours": "{count, plural, =1{1 hour} other{{count} hours}}",
+  "@powerHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "settingsLogout": "Log out",
   "settingsCurrentUser": "Current user",
   "settingsDate": "Date",

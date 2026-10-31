@@ -32,6 +32,7 @@ abstract class WaylandHost {
   Future<void> close(int id);
   Future<void> sessionUnlock();
   Future<void> activity();
+  Future<void> setIdleTimeouts(int displayOffMs, int suspendMs);
   Future<void> focus(int? id);
   Future<void> pointerMotion(int id, double x, double y);
   Future<void> pointerExit(int id);
@@ -137,6 +138,13 @@ class ChannelWaylandHost extends WaylandHost {
 
   @override
   Future<void> activity() => _methods.invokeMethod('activity');
+
+  @override
+  Future<void> setIdleTimeouts(int displayOffMs, int suspendMs) =>
+      _methods.invokeMethod('idleTimeouts', {
+        'displayOff': displayOffMs,
+        'suspend': suspendMs,
+      });
 
   @override
   Future<void> focus(int? id) =>

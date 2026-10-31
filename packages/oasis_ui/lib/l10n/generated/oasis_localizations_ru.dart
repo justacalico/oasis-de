@@ -216,6 +216,41 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get settingsPowerOff => 'Выключить';
 
   @override
+  String get powerDisplayOffAfter => 'Выключать экран через';
+
+  @override
+  String get powerSleepAfter => 'Переходить в сон через';
+
+  @override
+  String get powerNever => 'Никогда';
+
+  @override
+  String powerMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count минуты',
+      many: '$count минут',
+      few: '$count минуты',
+      one: '$count минута',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String powerHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count часа',
+      many: '$count часов',
+      few: '$count часа',
+      one: '$count час',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsLogout => 'Выйти';
 
   @override

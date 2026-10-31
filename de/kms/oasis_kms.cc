@@ -1012,6 +1012,10 @@ static void handle_method(const Mc& mc,
   } else if (n == "activity") {
     g_core->activity();
     platform_reply(h, Cv{std::monostate{}});
+  } else if (n == "idleTimeouts") {
+    g_core->setIdleTimeouts(cv_int(mc.args, "displayOff"),
+                            cv_int(mc.args, "suspend"));
+    platform_reply(h, Cv{std::monostate{}});
   } else if (n == "focus") {
     g_core->focus(cv_int(mc.args, "id"));
     platform_reply(h, Cv{std::monostate{}});

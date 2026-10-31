@@ -19,6 +19,7 @@ List<OasisApp> buildShellApps(
   OasisStore? store,
   OasisSystemBackend? backend,
   OasisDisplayBackend? displayBackend,
+  OasisPowerBackend? powerBackend,
 }) {
   SettingsState? settingsState;
   return [
@@ -39,6 +40,7 @@ List<OasisApp> buildShellApps(
             store: store,
             backend: backend,
             displayBackend: displayBackend,
+            powerBackend: powerBackend,
           ),
         ),
       ),

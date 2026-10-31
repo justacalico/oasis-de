@@ -94,6 +94,11 @@ class FakeWaylandHost extends WaylandHost {
   }
 
   @override
+  Future<void> setIdleTimeouts(int displayOffMs, int suspendMs) async {
+    calls.add('idleTimeouts:$displayOffMs:$suspendMs');
+  }
+
+  @override
   Future<void> focus(int? id) async {
     calls.add('focus:$id');
   }
@@ -400,6 +405,7 @@ void main() {
     await host.close(1);
     await host.sessionUnlock();
     await host.activity();
+    await host.setIdleTimeouts(60000, 900000);
     await host.focus(2);
     await host.focus(null);
     await host.pointerMotion(1, 1, 2);
@@ -421,6 +427,7 @@ void main() {
       'close',
       'sessionUnlock',
       'activity',
+      'idleTimeouts',
       'focus',
       'focus',
       'pointerMotion',
@@ -436,7 +443,9 @@ void main() {
     ]);
     expect(calls[2].arguments['maximized'], 1);
     expect(calls[3].arguments['w'], 5);
-    expect(calls[8].arguments['id'], -1);
+    expect(calls[7].arguments['displayOff'], 60000);
+    expect(calls[7].arguments['suspend'], 900000);
+    expect(calls[9].arguments['id'], -1);
   });
 
   test('channel host decodes events', () async {

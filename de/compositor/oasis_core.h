@@ -125,6 +125,7 @@ class OasisCore {
   void closeSurface(int64_t id);
   void sessionUnlock();
   void activity();
+  void setIdleTimeouts(int64_t displayOffMs, int64_t suspendMs);
   void focus(int64_t id);
   void pointerMotion(int64_t id, double x, double y);
   void pointerExit();

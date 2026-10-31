@@ -215,6 +215,37 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get settingsPowerOff => 'Power off';
 
   @override
+  String get powerDisplayOffAfter => 'Turn display off after';
+
+  @override
+  String get powerSleepAfter => 'Sleep after';
+
+  @override
+  String get powerNever => 'Never';
+
+  @override
+  String powerMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minutes',
+      one: '1 minute',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String powerHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hours',
+      one: '1 hour',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsLogout => 'Log out';
 
   @override
