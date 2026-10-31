@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -8,6 +9,19 @@ void main() {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+    // Stub the wayland channel so the embedded compositor stays off: its
+    // EGL work on the GTK thread races with Flutter's renderer and can
+    // abort the process under headless CI runners.
+    const channel = MethodChannel('oasis/wayland');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'start') {
+        return <String, Object?>{'socket': ''};
+      }
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
     await tester.pumpWidget(
       const OasisDesktopApp(
         backend: NoopSystemBackend(),
