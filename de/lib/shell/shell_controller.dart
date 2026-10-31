@@ -286,6 +286,8 @@ class ShellController extends ChangeNotifier {
   var nightLightOn = false;
   var brightness = 0.8;
   var volume = 0.6;
+  var _appliedBrightnessPct = -1;
+  var _appliedVolumePct = -1;
 
   int? get focusedId => _focusedId;
   String? get openMenu => _openMenu;
@@ -1093,11 +1095,34 @@ class ShellController extends ChangeNotifier {
   set focusOnValue(bool v) => _set(() => focusOn = v);
   set nightLightOnValue(bool v) =>
       _set(() => nightLightOn = v, () => backend.nightLight(v));
-  set brightnessValue(double v) =>
-      _set(() => brightness = v, () => backend.brightness(v));
-  set volumeValue(double v) => _set(() => volume = v, () => backend.volume(v));
-  set brightnessPreview(double v) => _set(() => brightness = v);
-  set volumePreview(double v) => _set(() => volume = v);
+
+  int _percent(double v) => (v.clamp(0.0, 1.0) * 100).round();
+
+  set brightnessValue(double v) {
+    _appliedBrightnessPct = _percent(v);
+    _set(() => brightness = v, () => backend.brightness(v));
+  }
+
+  set volumeValue(double v) {
+    _appliedVolumePct = _percent(v);
+    _set(() => volume = v, () => backend.volume(v));
+  }
+
+  set brightnessPreview(double v) {
+    _set(() => brightness = v);
+    final pct = _percent(v);
+    if (pct == _appliedBrightnessPct) return;
+    _appliedBrightnessPct = pct;
+    unawaited(backend.brightness(v));
+  }
+
+  set volumePreview(double v) {
+    _set(() => volume = v);
+    final pct = _percent(v);
+    if (pct == _appliedVolumePct) return;
+    _appliedVolumePct = pct;
+    unawaited(backend.volume(v));
+  }
 
   final OasisSystemBackend backend;
 
