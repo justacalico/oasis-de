@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:clock/clock.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -284,9 +286,61 @@ void main() {
     await tester.tap(find.byIcon(Icons.wifi).first);
     await tester.pumpAndSettle();
     expect(find.text('Brightness'), findsNothing);
+    expect(find.text('Wi-Fi Settings…'), findsOneWidget);
+    await tester.tapAt(const Offset(640, 400));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
     expect(find.text('Brightness'), findsOneWidget);
+  });
+
+  testWidgets('wifi menu lists networks and connects', (tester) async {
+    final calls = <String>[];
+    await pumpDesktop(tester, backend: _WifiBackend(calls));
+    await tester.tap(find.byIcon(Icons.wifi).first);
+    await tester.pumpAndSettle();
+    expect(find.text('HomeBase'), findsOneWidget);
+    expect(find.text('Cafe'), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline), findsNWidgets(2));
+    await tester.tap(find.text('Cafe'));
+    await tester.pumpAndSettle();
+    expect(calls, ['scan', 'connect:Cafe', 'scan']);
+    expect(find.text('Cafe'), findsNothing);
+  });
+
+  testWidgets('wifi menu shows scanning then networks', (tester) async {
+    final completer = Completer<List<OasisWifiNetwork>>();
+    await pumpDesktop(tester, backend: _SlowWifiBackend(completer.future));
+    await tester.tap(find.byIcon(Icons.wifi).first);
+    await tester.pump();
+    expect(find.text('Scanning…'), findsOneWidget);
+    await tester.tapAt(
+      const Offset(640, 400),
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Scanning…'), findsNothing);
+    completer.complete(const [OasisWifiNetwork(ssid: 'HomeBase')]);
+    await tester.tap(find.byIcon(Icons.wifi).first);
+    await tester.pumpAndSettle();
+    expect(find.text('HomeBase'), findsOneWidget);
+  });
+
+  testWidgets('wifi menu toggles wifi and opens settings', (tester) async {
+    final calls = <String>[];
+    await pumpDesktop(tester, backend: _WifiBackend(calls));
+    await tester.tap(find.byIcon(Icons.wifi).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Wi-Fi'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.wifi_off), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.wifi_off));
+    await tester.pumpAndSettle();
+    expect(find.text('HomeBase'), findsNothing);
+    await tester.tap(find.text('Wi-Fi Settings…'));
+    await tester.pumpAndSettle();
+    expect(find.text('Appearance'), findsWidgets);
   });
 
   testWidgets('session menu runs backend actions', (tester) async {
@@ -1100,6 +1154,36 @@ void main() {
     c.invokeNotificationAction(c.notifications.single, 'reply');
     c.dismissNotification(9);
   });
+}
+
+class _SlowWifiBackend extends NoopSystemBackend {
+  _SlowWifiBackend(this.future);
+
+  final Future<List<OasisWifiNetwork>> future;
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() => future;
+}
+
+class _WifiBackend extends NoopSystemBackend {
+  _WifiBackend(this.calls);
+
+  final List<String> calls;
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() async {
+    calls.add('scan');
+    return const [
+      OasisWifiNetwork(ssid: 'HomeBase', signal: 90, connected: true),
+      OasisWifiNetwork(ssid: 'Cafe', signal: 55, secured: true),
+      OasisWifiNetwork(ssid: 'Far', signal: 30),
+      OasisWifiNetwork(ssid: 'Weak', signal: 10, secured: true),
+    ];
+  }
+
+  @override
+  Future<void> connectWifi(String ssid) async =>
+      calls.add('connect:$ssid');
 }
 
 class _BatteryBackend extends NoopSystemBackend {

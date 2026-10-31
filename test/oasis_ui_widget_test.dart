@@ -547,6 +547,7 @@ void main() {
                 label: 'Two',
                 checked: true,
                 separatorAfter: true,
+                trailing: const Icon(Icons.lock_outline),
                 action: (_) => selected = 'two',
               ),
               const OasisMenuItem(label: 'Bare'),

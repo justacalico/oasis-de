@@ -33,6 +33,22 @@ class _InfoBackend extends NoopSystemBackend {
   );
 }
 
+class _WifiBackend extends NoopSystemBackend {
+  const _WifiBackend();
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() async => const [
+    OasisWifiNetwork(
+      ssid: 'HomeBase',
+      signal: 90,
+      secured: true,
+      connected: true,
+    ),
+    OasisWifiNetwork(ssid: 'Cafe', signal: 55, secured: true),
+    OasisWifiNetwork(ssid: 'Faraway', signal: 30),
+  ];
+}
+
 class _FakeChecker extends UpdateChecker {
   @override
   Future<AppUpdate> check(String currentVersion) async => const AppUpdate();
@@ -135,6 +151,27 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/genie_minimise.png'),
+      );
+    });
+  });
+
+  testWidgets('desktop wifi menu', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        OasisDesktopApp(
+          backend: const _WifiBackend(),
+          version: '1.0.0',
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.wifi).first);
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/wifi_menu.png'),
       );
     });
   });

@@ -70,6 +70,15 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get ccWifi => 'Wi-Fi';
 
   @override
+  String get wifiMenuScanning => 'Scanning…';
+
+  @override
+  String get wifiMenuNoNetworks => 'No networks found';
+
+  @override
+  String get wifiMenuSettings => 'Wi-Fi Settings…';
+
+  @override
   String get ccBluetooth => 'Bluetooth';
 
   @override

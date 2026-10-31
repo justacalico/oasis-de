@@ -10,6 +10,7 @@ class OasisMenuItem {
     this.enabled = true,
     this.separatorAfter = false,
     this.checked = false,
+    this.trailing,
     this.action,
   });
 
@@ -17,6 +18,7 @@ class OasisMenuItem {
   final bool enabled;
   final bool separatorAfter;
   final bool checked;
+  final Widget? trailing;
   final void Function(BuildContext context)? action;
 }
 
@@ -212,6 +214,13 @@ class _OasisMenuEntryState extends State<OasisMenuEntry> {
                     ).textTheme.bodyMedium?.copyWith(color: color),
                   ),
                 ),
+                if (widget.item.trailing != null) ...[
+                  const SizedBox(width: 8),
+                  IconTheme.merge(
+                    data: IconThemeData(color: color, size: 14),
+                    child: widget.item.trailing!,
+                  ),
+                ],
               ],
             ),
           ),

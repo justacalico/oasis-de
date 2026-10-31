@@ -281,6 +281,8 @@ class ShellController extends ChangeNotifier {
   var controlCenterOpen = false;
   var activeWorkspace = 0;
   var wifiOn = true;
+  List<OasisWifiNetwork> wifiNetworks = const [];
+  var wifiScanning = false;
   var bluetoothOn = true;
   var focusOn = false;
   var nightLightOn = false;
@@ -1087,6 +1089,26 @@ class ShellController extends ChangeNotifier {
     notificationCenterOpen = false;
     _openMenu = null;
     notifyListeners();
+  }
+
+  Future<void> refreshWifiNetworks() async {
+    if (!wifiOn) {
+      wifiNetworks = const [];
+      return;
+    }
+    wifiScanning = true;
+    notifyListeners();
+    final found = await backend.wifiNetworks();
+    if (_disposed) return;
+    wifiNetworks = wifiOn ? found : const [];
+    wifiScanning = false;
+    notifyListeners();
+  }
+
+  Future<void> connectWifiNetwork(String ssid) async {
+    await backend.connectWifi(ssid);
+    if (_disposed) return;
+    unawaited(refreshWifiNetworks());
   }
 
   set wifiOnValue(bool v) => _set(() => wifiOn = v, () => backend.wifi(v));

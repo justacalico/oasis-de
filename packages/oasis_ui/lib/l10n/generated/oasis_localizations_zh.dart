@@ -70,6 +70,15 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get ccWifi => '无线局域网';
 
   @override
+  String get wifiMenuScanning => '正在扫描…';
+
+  @override
+  String get wifiMenuNoNetworks => '未找到网络';
+
+  @override
+  String get wifiMenuSettings => '无线局域网设置…';
+
+  @override
   String get ccBluetooth => '蓝牙';
 
   @override

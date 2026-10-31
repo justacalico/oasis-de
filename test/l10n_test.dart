@@ -43,6 +43,9 @@ void exerciseStrings(OasisLocalizations l) {
   l.notifDismiss;
   l.notifEmpty;
   l.ccWifi;
+  l.wifiMenuScanning;
+  l.wifiMenuNoNetworks;
+  l.wifiMenuSettings;
   l.ccBluetooth;
   l.ccFocus;
   l.ccBrightness;
@@ -184,6 +187,17 @@ void exerciseStrings(OasisLocalizations l) {
   l.settingsUsers;
   l.settingsVolume;
   l.tipControlCenter;
+  l.displaysApply;
+  l.displaysArrangeHint;
+  l.displaysIdentify;
+  l.displaysNone;
+  l.displaysPrimary;
+  l.displaysRefresh;
+  l.displaysResolution;
+  l.displaysRevert;
+  l.displaysRotation;
+  l.displaysRotationNone;
+  l.displaysScale;
   l.updateInstall;
   l.updateInstallFailed;
   l.updateInstalled;
