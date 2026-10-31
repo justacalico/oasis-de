@@ -79,6 +79,7 @@ class ShellController extends ChangeNotifier {
     this.batteryPollInterval = const Duration(seconds: 60),
   }) : apps = List.of(apps) {
     wayland?.addListener(_syncSurfaces);
+    wayland?.onIdleSuspend = idleSuspend;
     mpris?.addListener(notifyListeners);
     _requestSub = wayland?.requests.listen(_onWaylandRequest);
     _refreshSystemState();
@@ -1150,6 +1151,8 @@ class ShellController extends ChangeNotifier {
 
   var locked = false;
 
+  void idleSuspend() => session(OasisSessionAction.suspend);
+
   void session(OasisSessionAction action) {
     if (action == OasisSessionAction.lock ||
         action == OasisSessionAction.suspend) {
@@ -1206,6 +1209,7 @@ class ShellController extends ChangeNotifier {
     }
     _requestSub?.cancel();
     _identifyTimer?.cancel();
+    wayland?.onIdleSuspend = null;
     wayland?.removeListener(_syncSurfaces);
     mpris?.removeListener(notifyListeners);
     super.dispose();

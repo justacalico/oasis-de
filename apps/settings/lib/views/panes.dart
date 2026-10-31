@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import '../state/settings_state.dart';
+import 'settings_row.dart';
 
 const kAccentChoices = <Color?>[
   null,
@@ -400,6 +401,15 @@ class _AboutPaneState extends State<AboutPane> {
   }
 }
 
+const _displayOffChoices = <int>[0, 1, 2, 5, 10, 15, 30, 60];
+const _sleepChoices = <int>[0, 5, 10, 15, 20, 30, 60, 120];
+
+String _timeoutLabel(OasisLocalizations l10n, int minutes) {
+  if (minutes == 0) return l10n.powerNever;
+  if (minutes < 60) return l10n.powerMinutes(minutes);
+  return l10n.powerHours(minutes ~/ 60);
+}
+
 class PowerPane extends StatelessWidget {
   const PowerPane({super.key, required this.state});
 
@@ -411,46 +421,82 @@ class PowerPane extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final b = state.backend;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.settingsPower, style: text.titleLarge),
-        const SizedBox(height: 16),
-        OasisSection(
+    return ListenableBuilder(
+      listenable: state,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            FutureBuilder<OasisBattery>(
-              future: state.battery(),
-              builder: (context, snap) {
-                final bat = snap.data;
-                return OasisRow(
-                  leading: const Icon(Icons.battery_std, size: 20),
-                  title: l10n.settingsBattery,
-                  subtitle: bat?.level == null
-                      ? null
-                      : '${(bat!.level! * 100).round()}%',
-                );
-              },
-            ),
-          ],
-        ),
-        if (b != null) ...[
-          const SizedBox(height: 16),
-          OasisSection(
-            children: [
-              for (final a in [
-                (l10n.settingsSuspend, OasisSessionAction.suspend),
-                (l10n.settingsReboot, OasisSessionAction.reboot),
-                (l10n.settingsPowerOff, OasisSessionAction.poweroff),
-              ])
-                OasisRow(
-                  leading: const Icon(Icons.power_settings_new, size: 20),
-                  title: a.$1,
-                  onTap: () => b.session(a.$2),
+            Text(l10n.settingsPower, style: text.titleLarge),
+            const SizedBox(height: 16),
+            OasisSection(
+              children: [
+                FutureBuilder<OasisBattery>(
+                  future: state.battery(),
+                  builder: (context, snap) {
+                    final bat = snap.data;
+                    return OasisRow(
+                      leading: const Icon(Icons.battery_std, size: 20),
+                      title: l10n.settingsBattery,
+                      subtitle: bat?.level == null
+                          ? null
+                          : '${(bat!.level! * 100).round()}%',
+                    );
+                  },
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            OasisSection(
+              title: l10n.sessionSleep,
+              children: [
+                SettingsDropdownRow(
+                  title: l10n.powerDisplayOffAfter,
+                  value: '${state.displayOffDelay.inMinutes}',
+                  items: [
+                    for (final m in _displayOffChoices) '$m',
+                  ],
+                  labels: {
+                    for (final m in _displayOffChoices)
+                      '$m': _timeoutLabel(l10n, m),
+                  },
+                  onChanged: (v) => state.displayOffTimeout =
+                      Duration(minutes: int.parse(v)),
+                ),
+                SettingsDropdownRow(
+                  title: l10n.powerSleepAfter,
+                  value: '${state.sleepDelay.inMinutes}',
+                  items: [for (final m in _sleepChoices) '$m'],
+                  labels: {
+                    for (final m in _sleepChoices)
+                      '$m': _timeoutLabel(l10n, m),
+                  },
+                  onChanged: (v) => state.sleepTimeout =
+                      Duration(minutes: int.parse(v)),
+                ),
+              ],
+            ),
+            if (b != null) ...[
+              const SizedBox(height: 16),
+              OasisSection(
+                children: [
+                  for (final a in [
+                    (l10n.settingsSuspend, OasisSessionAction.suspend),
+                    (l10n.settingsReboot, OasisSessionAction.reboot),
+                    (l10n.settingsPowerOff, OasisSessionAction.poweroff),
+                  ])
+                    OasisRow(
+                      leading:
+                          const Icon(Icons.power_settings_new, size: 20),
+                      title: a.$1,
+                      onTap: () => b.session(a.$2),
+                    ),
+                ],
+              ),
             ],
-          ),
-        ],
-      ],
+          ],
+        );
+      },
     );
   }
 }

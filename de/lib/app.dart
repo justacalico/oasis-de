@@ -8,6 +8,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 import 'apps/shell_apps.dart';
 import 'services/mpris.dart';
 import 'services/notifications.dart';
+import 'services/power.dart';
 import 'shell/desktop_shell.dart';
 import 'services/displays.dart';
 import 'shell/shell_controller.dart';
@@ -64,6 +65,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final UpdateService _updates;
   late final ShellController _controller;
   late final WaylandService _wayland;
+  late final WaylandPowerBackend _powerBackend;
   late final WaylandDisplayBackend _displayBackend;
   late final DisplaysDaemon _displaysDaemon;
   late final MprisService _mpris;
@@ -85,6 +87,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       currentVersion: () async => widget.version,
     );
     _wayland = widget.wayland ?? WaylandService();
+    _powerBackend = WaylandPowerBackend(_wayland, store: widget.store);
     _mpris = widget.mpris ?? MprisService();
     _controller = ShellController(
       apps: const [],
@@ -152,6 +155,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
         if (n != null) c.launchCounts[part.substring(0, sep)] = n;
       }
     }
+    _powerBackend.restore();
   }
 
   final Map<String, String> _persisted = {};
@@ -274,6 +278,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 store: widget.store,
                 backend: widget.backend,
                 displayBackend: _displayBackend,
+                powerBackend: _powerBackend,
               );
               final apps = [...builtins, ..._externalApps];
               final appsById = {for (final a in apps) a.id: a};

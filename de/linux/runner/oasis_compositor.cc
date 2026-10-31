@@ -438,6 +438,10 @@ static void method_call_cb(FlMethodChannel*, FlMethodCall* call,
   } else if (g_strcmp0(name, "activity") == 0) {
     c->core->activity();
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(name, "idleTimeouts") == 0) {
+    c->core->setIdleTimeouts(arg_int(args, "displayOff"),
+                             arg_int(args, "suspend"));
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (g_strcmp0(name, "focus") == 0) {
     c->core->focus(arg_int(args, "id"));
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));

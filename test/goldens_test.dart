@@ -538,6 +538,7 @@ void main() {
   for (final pane in [
     SettingsPane.wallpaper,
     SettingsPane.general,
+    SettingsPane.power,
     SettingsPane.about,
   ]) {
     testWidgets('settings ${pane.name}', (tester) async {

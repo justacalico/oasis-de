@@ -498,6 +498,36 @@ abstract class OasisLocalizations {
   /// **'Power off'**
   String get settingsPowerOff;
 
+  /// No description provided for @powerDisplayOffAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn display off after'**
+  String get powerDisplayOffAfter;
+
+  /// No description provided for @powerSleepAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep after'**
+  String get powerSleepAfter;
+
+  /// No description provided for @powerNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get powerNever;
+
+  /// No description provided for @powerMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 minute} other{{count} minutes}}'**
+  String powerMinutes(int count);
+
+  /// No description provided for @powerHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hour} other{{count} hours}}'**
+  String powerHours(int count);
+
   /// No description provided for @settingsLogout.
   ///
   /// In en, this message translates to:

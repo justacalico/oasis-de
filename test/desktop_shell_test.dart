@@ -399,6 +399,18 @@ void main() {
     expect(calls, ['wifi', 'bluetooth', 'nightLight', 'brightness', 'volume']);
   });
 
+  testWidgets('persisted power timeouts replay to the compositor', (
+    tester,
+  ) async {
+    final store = MemoryOasisStore();
+    await store.write('shell.displayOffAfter', '120000');
+    await store.write('shell.sleepAfter', '900000');
+    final host = FakeWaylandHost();
+    final wayland = WaylandService(host: host);
+    await pumpDesktop(tester, store: store, wayland: wayland);
+    expect(host.calls, contains('idleTimeouts:120000:900000'));
+  });
+
   testWidgets('lock screen blocks the desktop and unlocks', (tester) async {
     await pumpDesktop(tester, backend: _LockBackend());
     await tester.tap(find.byIcon(Icons.power_settings_new));

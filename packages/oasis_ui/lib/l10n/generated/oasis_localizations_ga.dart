@@ -216,6 +216,43 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get settingsPowerOff => 'Múch';
 
   @override
+  String get powerDisplayOffAfter => 'Múch an scáileán tar éis';
+
+  @override
+  String get powerSleepAfter => 'Téigh a chodladh tar éis';
+
+  @override
+  String get powerNever => 'Riamh';
+
+  @override
+  String powerMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nóiméad',
+      many: '$count nóimead',
+      few: '$count nóiméad',
+      two: '$count nóiméad',
+      one: '$count nóiméad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String powerHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count uair',
+      many: '$count uaire',
+      few: '$count uaire',
+      two: '$count uair',
+      one: '$count uair',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsLogout => 'Logáil amach';
 
   @override

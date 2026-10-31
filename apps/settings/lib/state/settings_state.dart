@@ -22,7 +22,11 @@ enum SettingsPane {
 }
 
 class SettingsState extends ChangeNotifier {
-  SettingsState({SettingsStore? store, this.backend, this.displayBackend})
+  SettingsState(
+      {SettingsStore? store,
+      this.backend,
+      this.displayBackend,
+      this.powerBackend})
       : _store = store ?? MemorySettingsStore() {
     wifiOn = _store.read('shell.wifi') != '0';
     bluetoothOn = _store.read('shell.bluetooth') != '0';
@@ -30,6 +34,13 @@ class SettingsState extends ChangeNotifier {
     brightness =
         double.tryParse(_store.read('shell.brightness') ?? '') ?? 0.8;
     volume = double.tryParse(_store.read('shell.volume') ?? '') ?? 0.6;
+    displayOffDelay = Duration(
+        milliseconds:
+            int.tryParse(_store.read('shell.displayOffAfter') ?? '') ??
+                300000);
+    sleepDelay = Duration(
+        milliseconds:
+            int.tryParse(_store.read('shell.sleepAfter') ?? '') ?? 0);
     unawaited(_hydrate());
   }
 
@@ -48,6 +59,7 @@ class SettingsState extends ChangeNotifier {
   final SettingsStore _store;
   final OasisSystemBackend? backend;
   final OasisDisplayBackend? displayBackend;
+  final OasisPowerBackend? powerBackend;
 
   List<OasisDisplay> displays = const [];
   var displaysBusy = false;
@@ -125,6 +137,8 @@ class SettingsState extends ChangeNotifier {
   var nightLightOn = false;
   var brightness = 0.8;
   var volume = 0.6;
+  var displayOffDelay = const Duration(minutes: 5);
+  var sleepDelay = Duration.zero;
   var query = '';
 
   void selectPane(SettingsPane next) {
@@ -159,6 +173,28 @@ class SettingsState extends ChangeNotifier {
     backend?.volume(v);
     notifyListeners();
   }
+
+  set displayOffTimeout(Duration v) {
+    displayOffDelay = v;
+    _store.write('shell.displayOffAfter', '${v.inMilliseconds}');
+    unawaited(_applyIdleTimeouts());
+    notifyListeners();
+  }
+
+  set sleepTimeout(Duration v) {
+    sleepDelay = v;
+    _store.write('shell.sleepAfter', '${v.inMilliseconds}');
+    unawaited(_applyIdleTimeouts());
+    notifyListeners();
+  }
+
+  Future<void> _applyIdleTimeouts() =>
+      powerBackend?.setIdleTimeouts(
+        displayOff:
+            displayOffDelay == Duration.zero ? null : displayOffDelay,
+        suspend: sleepDelay == Duration.zero ? null : sleepDelay,
+      ) ??
+      Future.value();
 
   Future<OasisBattery> battery() =>
       backend?.battery() ??

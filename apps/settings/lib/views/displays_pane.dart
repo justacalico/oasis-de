@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import '../state/settings_state.dart';
+import 'settings_row.dart';
 
 class DisplaysPane extends StatefulWidget {
   const DisplaysPane({super.key, required this.state});
@@ -239,11 +240,11 @@ class _DisplaysPaneState extends State<DisplaysPane> {
             ],
           ),
         ),
-        _dropdownRow(
-          l10n.displaysResolution,
-          resKey,
-          resolutions,
-          (v) {
+        SettingsDropdownRow(
+          title: l10n.displaysResolution,
+          value: resKey,
+          items: resolutions,
+          onChanged: (v) {
             final parts = v.split('x');
             _setDraft(d.copyWith(
               width: int.tryParse(parts[0]) ?? d.width,
@@ -251,29 +252,31 @@ class _DisplaysPaneState extends State<DisplaysPane> {
             ));
           },
         ),
-        _dropdownRow(
-          l10n.displaysRefresh,
-          d.refreshMhz.toString(),
-          [for (final r in rates) r.toString()],
-          (v) => _setDraft(d.copyWith(refreshMhz: int.tryParse(v))),
+        SettingsDropdownRow(
+          title: l10n.displaysRefresh,
+          value: d.refreshMhz.toString(),
+          items: [for (final r in rates) r.toString()],
+          onChanged: (v) =>
+              _setDraft(d.copyWith(refreshMhz: int.tryParse(v))),
           labels: {
             for (final r in rates)
               r.toString():
                   _rateLabel((r / 1000 * 100).round() / 100),
           },
         ),
-        _dropdownRow(
-          l10n.displaysScale,
-          d.scale.toString(),
-          [for (final s in scales) s.toString()],
-          (v) => _setDraft(d.copyWith(scale: double.tryParse(v))),
+        SettingsDropdownRow(
+          title: l10n.displaysScale,
+          value: d.scale.toString(),
+          items: [for (final s in scales) s.toString()],
+          onChanged: (v) =>
+              _setDraft(d.copyWith(scale: double.tryParse(v))),
           labels: {for (final s in scales) s.toString(): '${s}x'},
         ),
-        _dropdownRow(
-          l10n.displaysRotation,
-          rotation.toString(),
-          const ['0', '90', '180', '270'],
-          (v) {
+        SettingsDropdownRow(
+          title: l10n.displaysRotation,
+          value: rotation.toString(),
+          items: const ['0', '90', '180', '270'],
+          onChanged: (v) {
             final deg = int.tryParse(v) ?? 0;
             _setDraft(d.copyWith(
               transform: switch (deg) {
@@ -328,32 +331,6 @@ class _DisplaysPaneState extends State<DisplaysPane> {
 
   static String _rateLabel(double hz) =>
       '${hz % 1 == 0 ? hz.toStringAsFixed(0) : hz}Hz';
-
-  Widget _dropdownRow(
-    String title,
-    String value,
-    List<String> items,
-    void Function(String) onChanged, {
-    Map<String, String>? labels,
-  }) {
-    return OasisRow(
-      title: title,
-      trailing: DropdownButton<String>(
-        value: value,
-        underline: const SizedBox.shrink(),
-        items: [
-          for (final item in items)
-            DropdownMenuItem(
-              value: item,
-              child: Text(labels?[item] ?? item),
-            ),
-        ],
-        onChanged: (v) {
-          if (v != null) onChanged(v);
-        },
-      ),
-    );
-  }
 }
 
 class DisplayArranger extends StatelessWidget {

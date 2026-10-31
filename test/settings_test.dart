@@ -619,6 +619,11 @@ void main() {
     await tester.tap(find.text('Power off'));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byType(DropdownButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('10 minutes').last);
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Date & Time'));
     await tester.pumpAndSettle();
     expect(find.text('Time zone'), findsOneWidget);
@@ -632,6 +637,62 @@ void main() {
       greaterThanOrEqualTo(4),
     );
   });
+
+  testWidgets('power pane sleep delays persist and apply', (tester) async {
+    final store = MemorySettingsStore();
+    final power = _StubPowerBackend();
+    final s = SettingsState(store: store, powerBackend: power);
+    await pumpOasis(
+      tester,
+      _host(child: SettingsHome(state: s)),
+      size: const Size(900, 620),
+    );
+    await tester.tap(find.text('Power'));
+    await tester.pumpAndSettle();
+    expect(find.text('Turn display off after'), findsOneWidget);
+    expect(find.text('Sleep after'), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('10 minutes').last);
+    await tester.pumpAndSettle();
+    expect(s.displayOffDelay, const Duration(minutes: 10));
+    expect(store.read('shell.displayOffAfter'), '600000');
+
+    await tester.tap(find.byType(DropdownButton<String>).at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('2 hours').last);
+    await tester.pumpAndSettle();
+    expect(s.sleepDelay, const Duration(hours: 2));
+    expect(store.read('shell.sleepAfter'), '7200000');
+    expect(power.calls, ['600000:0', '600000:7200000']);
+
+    await tester.tap(find.byType(DropdownButton<String>).at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Never').last);
+    await tester.pumpAndSettle();
+    expect(s.sleepDelay, Duration.zero);
+    expect(power.calls.last, '600000:0');
+
+    final restored = SettingsState(store: store);
+    expect(restored.displayOffDelay, const Duration(minutes: 10));
+    expect(restored.sleepDelay, Duration.zero);
+    s.dispose();
+    restored.dispose();
+  });
+}
+
+class _StubPowerBackend extends NoopPowerBackend {
+  final calls = <String>[];
+
+  @override
+  Future<void> setIdleTimeouts(
+      {Duration? displayOff, Duration? suspend}) async {
+    calls.add(
+      '${displayOff?.inMilliseconds ?? 0}:'
+      '${suspend?.inMilliseconds ?? 0}',
+    );
+  }
 }
 
 class _StubBackend extends NoopSystemBackend {

@@ -187,6 +187,11 @@ class WaylandService extends ChangeNotifier {
   bool _starting = false;
   Timer? _retryTimer;
   Completer<void>? _retryWait;
+  int? _idleOffMs;
+  int? _idleSuspendMs;
+
+  /// Fired when the compositor's idle suspend timer expires.
+  void Function()? onIdleSuspend;
 
   Stream<WaylandRequest> get requests => _requests.stream;
   bool get available => socket.isNotEmpty;
@@ -208,6 +213,12 @@ class WaylandService extends ChangeNotifier {
           socket = name;
           started = true;
           _sub = _host.events.listen(_onEvent);
+          final off = _idleOffMs;
+          if (off != null) {
+            unawaited(
+              _host.setIdleTimeouts(off, _idleSuspendMs ?? 0),
+            );
+          }
           notifyListeners();
           return;
         }
@@ -535,6 +546,8 @@ class WaylandService extends ChangeNotifier {
         sessionLocked = false;
       case 'outputPower':
         displayOff = e['on'] == false;
+      case 'idleSuspend':
+        onIdleSuspend?.call();
       case 'outputs':
         final list = e['list'] as List<Object?>? ?? const [];
         outputs = [
@@ -649,6 +662,14 @@ class WaylandService extends ChangeNotifier {
 
   Future<void> activity() =>
       available ? _host.activity() : Future.value();
+
+  Future<void> setIdleTimeouts(int displayOffMs, int suspendMs) {
+    _idleOffMs = displayOffMs;
+    _idleSuspendMs = suspendMs;
+    return available
+        ? _host.setIdleTimeouts(displayOffMs, suspendMs)
+        : Future.value();
+  }
 
   Future<void> focus(int? id) => available ? _host.focus(id) : Future.value();
 

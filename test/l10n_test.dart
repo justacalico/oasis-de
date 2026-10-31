@@ -178,6 +178,11 @@ void exerciseStrings(OasisLocalizations l) {
   l.settingsNightLight;
   l.settingsPower;
   l.settingsPowerOff;
+  l.powerDisplayOffAfter;
+  l.powerSleepAfter;
+  l.powerNever;
+  l.powerMinutes(5);
+  l.powerHours(2);
   l.settingsReboot;
   l.settingsSearchHint;
   l.settingsSound;
