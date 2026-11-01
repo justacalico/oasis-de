@@ -27,6 +27,10 @@ struct _OasisCompositor {
   GIOChannel* watch_channel = nullptr;
   guint watch = 0;
   guint resize_idle = 0;
+  // Scale picked through configureOutput; 0 falls back to the GDK scale
+  // factor. The GTK window's physical size is fixed, but the logical
+  // output size has to follow the configured scale across re-syncs.
+  double output_scale = 0;
   std::unordered_map<int64_t, FlTexture*> textures;
 };
 
@@ -157,11 +161,17 @@ class GtkHost : public OasisHost {
         }
       }
     }
-    o.scale = scale;
+    o.scale = c_->output_scale > 0 ? c_->output_scale : scale;
     o.w = w;
     o.h = h;
     o.modes.push_back({w, h, o.refresh, true});
     return {o};
+  }
+
+  void applyOutputs(const std::vector<HostOutput>& want) override {
+    for (const auto& w : want) {
+      if (w.scale > 0) c_->output_scale = w.scale;
+    }
   }
 
   std::vector<std::string> hostClipboardMimes() override {
