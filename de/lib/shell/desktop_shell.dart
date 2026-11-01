@@ -18,6 +18,7 @@ import 'lock_screen.dart';
 import 'menu_bar.dart';
 import 'notification_center.dart';
 import 'shell_controller.dart';
+import 'view_scale.dart';
 import 'window_switcher.dart';
 
 class DesktopShell extends StatefulWidget {
@@ -74,7 +75,7 @@ class _DesktopShellState extends State<DesktopShell> {
     final w = controller.windowForSurface(request.id);
     final s = w?.surface;
     if (w == null || s == null) return;
-    final buf = s.bufferSize;
+    final buf = logicalSurfaceSize(s);
     final sx = buf.width > 0 ? s.size.width / buf.width : 1.0;
     final sy = buf.height > 0 ? s.size.height / buf.height : 1.0;
     final base = w.zoomed
@@ -140,14 +141,14 @@ class _DesktopShellState extends State<DesktopShell> {
           child: Listener(
             onPointerDown: _onShellPointerDown,
             onPointerHover: (e) {
-              _pointerPos.value = e.position;
-              controller.lastPointerPosition = e.position;
+              _pointerPos.value = e.localPosition;
+              controller.lastPointerPosition = e.localPosition;
               if (e.buttons == 0) controller.endSurfaceGesture();
             },
             onPointerMove: (e) =>
                 _onShellPointerMove(e, MediaQuery.sizeOf(context)),
             onPointerUp: (e) => controller.endSurfaceGesture(
-              e.position,
+              e.localPosition,
               MediaQuery.sizeOf(context),
             ),
             child: Stack(
@@ -471,7 +472,7 @@ class _DesktopShellState extends State<DesktopShell> {
     for (final popup in service.popups) {
       final origin = _popupOffset(popup);
       if (origin == null) continue;
-      if (!(origin & popup.size).contains(e.position)) continue;
+      if (!(origin & popup.size).contains(e.localPosition)) continue;
       var depth = 0;
       for (
         var p = service.surfaces[popup.parentId];
@@ -496,12 +497,12 @@ class _DesktopShellState extends State<DesktopShell> {
   }
 
   void _onShellPointerMove(PointerMoveEvent e, Size screen) {
-    _pointerPos.value = e.position;
+    _pointerPos.value = e.localPosition;
     final resize = controller.surfaceResize;
     if (resize != null) {
       controller.resizeWindow(
         resize.id,
-        e.delta,
+        e.localDelta,
         resize.edge,
         _defaultWindowSize(screen),
       );
@@ -509,7 +510,7 @@ class _DesktopShellState extends State<DesktopShell> {
     }
     final id = controller.surfaceDragWindowId;
     if (id != null) {
-      controller.dragWindow(id, e.delta, screen);
+      controller.dragWindow(id, e.localDelta, screen);
     }
   }
 
@@ -576,8 +577,7 @@ class _DesktopShellState extends State<DesktopShell> {
             var rect = layerSurfaceRect(s, screen);
             for (final o in service.outputs) {
               if (o.id == s.outputId) {
-                rect = layerSurfaceRect(s, Size(
-                      o.width.toDouble(), o.height.toDouble()))
+                rect = layerSurfaceRect(s, o.rect.size)
                     .shift(o.rect.topLeft);
                 break;
               }
@@ -736,7 +736,8 @@ class _DesktopShellState extends State<DesktopShell> {
     final box =
         _menuLabelKeys[menus[idx].label]!.currentContext?.findRenderObject()
             as RenderBox?;
-    final x = box?.localToGlobal(Offset.zero).dx ?? 40;
+    final x = (box?.localToGlobal(Offset.zero).dx ?? 40) /
+        ViewScale.of(context);
     final max = MediaQuery.sizeOf(context).width - 218;
     return x.clamp(0.0, max > 0 ? max : 0.0);
   }

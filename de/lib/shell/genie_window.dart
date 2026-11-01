@@ -3,6 +3,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 
 import 'shell_controller.dart';
+import 'view_scale.dart';
 
 class GenieWindow extends StatefulWidget {
   const GenieWindow({
@@ -77,7 +78,14 @@ class _GenieWindowState extends State<GenieWindow>
     final box =
         widget.window.dockIconKey.currentContext?.findRenderObject();
     if (box is RenderBox && box.attached && box.hasSize) {
-      return box.localToGlobal(Offset.zero) & box.size;
+      final k = ViewScale.of(context);
+      final p = box.localToGlobal(Offset.zero);
+      return Rect.fromLTWH(
+        p.dx / k,
+        p.dy / k,
+        box.size.width / k,
+        box.size.height / k,
+      );
     }
     final screen = MediaQuery.sizeOf(context);
     return Rect.fromCenter(

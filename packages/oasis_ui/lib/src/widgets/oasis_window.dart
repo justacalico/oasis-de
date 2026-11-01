@@ -67,7 +67,7 @@ class _OasisWindowState extends State<OasisWindow> {
     final p = style.palette;
     final onDrag = widget.onDrag;
     final titleBar = Listener(
-      onPointerMove: onDrag == null ? null : (e) => onDrag(e.delta),
+      onPointerMove: onDrag == null ? null : (e) => onDrag(e.localDelta),
       onPointerDown: widget.onMaximize == null
           ? null
           : (e) {
@@ -267,7 +267,7 @@ class _ResizeGrabber extends StatelessWidget {
       cursor: cursor,
       child: Listener(
         behavior: HitTestBehavior.opaque,
-        onPointerMove: (e) => onResize(e.delta, edge),
+        onPointerMove: (e) => onResize(e.localDelta, edge),
         child: const SizedBox.expand(),
       ),
     );

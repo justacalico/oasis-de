@@ -36,6 +36,7 @@ void showOasisMenu(
 ) {
   final overlay = Overlay.of(context);
   final box = overlay.context.findRenderObject()! as RenderBox;
+  final local = box.globalToLocal(position);
   late final OverlayEntry entry;
   var closed = false;
   void close() {
@@ -51,8 +52,8 @@ void showOasisMenu(
       const menuHeight = 400.0;
       final maxX = box.size.width - menuWidth - 8;
       final maxY = box.size.height - 8;
-      final dx = position.dx.clamp(8.0, maxX > 8 ? maxX : 8.0);
-      final dy = position.dy.clamp(8.0, maxY > 8 ? maxY : 8.0);
+      final dx = local.dx.clamp(8.0, maxX > 8 ? maxX : 8.0);
+      final dy = local.dy.clamp(8.0, maxY > 8 ? maxY : 8.0);
       return Stack(
         children: [
           Positioned.fill(
