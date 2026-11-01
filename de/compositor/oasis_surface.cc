@@ -695,6 +695,7 @@ static void surface_new_sub(wl_listener* listener, void* data) {
   m["parent"] = ps != nullptr ? ps->public_id : -1;
   m["x"] = (int64_t)s->sx;
   m["y"] = (int64_t)s->sy;
+  m["textureId"] = s->texture_id;
   emit_id(s, "subsurface", std::move(m));
   emit_size(s);
 }
