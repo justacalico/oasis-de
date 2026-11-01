@@ -452,6 +452,7 @@ class WaylandService extends ChangeNotifier {
       case 'subsurface':
         final sub = WaylandSurface(
           id: id,
+          textureId: (e['textureId'] as num?)?.toInt() ?? -1,
           parentId: (e['parent'] as num).toInt(),
           isSub: true,
           offset: Offset(
