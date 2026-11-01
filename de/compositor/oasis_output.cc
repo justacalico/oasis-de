@@ -82,11 +82,13 @@ void output_apply_state(OasisOutput* o) {
   wlr_output_state_set_enabled(&st, o->enabled);
   if (o->enabled && o->width > 0 && o->height > 0) {
     wlr_output_mode* mode = nullptr;
-    for (wlr_output_mode* m : o->modes) {
-      if (m->width == o->width && m->height == o->height &&
-          std::abs(m->refresh - o->refresh) <= 1000) {
-        mode = m;
-        break;
+    if (!wlr_output_is_headless(o->wlr)) {
+      for (wlr_output_mode* m : o->modes) {
+        if (m->width == o->width && m->height == o->height &&
+            std::abs(m->refresh - o->refresh) <= 1000) {
+          mode = m;
+          break;
+        }
       }
     }
     if (mode != nullptr) {
