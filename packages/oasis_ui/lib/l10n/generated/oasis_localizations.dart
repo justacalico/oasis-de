@@ -594,6 +594,12 @@ abstract class OasisLocalizations {
   /// **'Toggle Wi-Fi on or off.'**
   String get settingsWifiBody;
 
+  /// No description provided for @settingsWifiNetworks.
+  ///
+  /// In en, this message translates to:
+  /// **'Networks'**
+  String get settingsWifiNetworks;
+
   /// No description provided for @settingsBluetoothBody.
   ///
   /// In en, this message translates to:

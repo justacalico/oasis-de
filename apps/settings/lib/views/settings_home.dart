@@ -6,6 +6,7 @@ import 'displays_pane.dart';
 import 'panes.dart';
 import 'sound_pane.dart';
 import 'wallpaper_pane.dart';
+import 'wifi_pane.dart';
 
 class SettingsHome extends StatefulWidget {
   const SettingsHome({
@@ -126,13 +127,7 @@ class _SettingsHomeState extends State<SettingsHome> {
                     SettingsPane.power => PowerPane(state: s),
                     SettingsPane.datetime => const DateTimePane(),
                     SettingsPane.users => UsersPane(state: s),
-                    SettingsPane.wifi => NetworkPane(
-                        title: l10n.settingsWifi,
-                        icon: Icons.wifi,
-                        enabled: s.wifiOn,
-                        onChanged: (v) => s.wifiEnabled = v,
-                        subtitle: l10n.settingsWifiBody,
-                      ),
+                    SettingsPane.wifi => WifiPane(state: s),
                     SettingsPane.bluetooth => NetworkPane(
                         title: l10n.settingsBluetooth,
                         icon: Icons.bluetooth,

@@ -578,6 +578,24 @@ void main() {
     );
   });
 
+  testWidgets('settings wifi', (tester) async {
+    await _size(tester, const Size(1000, 700));
+    final s = SettingsState(backend: const _WifiBackend())
+      ..selectPane(SettingsPane.wifi);
+    await tester.pumpWidget(
+      OasisSettingsApp(
+        state: s,
+        appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+        updateChecker: _FakeChecker(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/settings_wifi.png'),
+    );
+  });
+
   for (final locale in const [
     Locale('zh'),
     Locale('ru'),

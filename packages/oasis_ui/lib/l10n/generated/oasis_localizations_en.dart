@@ -279,6 +279,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get settingsWifiBody => 'Toggle Wi-Fi on or off.';
 
   @override
+  String get settingsWifiNetworks => 'Networks';
+
+  @override
   String get settingsBluetoothBody => 'Toggle Bluetooth on or off.';
 
   @override
