@@ -27,6 +27,7 @@ export 'src/widgets/oasis_tooltip.dart';
 export 'src/widgets/oasis_traffic_lights.dart';
 export 'src/widgets/oasis_wallpaper.dart';
 export 'src/widgets/oasis_window.dart';
+export 'src/widgets/wifi_signal_icon.dart';
 export 'src/update/app_update.dart';
 export 'src/update/update_checker.dart';
 export 'src/update/update_service.dart';

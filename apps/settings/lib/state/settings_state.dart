@@ -48,12 +48,21 @@ class SettingsState extends ChangeNotifier {
     final b = backend;
     if (b == null) return;
     final s = await b.read();
+    if (_disposed) return;
     if (s.wifi != null) wifiOn = s.wifi!;
     if (s.bluetooth != null) bluetoothOn = s.bluetooth!;
     if (s.brightness != null) brightness = s.brightness!;
     if (s.volume != null) volume = s.volume!;
     if (s.nightLight != null) nightLightOn = s.nightLight!;
     notifyListeners();
+  }
+
+  var _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 
   final SettingsStore _store;
@@ -83,6 +92,32 @@ class SettingsState extends ChangeNotifier {
 
   Future<void> identifyDisplays() =>
       displayBackend?.identifyDisplays() ?? Future.value();
+
+  List<OasisWifiNetwork> wifiNetworks = const [];
+  var wifiScanning = false;
+
+  Future<void> refreshWifiNetworks() async {
+    final b = backend;
+    if (!wifiOn || b == null) {
+      wifiNetworks = const [];
+      return;
+    }
+    wifiScanning = true;
+    notifyListeners();
+    final found = await b.wifiNetworks();
+    if (_disposed) return;
+    wifiNetworks = wifiOn ? found : const [];
+    wifiScanning = false;
+    notifyListeners();
+  }
+
+  Future<void> connectWifiNetwork(String ssid) async {
+    final b = backend;
+    if (b == null) return;
+    await b.connectWifi(ssid);
+    if (_disposed) return;
+    unawaited(refreshWifiNetworks());
+  }
 
   List<OasisAudioDevice> audioOutputs = const [];
   List<OasisAudioDevice> audioInputs = const [];
@@ -154,7 +189,14 @@ class SettingsState extends ChangeNotifier {
   }
 
   set wifiEnabled(bool v) =>
-      _set('shell.wifi', v, () => wifiOn = v, () => backend?.wifi(v));
+      _set('shell.wifi', v, () => wifiOn = v, () {
+        backend?.wifi(v);
+        if (v) {
+          unawaited(refreshWifiNetworks());
+        } else {
+          wifiNetworks = const [];
+        }
+      });
   set bluetoothEnabled(bool v) => _set('shell.bluetooth', v,
       () => bluetoothOn = v, () => backend?.bluetooth(v));
   set nightLightEnabled(bool v) => _set('shell.nightLight', v,

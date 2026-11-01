@@ -284,6 +284,9 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get settingsWifiBody => 'Включение и отключение Wi-Fi.';
 
   @override
+  String get settingsWifiNetworks => 'Сети';
+
+  @override
   String get settingsBluetoothBody => 'Включение и отключение Bluetooth.';
 
   @override

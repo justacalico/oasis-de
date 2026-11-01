@@ -78,6 +78,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.settingsAccent;
   l.settingsLanguage;
   l.settingsWifiBody;
+  l.settingsWifiNetworks;
   l.settingsBluetoothBody;
   l.themeLight;
   l.themeDark;

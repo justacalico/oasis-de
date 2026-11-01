@@ -431,6 +431,116 @@ void main() {
     plain.dispose();
   });
 
+  test('SettingsState scans and joins wifi networks', () async {
+    final calls = <String>[];
+    final s = SettingsState(
+      store: MemorySettingsStore(),
+      backend: _StubBackend(
+        calls,
+        networks: const [OasisWifiNetwork(ssid: 'Cafe', signal: 55)],
+      ),
+    );
+    await s.refreshWifiNetworks();
+    expect(s.wifiNetworks.single.ssid, 'Cafe');
+    expect(s.wifiScanning, isFalse);
+
+    await s.connectWifiNetwork('Cafe');
+    expect(calls, contains('connect:Cafe'));
+
+    s.wifiEnabled = false;
+    expect(s.wifiNetworks, isEmpty);
+    await s.refreshWifiNetworks();
+
+    s.wifiEnabled = true;
+    await Future<void>.delayed(Duration.zero);
+    expect(s.wifiNetworks.single.ssid, 'Cafe');
+
+    final plain = SettingsState();
+    await plain.refreshWifiNetworks();
+    await plain.connectWifiNetwork('x');
+    s.dispose();
+    plain.dispose();
+  });
+
+  test('SettingsState wifi futures tolerate disposal', () async {
+    final scanGate = Completer<List<OasisWifiNetwork>>();
+    final connectGate = Completer<void>();
+    final s = SettingsState(
+      backend:
+          _StubBackend([], scanGate: scanGate, connectGate: connectGate),
+    );
+    final scan = s.refreshWifiNetworks();
+    final join = s.connectWifiNetwork('x');
+    s.dispose();
+    scanGate.complete(const []);
+    connectGate.complete();
+    await Future.wait([scan, join]);
+  });
+
+  testWidgets('wifi pane lists networks and connects', (tester) async {
+    final calls = <String>[];
+    final s = SettingsState(
+      store: MemorySettingsStore(),
+      backend: _StubBackend(
+        calls,
+        networks: const [
+          OasisWifiNetwork(
+            ssid: 'HomeBase',
+            signal: 90,
+            secured: true,
+            connected: true,
+          ),
+          OasisWifiNetwork(ssid: 'Cafe', signal: 55, secured: true),
+          OasisWifiNetwork(ssid: 'Faraway', signal: 10),
+        ],
+      ),
+    );
+    await pumpOasis(
+      tester,
+      _host(child: SettingsHome(state: s)),
+      size: const Size(900, 620),
+    );
+    await tester.tap(find.text('Wi-Fi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Networks'), findsOneWidget);
+    expect(find.text('HomeBase'), findsOneWidget);
+    expect(find.text('Cafe'), findsOneWidget);
+    expect(find.text('Faraway'), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline), findsNWidgets(2));
+    expect(find.byIcon(Icons.check), findsOneWidget);
+
+    await tester.tap(find.text('Cafe'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('connect:Cafe'));
+
+    await tester.tap(find.byType(OasisToggle));
+    await tester.pumpAndSettle();
+    expect(find.text('Networks'), findsNothing);
+    expect(s.wifiNetworks, isEmpty);
+    s.dispose();
+  });
+
+  testWidgets('wifi pane shows scanning and empty states', (tester) async {
+    final gate = Completer<List<OasisWifiNetwork>>();
+    final s = SettingsState(
+      store: MemorySettingsStore(),
+      backend: _StubBackend([], scanGate: gate),
+    );
+    await pumpOasis(
+      tester,
+      _host(child: SettingsHome(state: s)),
+      size: const Size(900, 620),
+    );
+    await tester.tap(find.text('Wi-Fi'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Scanning…'), findsOneWidget);
+    gate.complete(const []);
+    await tester.pumpAndSettle();
+    expect(find.text('No networks found'), findsOneWidget);
+    s.dispose();
+  });
+
   test('SettingsState refreshes and selects audio devices', () async {
     final calls = <String>[];
     final s = SettingsState(
@@ -703,6 +813,9 @@ class _StubBackend extends NoopSystemBackend {
     this.outputs = const [],
     this.inputs = const [],
     this.cards = const [],
+    this.networks = const [],
+    this.scanGate,
+    this.connectGate,
   });
 
   final List<String> calls;
@@ -711,6 +824,19 @@ class _StubBackend extends NoopSystemBackend {
   final List<OasisAudioDevice> outputs;
   final List<OasisAudioDevice> inputs;
   final List<OasisAudioCard> cards;
+  final List<OasisWifiNetwork> networks;
+  final Completer<List<OasisWifiNetwork>>? scanGate;
+  final Completer<void>? connectGate;
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() =>
+      scanGate?.future ?? Future.value(networks);
+
+  @override
+  Future<void> connectWifi(String ssid) async {
+    calls.add('connect:$ssid');
+    await connectGate?.future;
+  }
 
   @override
   Future<List<OasisAudioDevice>> audioOutputs() async => outputs;

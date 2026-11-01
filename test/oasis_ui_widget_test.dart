@@ -9,6 +9,13 @@ import 'helpers/test_app.dart';
 
 void main() {
   iconCoverage();
+  test('wifiSignalIcon maps signal strength to bars', () {
+    expect(wifiSignalIcon(90), Icons.signal_wifi_4_bar);
+    expect(wifiSignalIcon(60), Icons.network_wifi_3_bar);
+    expect(wifiSignalIcon(30), Icons.network_wifi_2_bar);
+    expect(wifiSignalIcon(5), Icons.network_wifi_1_bar);
+  });
+
   testWidgets('OasisButton variants, states and callbacks', (tester) async {
     var taps = 0;
     await pumpOasis(

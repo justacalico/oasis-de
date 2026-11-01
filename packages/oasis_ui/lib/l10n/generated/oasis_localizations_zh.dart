@@ -277,6 +277,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get settingsWifiBody => '开启或关闭 Wi-Fi。';
 
   @override
+  String get settingsWifiNetworks => '网络';
+
+  @override
   String get settingsBluetoothBody => '开启或关闭蓝牙。';
 
   @override

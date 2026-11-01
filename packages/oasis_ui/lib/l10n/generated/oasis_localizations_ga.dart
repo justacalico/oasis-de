@@ -286,6 +286,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get settingsWifiBody => 'Cas Wi-Fi air nó as.';
 
   @override
+  String get settingsWifiNetworks => 'Líonraí';
+
+  @override
   String get settingsBluetoothBody => 'Cas Bluetooth air nó as.';
 
   @override
