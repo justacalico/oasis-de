@@ -57,6 +57,11 @@ class ShellWindowData {
 
   String get displayTitle =>
       surface != null && surface!.title.isNotEmpty ? surface!.title : app.name;
+
+  bool get clientDecorated => surface?.clientDecorated ?? false;
+
+  double get titleBarHeight =>
+      clientDecorated ? 0 : kOasisWindowTitleBarHeight;
 }
 
 typedef ShellMenuItem = OasisMenuItem;
@@ -655,14 +660,14 @@ class ShellController extends ChangeNotifier {
     if (s != null) {
       if (s.minSize.width > 0 && s.minSize.height > 0) {
         minW = math.max(minW, s.minSize.width);
-        minH = math.max(minH, s.minSize.height + kOasisWindowTitleBarHeight);
+        minH = math.max(minH, s.minSize.height + window.titleBarHeight);
       } else if (!s.size.isEmpty) {
         minW = math.min(minW, s.size.width);
-        minH = math.min(minH, s.size.height + kOasisWindowTitleBarHeight);
+        minH = math.min(minH, s.size.height + window.titleBarHeight);
       }
       if (s.maxSize.width > 0 && s.maxSize.height > 0) {
         maxW = s.maxSize.width;
-        maxH = s.maxSize.height + kOasisWindowTitleBarHeight;
+        maxH = s.maxSize.height + window.titleBarHeight;
       }
     }
     final base = window.size ?? fallback;
@@ -840,7 +845,7 @@ class ShellController extends ChangeNotifier {
       w.adoptedSize = s.size;
       final fit = Size(
         s.size.width,
-        s.size.height + kOasisWindowTitleBarHeight,
+        s.size.height + w.titleBarHeight,
       );
       if (w.size == fit) continue;
       w.size = fit;

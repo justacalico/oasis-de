@@ -486,6 +486,15 @@ static void deco_destroyed(wl_listener* listener, void*) {
   s->deco = nullptr;
   wl_list_remove(&listener->link);
   wl_list_init(&listener->link);
+  wl_list_remove(&s->deco_request.link);
+  wl_list_init(&s->deco_request.link);
+}
+
+static void deco_requested(wl_listener* listener, void*) {
+  Surface* s = wl_container_of(listener, s, deco_request);
+  apply_decoration(s);
+  emit_decoration(s);
+  comp_flush(s->comp);
 }
 
 static void handle_new_decoration(wl_listener* listener, void* data) {
@@ -496,10 +505,40 @@ static void handle_new_decoration(wl_listener* listener, void* data) {
   s->deco = deco;
   s->deco_destroy.notify = deco_destroyed;
   wl_signal_add(&deco->events.destroy, &s->deco_destroy);
+  s->deco_request.notify = deco_requested;
+  wl_signal_add(&deco->events.request_mode, &s->deco_request);
   if (s->xdg != nullptr && s->xdg->initialized) {
-    wlr_xdg_toplevel_decoration_v1_set_mode(
-        deco, WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+    apply_decoration(s);
   }
+}
+
+static void kde_mode_changed(wl_listener* listener, void*) {
+  Surface* s = wl_container_of(listener, s, kde_mode);
+  emit_decoration(s);
+}
+
+static void kde_deco_destroyed(wl_listener* listener, void*) {
+  Surface* s = wl_container_of(listener, s, kde_destroy);
+  s->kde_deco = nullptr;
+  wl_list_remove(&s->kde_mode.link);
+  wl_list_init(&s->kde_mode.link);
+  wl_list_remove(&s->kde_destroy.link);
+  wl_list_init(&s->kde_destroy.link);
+}
+
+static void handle_new_server_decoration(wl_listener* listener, void* data) {
+  OasisPrivate* c = wl_container_of(listener, c, new_server_decoration);
+  auto* deco = static_cast<wlr_server_decoration*>(data);
+  Surface* s = surface_of(c, deco->surface);
+  if (s == nullptr || s->role != ROLE_TOPLEVEL || s->deco != nullptr) {
+    return;
+  }
+  s->kde_deco = deco;
+  s->kde_mode.notify = kde_mode_changed;
+  wl_signal_add(&deco->events.mode, &s->kde_mode);
+  s->kde_destroy.notify = kde_deco_destroyed;
+  wl_signal_add(&deco->events.destroy, &s->kde_destroy);
+  emit_decoration(s);
 }
 
 static void handle_request_activate(wl_listener* listener, void* data) {
@@ -668,6 +707,9 @@ bool OasisCore::start(std::string* error) {
                                           WL_SEAT_CAPABILITY_TOUCH);
   p->xdg_shell = wlr_xdg_shell_create(p->display, 6);
   p->deco_mgr = wlr_xdg_decoration_manager_v1_create(p->display);
+  p->kde_deco_mgr = wlr_server_decoration_manager_create(p->display);
+  wlr_server_decoration_manager_set_default_mode(
+      p->kde_deco_mgr, WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
   p->viewporter = wlr_viewporter_create(p->display);
   p->dmabuf_v1 =
       wlr_linux_dmabuf_v1_create_with_renderer(p->display, 5, p->renderer);
@@ -775,6 +817,9 @@ bool OasisCore::start(std::string* error) {
   p->new_decoration.notify = handle_new_decoration;
   wl_signal_add(&p->deco_mgr->events.new_toplevel_decoration,
                 &p->new_decoration);
+  p->new_server_decoration.notify = handle_new_server_decoration;
+  wl_signal_add(&p->kde_deco_mgr->events.new_decoration,
+                &p->new_server_decoration);
   p->request_shape.notify = handle_request_shape;
   wl_signal_add(&p->cursor_shape_mgr->events.request_set_shape,
                 &p->request_shape);

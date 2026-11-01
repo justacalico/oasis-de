@@ -32,6 +32,7 @@ extern "C" {
 #include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_relative_pointer_v1.h>
 #include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_server_decoration.h>
 #include <wlr/types/wlr_session_lock_v1.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_text_input_v3.h>

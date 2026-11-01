@@ -34,6 +34,7 @@ class OasisWindow extends StatefulWidget {
     this.width = 720,
     this.height = 480,
     this.focused = true,
+    this.decorated = true,
     this.onDrag,
     this.onResize,
   });
@@ -46,6 +47,10 @@ class OasisWindow extends StatefulWidget {
   final double width;
   final double height;
   final bool focused;
+
+  /// When false the title bar is omitted and [child] fills the window;
+  /// used for surfaces that draw their own client-side decorations.
+  final bool decorated;
   final ValueChanged<Offset>? onDrag;
   final void Function(Offset delta, OasisResizeEdge edge)? onResize;
 
@@ -140,7 +145,7 @@ class _OasisWindowState extends State<OasisWindow> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            titleBar,
+            if (widget.decorated) titleBar,
             Expanded(child: widget.child),
           ],
         ),

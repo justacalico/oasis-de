@@ -264,6 +264,32 @@ void main() {
     service.dispose();
   });
 
+  testWidgets('client-decorated window drops shell title bar', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    c.openApp(c.apps.single);
+    _emitToplevel(host, title: 'Csd');
+    host.emit({'event': 'decoration', 'id': 1, 'mode': 1});
+    host.emit({'event': 'size', 'id': 1, 'w': 320, 'h': 240});
+    await tester.pump();
+    await pumpOasis(
+      tester,
+      DesktopShell(controller: c, menusBuilder: () => const []),
+      size: const Size(1280, 800),
+    );
+    final w = c.windows.single;
+    expect(w.clientDecorated, isTrue);
+    expect(w.titleBarHeight, 0);
+    expect(w.size, const Size(320, 240));
+    expect(find.byType(OasisTrafficLights), findsNothing);
+    expect(find.text('Csd'), findsNothing);
+    c.dispose();
+    service.dispose();
+  });
+
   testWidgets('layer lock and power surfaces render', (tester) async {
     final host = FakeWaylandHost();
     final service = await _service(host);

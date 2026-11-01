@@ -270,6 +270,28 @@ void main() {
     service.dispose();
   });
 
+  test('service tracks negotiated decoration mode', () async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    await service.start();
+    host.emit({'event': 'toplevel', 'id': 1});
+    host.emit({'event': 'decoration', 'id': 9, 'mode': 1});
+    await pumpEventQueue();
+    final s = service.surfaces[1]!;
+    expect(s.decorationMode, 2);
+    expect(s.clientDecorated, isFalse);
+
+    host.emit({'event': 'decoration', 'id': 1, 'mode': 1});
+    await pumpEventQueue();
+    expect(s.decorationMode, 1);
+    expect(s.clientDecorated, isTrue);
+
+    host.emit({'event': 'decoration', 'id': 1});
+    await pumpEventQueue();
+    expect(s.clientDecorated, isFalse);
+    service.dispose();
+  });
+
   test('service tracks shortcut inhibit and pointer lock', () async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
