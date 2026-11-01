@@ -6,6 +6,7 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <gbm.h>
+#include <libdrm/drm_fourcc.h>
 #include <libinput.h>
 #include <libudev.h>
 #include <linux/input-event-codes.h>
@@ -20,6 +21,8 @@
 #include <xkbcommon/xkbcommon-keysyms.h>
 
 #include <algorithm>
+#include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -40,6 +43,7 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
 extern "C" {
 #include <libseat.h>
@@ -319,6 +323,8 @@ static FlutterEngineResult (*pUpdateSemantics)(
 static FlutterEngineResult (*pRunTask)(FLUTTER_API_SYMBOL(FlutterEngine),
                                        const FlutterTask*);
 static FlutterEngineResult (*pDeinit)(FLUTTER_API_SYMBOL(FlutterEngine));
+static FlutterEngineResult (*pPostRenderTask)(
+    FLUTTER_API_SYMBOL(FlutterEngine), VoidCallback, void*);
 
 template <typename T>
 static T sym(const char* name) {
@@ -686,8 +692,44 @@ static void send_metrics() {
   wm.pixel_ratio = 1.0;
   pSendWindowMetrics(engine, &wm);
 }
-static std::unordered_map<int64_t, GLuint> g_textures;
+
+// ---- external textures ------------------------------------------------------
+//
+// The compositor hands each client buffer to the engine as an external
+// texture. There is a single EGL context and it belongs to the raster
+// thread, so the platform thread never touches GL here: pushPixels and
+// pushDmabuf only stage data under g_tex_mu, and every glGenTextures,
+// upload, EGL import and delete happens inside the engine's texture frame
+// callback (or another task posted to the render thread). Doing the GL
+// work on the platform thread raced the rasterizer, made eglMakeCurrent
+// fail with EGL_BAD_ACCESS, and corrupted textures of unrelated surfaces.
+
+#ifndef GL_RGBA8
+#define GL_RGBA8 0x8058
+#endif
+
+struct KmsTex {
+  bool is_dmabuf = false;
+  GLuint name = 0;
+  int w = 0, h = 0;
+  EGLImage image = EGL_NO_IMAGE;
+  bool failed = false;
+
+  std::vector<uint8_t> pixels;
+  int pix_w = 0, pix_h = 0;
+  bool pix_dirty = false;
+  DmabufInfo dmabuf;
+  bool dmabuf_dirty = false;
+
+  ~KmsTex() { dmabuf.close_fds(); }
+};
+
+static std::mutex g_tex_mu;
+static std::unordered_map<int64_t, std::shared_ptr<KmsTex>> g_textures;
+static std::vector<std::shared_ptr<KmsTex>> g_dead_tex;
 static int64_t g_next_tex = 1;
+
+static void kms_tex_collect();
 static struct {
   int fd = -1;
   libinput* li = nullptr;
@@ -709,6 +751,10 @@ static bool eng_present(void*) {
   // Switched to another VT: the seat controller has paused our devices,
   // so swaps and page flips would only fail against a dead master.
   if (g_seat != nullptr && !g_seat_active) return true;
+  {
+    std::lock_guard<std::mutex> lk(g_tex_mu);
+    kms_tex_collect();
+  }
   drm_present(g_drm);
   return true;
 }
@@ -720,13 +766,201 @@ static bool eng_resource(void*) {
 static void* eng_proc(void*, const char* name) {
   return (void*)eglGetProcAddress(name);
 }
-static bool eng_texture(void*, int64_t id, size_t w, size_t h,
+
+static EGLImage kms_dmabuf_image(const DmabufInfo& b) {
+  EGLAttrib attrs[64];
+  int i = 0;
+  attrs[i++] = EGL_WIDTH;
+  attrs[i++] = b.w;
+  attrs[i++] = EGL_HEIGHT;
+  attrs[i++] = b.h;
+  attrs[i++] = EGL_LINUX_DRM_FOURCC_EXT;
+  attrs[i++] = static_cast<EGLAttrib>(b.format);
+  static const EGLint fd_at[4] = {EGL_DMA_BUF_PLANE0_FD_EXT,
+                                  EGL_DMA_BUF_PLANE1_FD_EXT,
+                                  EGL_DMA_BUF_PLANE2_FD_EXT,
+                                  EGL_DMA_BUF_PLANE3_FD_EXT};
+  static const EGLint off_at[4] = {EGL_DMA_BUF_PLANE0_OFFSET_EXT,
+                                   EGL_DMA_BUF_PLANE1_OFFSET_EXT,
+                                   EGL_DMA_BUF_PLANE2_OFFSET_EXT,
+                                   EGL_DMA_BUF_PLANE3_OFFSET_EXT};
+  static const EGLint pitch_at[4] = {EGL_DMA_BUF_PLANE0_PITCH_EXT,
+                                     EGL_DMA_BUF_PLANE1_PITCH_EXT,
+                                     EGL_DMA_BUF_PLANE2_PITCH_EXT,
+                                     EGL_DMA_BUF_PLANE3_PITCH_EXT};
+  static const EGLint mlo_at[4] = {EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT,
+                                   EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT,
+                                   EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT,
+                                   EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT};
+  static const EGLint mhi_at[4] = {EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT,
+                                   EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT,
+                                   EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT,
+                                   EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT};
+  int n = b.nplanes < 4 ? b.nplanes : 4;
+  for (int p = 0; p < n; p++) {
+    attrs[i++] = fd_at[p];
+    attrs[i++] = b.fds[p];
+    attrs[i++] = off_at[p];
+    attrs[i++] = static_cast<EGLAttrib>(b.offsets[p]);
+    attrs[i++] = pitch_at[p];
+    attrs[i++] = static_cast<EGLAttrib>(b.strides[p]);
+    if (b.mods[p] != DRM_FORMAT_MOD_INVALID) {
+      attrs[i++] = mlo_at[p];
+      attrs[i++] = static_cast<EGLAttrib>(b.mods[p] & 0xffffffffu);
+      attrs[i++] = mhi_at[p];
+      attrs[i++] = static_cast<EGLAttrib>(b.mods[p] >> 32);
+    }
+  }
+  attrs[i++] = EGL_NONE;
+  return eglCreateImage(g_drm.dpy, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT,
+                        static_cast<EGLClientBuffer>(nullptr), attrs);
+}
+
+static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC kms_image_target() {
+  static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC fn = nullptr;
+  if (fn == nullptr) {
+    fn = reinterpret_cast<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>(
+        eglGetProcAddress("glEGLImageTargetTexture2DOES"));
+  }
+  return fn;
+}
+
+// Runs on the raster thread with g_tex_mu held.
+static void kms_tex_collect() {
+  for (auto& t : g_dead_tex) {
+    if (t->image != EGL_NO_IMAGE) {
+      eglDestroyImage(g_drm.dpy, t->image);
+      t->image = EGL_NO_IMAGE;
+    }
+    if (t->name != 0) {
+      glDeleteTextures(1, &t->name);
+      t->name = 0;
+    }
+  }
+  g_dead_tex.clear();
+}
+
+// Runs on the raster thread with g_tex_mu held. Returns true once the
+// texture has content the engine can sample.
+static bool kms_tex_acquire(KmsTex* t) {
+  if (t->name == 0) {
+    glGenTextures(1, &t->name);
+    if (t->name == 0) return false;
+    glBindTexture(GL_TEXTURE_2D, t->name);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  }
+  if (t->is_dmabuf) {
+    if (t->dmabuf_dirty) {
+      t->dmabuf_dirty = false;
+      if (t->image != EGL_NO_IMAGE) {
+        eglDestroyImage(g_drm.dpy, t->image);
+        t->image = EGL_NO_IMAGE;
+      }
+      EGLImage img = kms_dmabuf_image(t->dmabuf);
+      auto target = kms_image_target();
+      glBindTexture(GL_TEXTURE_2D, t->name);
+      if (img != EGL_NO_IMAGE && target != nullptr) {
+        target(GL_TEXTURE_2D, img);
+      }
+      // Multi-plane/YUV formats generally refuse a TEXTURE_2D binding;
+      // latch the failure so the core falls back to a CPU readback.
+      if (img == EGL_NO_IMAGE || target == nullptr ||
+          glGetError() != GL_NO_ERROR) {
+        if (img != EGL_NO_IMAGE) eglDestroyImage(g_drm.dpy, img);
+        t->failed = true;
+        return false;
+      }
+      t->image = img;
+      t->w = t->dmabuf.w;
+      t->h = t->dmabuf.h;
+    }
+    return t->image != EGL_NO_IMAGE;
+  }
+  if (t->pix_dirty && t->pix_w > 0 && t->pix_h > 0) {
+    t->pix_dirty = false;
+    glBindTexture(GL_TEXTURE_2D, t->name);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    if (t->w == t->pix_w && t->h == t->pix_h) {
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, t->pix_w, t->pix_h, GL_RGBA,
+                      GL_UNSIGNED_BYTE, t->pixels.data());
+    } else {
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, t->pix_w, t->pix_h, 0,
+                   GL_RGBA, GL_UNSIGNED_BYTE, t->pixels.data());
+      t->w = t->pix_w;
+      t->h = t->pix_h;
+    }
+  }
+  return t->w > 0 && t->h > 0;
+}
+
+static bool eng_texture(void*, int64_t id, size_t, size_t,
                         FlutterOpenGLTexture* tex) {
+  if (eglGetCurrentContext() == EGL_NO_CONTEXT &&
+      !eng_resource(nullptr) && !eng_make_current(nullptr)) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lk(g_tex_mu);
+  kms_tex_collect();
   auto it = g_textures.find(id);
   if (it == g_textures.end()) return false;
+  KmsTex* t = it->second.get();
+  GLint prev_tex = 0, prev_unpack = 0;
+  glGetIntegerv(GL_TEXTURE_BINDING_2D, &prev_tex);
+  glGetIntegerv(GL_UNPACK_ALIGNMENT, &prev_unpack);
+  bool ok = kms_tex_acquire(t);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, prev_unpack);
+  glBindTexture(GL_TEXTURE_2D, (GLuint)prev_tex);
+  if (!ok) return false;
   tex->target = GL_TEXTURE_2D;
-  tex->name = it->second;
+  tex->name = t->name;
+  tex->format = GL_RGBA8;
+  tex->width = (size_t)t->w;
+  tex->height = (size_t)t->h;
   return true;
+}
+
+// ---- render-thread jobs -------------------------------------------------------
+//
+// Anything that needs the GL context but originates on the platform
+// thread (screen capture, output resize) runs as a render-thread task so
+// it is serialized with the engine's own context use.
+
+struct RasterJob {
+  std::mutex mu;
+  std::condition_variable cv;
+  bool done = false;
+  std::function<void()> fn;
+};
+
+static bool run_on_raster(std::function<void()> fn) {
+  auto job = std::make_shared<RasterJob>();
+  job->fn = std::move(fn);
+  // The task holds a reference so a wait timeout can't free the job out
+  // from under a callback that has not run yet.
+  auto* holder = new std::shared_ptr<RasterJob>(job);
+  FlutterEngineResult res = pPostRenderTask(
+      engine,
+      [](void* ud) {
+        auto* j = static_cast<std::shared_ptr<RasterJob>*>(ud);
+        (*j)->fn();
+        {
+          std::lock_guard<std::mutex> lk((*j)->mu);
+          (*j)->done = true;
+        }
+        (*j)->cv.notify_one();
+        delete j;
+      },
+      holder);
+  if (res != kSuccess) {
+    delete holder;
+    return false;
+  }
+  std::unique_lock<std::mutex> lk(job->mu);
+  return job->cv.wait_for(lk, std::chrono::seconds(5),
+                          [&] { return job->done; });
 }
 
 static bool g_events_listening = false;
@@ -744,37 +978,61 @@ class KmsHost : public OasisHost {
     msg.message_size = payload.size();
     pSendPlatformMessage(engine, &msg);
   }
-  int64_t createTexture(bool) override {
+  int64_t createTexture(bool dmabuf) override {
     int64_t id = g_next_tex++;
-    GLuint tex = 0;
-    eng_make_current(nullptr);
-    glGenTextures(1, &tex);
-    g_textures[id] = tex;
+    auto t = std::make_shared<KmsTex>();
+    t->is_dmabuf = dmabuf;
+    {
+      std::lock_guard<std::mutex> lk(g_tex_mu);
+      g_textures[id] = std::move(t);
+    }
     pRegisterTexture(engine, id);
     return id;
   }
-  void pushPixels(int64_t id, const uint8_t* rgba, int w, int h) override {
+  void pushPixels(int64_t id, const uint8_t* rgba, int w,
+                  int h) override {
+    if (w <= 0 || h <= 0) return;
+    std::lock_guard<std::mutex> lk(g_tex_mu);
     auto it = g_textures.find(id);
     if (it == g_textures.end()) return;
-    eng_make_current(nullptr);
-    glBindTexture(GL_TEXTURE_2D, it->second);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, rgba);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    KmsTex* t = it->second.get();
+    t->pixels.assign(rgba, rgba + (size_t)w * h * 4);
+    t->pix_w = w;
+    t->pix_h = h;
+    t->pix_dirty = true;
   }
-  void pushDmabuf(int64_t, const DmabufInfo&) override {}
+  void pushDmabuf(int64_t id, const DmabufInfo& buf) override {
+    std::lock_guard<std::mutex> lk(g_tex_mu);
+    auto it = g_textures.find(id);
+    if (it == g_textures.end()) return;
+    KmsTex* t = it->second.get();
+    t->dmabuf.close_fds();
+    t->dmabuf = buf;
+    for (int i = 0; i < 4; i++) {
+      if (t->dmabuf.fds[i] >= 0) {
+        t->dmabuf.fds[i] =
+            fcntl(t->dmabuf.fds[i], F_DUPFD_CLOEXEC, 0);
+      }
+    }
+    t->dmabuf_dirty = true;
+  }
+  bool dmabufImportFailed(int64_t id) override {
+    std::lock_guard<std::mutex> lk(g_tex_mu);
+    auto it = g_textures.find(id);
+    return it != g_textures.end() && it->second->failed;
+  }
   void frameAvailable(int64_t id) override {
     pMarkFrameAvailable(engine, id);
   }
   void destroyTexture(int64_t id) override {
-    auto it = g_textures.find(id);
-    if (it == g_textures.end()) return;
+    {
+      std::lock_guard<std::mutex> lk(g_tex_mu);
+      auto it = g_textures.find(id);
+      if (it == g_textures.end()) return;
+      g_dead_tex.push_back(std::move(it->second));
+      g_textures.erase(it);
+    }
     pUnregisterTexture(engine, id);
-    eng_make_current(nullptr);
-    glDeleteTextures(1, &it->second);
-    g_textures.erase(it);
   }
   std::vector<HostOutput> outputs() override {
     std::vector<HostOutput> out;
@@ -848,7 +1106,7 @@ class KmsHost : public OasisHost {
     int nw = 0, nh = 0;
     layout_bounds(g_drm, nw, nh);
     if (nw != g_drm.width || nh != g_drm.height) {
-      gbm_resize(g_drm, nw, nh);
+      run_on_raster([nw, nh] { gbm_resize(g_drm, nw, nh); });
       send_metrics();
     }
   }
@@ -862,21 +1120,28 @@ class KmsHost : public OasisHost {
   bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int w,
                      int h) override {
     if (w <= 0 || h <= 0) return false;
-    eng_make_current(nullptr);
-    rgba.resize((size_t)w * h * 4);
-    glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    glReadPixels(x, g_drm.height - y - h, w, h, GL_RGBA, GL_UNSIGNED_BYTE,
-                 rgba.data());
-    size_t row_bytes = (size_t)w * 4;
-    std::vector<uint8_t> row(row_bytes);
-    for (int yy = 0; yy < h / 2; yy++) {
-      uint8_t* top = rgba.data() + (size_t)yy * row_bytes;
-      uint8_t* bottom =
-          rgba.data() + (size_t)(h - 1 - yy) * row_bytes;
-      memcpy(row.data(), top, row_bytes);
-      memcpy(top, bottom, row_bytes);
-      memcpy(bottom, row.data(), row_bytes);
-    }
+    std::vector<uint8_t> out;
+    bool ok = run_on_raster([x, y, w, h, &out] {
+      eng_make_current(nullptr);
+      out.resize((size_t)w * h * 4);
+      GLint prev_pack = 0;
+      glGetIntegerv(GL_PACK_ALIGNMENT, &prev_pack);
+      glPixelStorei(GL_PACK_ALIGNMENT, 4);
+      glReadPixels(x, g_drm.height - y - h, w, h, GL_RGBA,
+                   GL_UNSIGNED_BYTE, out.data());
+      glPixelStorei(GL_PACK_ALIGNMENT, prev_pack);
+      size_t row_bytes = (size_t)w * 4;
+      std::vector<uint8_t> row(row_bytes);
+      for (int yy = 0; yy < h / 2; yy++) {
+        uint8_t* top = out.data() + (size_t)yy * row_bytes;
+        uint8_t* bottom = out.data() + (size_t)(h - 1 - yy) * row_bytes;
+        memcpy(row.data(), top, row_bytes);
+        memcpy(top, bottom, row_bytes);
+        memcpy(bottom, row.data(), row_bytes);
+      }
+    });
+    if (!ok) return false;
+    rgba = std::move(out);
     return true;
   }
 };
@@ -1461,6 +1726,8 @@ int main(int argc, char** argv) {
       "FlutterEngineMarkExternalTextureFrameAvailable");
   pRunTask = sym<decltype(pRunTask)>("FlutterEngineRunTask");
   pDeinit = sym<decltype(pDeinit)>("FlutterEngineDeinitialize");
+  pPostRenderTask = sym<decltype(pPostRenderTask)>(
+      "FlutterEnginePostRenderThreadTask");
 
   FlutterRendererConfig rc = {};
   rc.type = kOpenGL;
@@ -1533,7 +1800,7 @@ int main(int argc, char** argv) {
         int nw = 0, nh = 0;
         layout_bounds(g_drm, nw, nh);
         if (nw != g_drm.width || nh != g_drm.height) {
-          gbm_resize(g_drm, nw, nh);
+          run_on_raster([nw, nh] { gbm_resize(g_drm, nw, nh); });
           send_metrics();
         }
         if (g_core->running()) g_core->outputChanged();
