@@ -2,6 +2,48 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.8.0 - 2026-11-01
+#### Features
+- 移除系统主题模式 - (e99d9f4) - user.email
+- 电源设置新增息屏与睡眠超时控制 - (30988c0) - user.email
+- 声音设置支持选择输入输出设备及设备配置 - (bcb1d18) - user.email
+- 菜单栏 Wi-Fi 图标改为附近网络下拉菜单 - (8b67bf7) - user.email
+- 输出时序跟随真实模式 - (38e3fa6) - calico
+- 多显示器输出与设置显示器面板 - (2ed20f3) - calico
+- 会话锁输入隔离、空闲息屏与捕获黑帧 - (1b5c384) - calico
+- 新增指针约束、相对指针与快捷键抑制协议 - (22744f1) - calico
+- 新增 layer-shell、会话锁与屏幕捕获协议 - (d96a348) - Devin
+#### Bug Fixes
+- 修复 main 分支 CI 流水线 - (5d66a80) - user.email
+- 设置应用接入系统后端，声音面板显示设备选择器 - (4c2bcce) - user.email
+- 设置自定义壁纸时跳过内置壁纸绘制 - (72644f1) - user.email
+- 修复无限输入区域判定溢出导致客户端输入全灭 - (6c25784) - HttpAnimations
+- KMS 输入经 libseat 获取设备权限 - (da508b6) - HttpAnimations
+- 修复 KMS 前端点击与键盘输入失效 - (d4fc63d) - HttpAnimations
+- 不再关闭借用的 dmabuf fd 并修复回读路径 - (8b7e30b) - HttpAnimations
+- dmabuf 导入失败时回退到 CPU 合成路径 - (a8634df) - HttpAnimations
+- 控制中心滑块拖动时实时应用亮度和音量 - (e05a25b) - HttpAnimations
+- 修复 wl_surface 销毁后 by_wlr 残留悬空指针导致的崩溃 - (467e788) - HttpAnimations
+- 构建时生成 wlr 协议头文件 - (d683b62) - HttpAnimations
+- 新增 linux-dmabuf-v1 全局 - (ac74158) - calico
+- 过滤 GTK 无表面上下文导致的 eglSwapInterval 报错噪音 - (8be7dca) - calico
+#### Tests
+- 集成测试桩掉 wayland 通道 - (b450361) - user.email
+- 补齐缺失的测试覆盖率 - (07bad75) - user.email
+#### Continuous Integration
+- 同步 GitHub 构建的 wlroots 依赖 - (186923a) - user.email
+- 集成测试改在 headless tester 上运行 - (331632c) - user.email
+- 集成测试强制 24 位色深与 EGL - (426aeae) - user.email
+- 集成测试在 dbus 会话内运行 - (10fb421) - user.email
+- pixman 升级至 0.46.4 - (db5a630) - calico
+- 修复 wlroots 0.20 依赖构建并去重 - (9e4427e) - calico
+#### Refactoring
+- 移除“关于 Oasis”窗口中的更新检查，更新功能仍在设置中保留 - (00615a4) - user.email
+#### Miscellaneous Chores
+- 升级 wlroots 至 0.20 - (350bac5) - calico
+
+- - -
+
 ## v0.7.0 - 2026-10-30
 #### Features
 - 新增 KMS 直出运行目标与 CI wlroots 依赖 - (be65cf0) - calico
