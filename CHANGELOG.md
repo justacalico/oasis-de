@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.10.0 - 2026-11-01
+#### Features
+- 设置应用 Wi-Fi 面板列出附近网络并支持连接 - (8a3d155) - user.email
+
+- - -
+
 ## v0.9.0 - 2026-11-01
 #### Features
 - (**kms**) 实现 Ctrl+Alt+F1-F12 虚拟终端切换 - (6655852) - user.email
