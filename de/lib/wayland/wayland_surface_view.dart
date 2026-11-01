@@ -23,6 +23,8 @@ void forwardButtonDiff(WaylandService service, int before, int after) {
 }
 
 Size logicalSurfaceSize(WaylandSurface s) {
+  final vp = s.vpSrc;
+  if (vp != null && vp.width > 0 && vp.height > 0) return vp.size;
   final b = s.bufferSize;
   final sc = s.scale <= 0 ? 1.0 : s.scale;
   if (b.width > 0 && b.height > 0) {

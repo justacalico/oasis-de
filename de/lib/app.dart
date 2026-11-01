@@ -13,6 +13,7 @@ import 'shell/desktop_shell.dart';
 import 'services/displays.dart';
 import 'shell/shell_controller.dart';
 import 'shell/shell_menus.dart';
+import 'shell/view_scale.dart';
 import 'wayland/desktop_entries.dart';
 import 'wayland/wayland_service.dart';
 
@@ -254,6 +255,10 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
           debugShowCheckedModeBanner: false,
           onGenerateTitle: (context) => OasisLocalizations.of(context).appName,
           theme: _appearance.theme,
+          builder: (context, child) => ShellViewScaler(
+            wayland: _wayland,
+            child: child ?? const SizedBox.shrink(),
+          ),
           locale: _locale,
           supportedLocales: OasisLocalizations.supportedLocales,
           localizationsDelegates: const [
