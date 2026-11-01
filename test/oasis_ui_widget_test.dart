@@ -337,6 +337,30 @@ void main() {
     expect(inner, const Size(400, 338 - kOasisWindowTitleBarHeight));
   });
 
+  testWidgets('OasisWindow undecorated drops the title bar', (tester) async {
+    Size? inner;
+    await pumpOasis(
+      tester,
+      Center(
+        child: OasisWindow(
+          title: 't',
+          width: 400,
+          height: 300,
+          decorated: false,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              inner = constraints.biggest;
+              return const SizedBox();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(OasisTrafficLights), findsNothing);
+    expect(find.text('t'), findsNothing);
+    expect(inner, const Size(400, 300));
+  });
+
   testWidgets('OasisWallpaper paints in light and dark', (tester) async {
     await pumpOasis(tester, OasisWallpaper());
     await pumpOasis(tester, OasisWallpaper(), theme: OasisThemeMode.dark);

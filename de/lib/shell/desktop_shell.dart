@@ -84,7 +84,7 @@ class _DesktopShellState extends State<DesktopShell> {
         : w.position;
     final pos =
         base +
-        const Offset(0, kOasisWindowTitleBarHeight) +
+        Offset(0, w.titleBarHeight) +
         Offset(request.x * sx, request.y * sy);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _windowMenu(context, pos, w);
@@ -231,7 +231,7 @@ class _DesktopShellState extends State<DesktopShell> {
                                   child: GestureDetector(
                                     onSecondaryTapUp: (e) {
                                       if (e.localPosition.dy <=
-                                          kOasisWindowTitleBarHeight) {
+                                          w.titleBarHeight) {
                                         _windowMenu(
                                           context,
                                           e.globalPosition,
@@ -636,9 +636,7 @@ class _DesktopShellState extends State<DesktopShell> {
         : w.position;
     var pos =
         base +
-        (w.fullscreen
-            ? Offset.zero
-            : const Offset(0, kOasisWindowTitleBarHeight)) +
+        (w.fullscreen ? Offset.zero : Offset(0, w.titleBarHeight)) +
         Offset(offset.dx * sx, offset.dy * sy);
     final screen = MediaQuery.sizeOf(context);
     pos = Offset(
@@ -708,6 +706,7 @@ class _DesktopShellState extends State<DesktopShell> {
     return OasisWindow(
       title: w.displayTitle,
       focused: controller.focusedId == w.id,
+      decorated: !w.clientDecorated,
       width: size.width,
       height: size.height,
       onClose: () => controller.closeWindow(w.id),

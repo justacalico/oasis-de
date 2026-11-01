@@ -68,6 +68,10 @@ void remove_listeners(Surface* s) {
   wl_list_remove(&s->layer_new_popup.link);
   wl_list_remove(&s->lock_surf_destroy.link);
   wl_list_remove(&s->deco_destroy.link);
+  wl_list_remove(&s->deco_request.link);
+  wl_list_remove(&s->kde_mode.link);
+  wl_list_remove(&s->kde_destroy.link);
+  wl_list_remove(&s->xs_decorations.link);
 }
 
 void init_surface_listeners(Surface* s) {
@@ -110,6 +114,10 @@ void init_surface_listeners(Surface* s) {
   wl_list_init(&s->layer_new_popup.link);
   wl_list_init(&s->lock_surf_destroy.link);
   wl_list_init(&s->deco_destroy.link);
+  wl_list_init(&s->deco_request.link);
+  wl_list_init(&s->kde_mode.link);
+  wl_list_init(&s->kde_destroy.link);
+  wl_list_init(&s->xs_decorations.link);
 }
 
 void free_surface(Surface* s) {
@@ -519,6 +527,26 @@ void send_frame_done(Surface* s) {
   }
 }
 
+void emit_decoration(Surface* s) {
+  if (!s->announced || s->role != ROLE_TOPLEVEL) return;
+  int mode = 2;
+  if (s->xsurface != nullptr) {
+    if (s->xsurface->decorations !=
+        WLR_XWAYLAND_SURFACE_DECORATIONS_ALL) {
+      mode = 1;
+    }
+  } else if (s->deco != nullptr && s->deco->scheduled_mode != 0) {
+    mode = (int)s->deco->scheduled_mode;
+  } else if (s->kde_deco != nullptr && s->kde_deco->mode != 0) {
+    mode = (int)s->kde_deco->mode;
+  }
+  if (mode == s->rep_deco) return;
+  s->rep_deco = mode;
+  OEvent m;
+  m["mode"] = (int64_t)mode;
+  emit_id(s, "decoration", std::move(m));
+}
+
 void announce_toplevel(Surface* s) {
   s->announced = true;
   OEvent m;
@@ -637,6 +665,7 @@ static void surface_commit(wl_listener* listener, void*) {
   maybe_announce(s);
   if (s->announced) {
     emit_size(s);
+    emit_decoration(s);
     emit_input_region(s);
     check_minmax(s);
     check_position(s);

@@ -139,6 +139,11 @@ static void xs_set_class(wl_listener* listener, void*) {
   if (s->announced) xs_emit_prop(s, "appId", s->app_id);
 }
 
+static void xs_set_decorations(wl_listener* listener, void*) {
+  Surface* s = wl_container_of(listener, s, xs_decorations);
+  emit_decoration(s);
+}
+
 static void xs_set_parent(wl_listener* listener, void*) {
   Surface* s = wl_container_of(listener, s, xs_parent);
   wlr_xwayland_surface* xs = s->xsurface;
@@ -198,6 +203,8 @@ void xwayland_new_surface(OasisPrivate* c, wlr_xwayland_surface* xs) {
   s->xs_request_fullscreen.notify = xs_request_fullscreen;
   wl_signal_add(&xs->events.request_fullscreen,
                 &s->xs_request_fullscreen);
+  s->xs_decorations.notify = xs_set_decorations;
+  wl_signal_add(&xs->events.set_decorations, &s->xs_decorations);
 }
 
 }  // namespace oasis

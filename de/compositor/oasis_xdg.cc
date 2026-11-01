@@ -31,6 +31,15 @@ void popup_position(Surface* s, int* x, int* y) {
   *y = (int)py;
 }
 
+void apply_decoration(Surface* s) {
+  if (s->deco == nullptr) return;
+  auto mode = s->deco->requested_mode;
+  if (mode == WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_NONE) {
+    mode = WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE;
+  }
+  wlr_xdg_toplevel_decoration_v1_set_mode(s->deco, mode);
+}
+
 void send_initial_configure(Surface* s) {
   if (s->cfg_sent || s->xdg == nullptr ||
       s->xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL ||
@@ -38,10 +47,7 @@ void send_initial_configure(Surface* s) {
     return;
   }
   s->cfg_sent = true;
-  if (s->deco != nullptr) {
-    wlr_xdg_toplevel_decoration_v1_set_mode(
-        s->deco, WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
-  }
+  apply_decoration(s);
   wlr_xdg_toplevel* tl = s->xdg->toplevel;
   wlr_xdg_toplevel_set_wm_capabilities(
       tl, WLR_XDG_TOPLEVEL_WM_CAPABILITIES_WINDOW_MENU |
@@ -69,11 +75,8 @@ void toplevel_configure(Surface* s, int w, int h, bool maximized, bool active,
     cfg.activated = active;
     cfg.fullscreen = fullscreen;
     cfg.resizing = resizing;
-    if (s->deco != nullptr) {
-    wlr_xdg_toplevel_decoration_v1_set_mode(
-        s->deco, WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
-  }
-  wlr_xdg_toplevel_configure(tl, &cfg);
+    apply_decoration(s);
+    wlr_xdg_toplevel_configure(tl, &cfg);
   } else if (s->xsurface != nullptr) {
     wlr_xwayland_surface* xs = s->xsurface;
     wlr_xwayland_surface_configure(xs, xs->x, xs->y,

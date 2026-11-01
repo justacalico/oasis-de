@@ -23,7 +23,7 @@ host compositor (cage in session, GNOME/Sway/... when nested)
 
 ## Window model
 
-Each external toplevel maps to a `WaylandSurface` in Dart and gets an `OasisWindow` (chrome: traffic lights, title, drag, resize). The compositor forwards xdg configure events through the channel; the shell decides geometry, focus, minimize/zoom/fullscreen and sends configure back. Decorations are server-side via `zxdg_decoration_manager_v1` so clients draw no CSD.
+Each external toplevel maps to a `WaylandSurface` in Dart and gets an `OasisWindow` (chrome: traffic lights, title, drag, resize). The compositor forwards xdg configure events through the channel; the shell decides geometry, focus, minimize/zoom/fullscreen and sends configure back. Decoration mode is negotiated per client: `zxdg_decoration_manager_v1` (and the KDE `server_decoration` protocol) grant whatever mode the client asks for, defaulting to server-side when it doesn't say. Clients that settle on client-side decorations are reported to the shell, which drops the `OasisWindow` title bar so the app's own header is the only one. XWayland clients get the same treatment via `_MOTIF_WM_HINTS`.
 
 ## Protocol support matrix
 
@@ -37,7 +37,8 @@ Each external toplevel maps to a `WaylandSurface` in Dart and gets an `OasisWind
 | `wl_data_device_manager` | supported | clipboard + drag selection inside the session |
 | `wl_output` | supported | single output advertized to clients |
 | `xdg_wm_base`, `xdg_surface`, `xdg_toplevel`, `xdg_popup`, `xdg_positioner` | supported | |
-| `zxdg_decoration_manager_v1` | supported | always server-side |
+| `zxdg_decoration_manager_v1` | supported | client's requested mode granted; server-side default |
+| `org_kde_kwin_server_decoration` | supported | server-side default |
 | `wp_viewporter`, `wp_fractional_scale_manager_v1` | supported | |
 | `zwp_idle_inhibit_manager_v1`, `wp_cursor_shape_manager_v1`, `wp_presentation` | supported | |
 | `xdg_activation_v1`, `zwp_text_input_manager_v3`, `zwp_primary_selection_device_manager_v1` | supported | |

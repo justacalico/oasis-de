@@ -40,6 +40,11 @@ class WaylandSurface {
   Size minSize = Size.zero;
   Size maxSize = Size.zero;
 
+  /// Negotiated decoration mode: 0 none, 1 client-side, 2 server-side.
+  /// Surfaces default to server-side when they never negotiate.
+  int decorationMode = 2;
+  bool get clientDecorated => decorationMode != 2;
+
   bool isLayer = false;
   bool isLock = false;
   int layerIndex = 0;
@@ -426,6 +431,9 @@ class WaylandService extends ChangeNotifier {
             (e['h'] as num).toDouble(),
           );
         }
+      case 'decoration':
+        surfaces[id]?.decorationMode =
+            (e['mode'] as num?)?.toInt() ?? 2;
       case 'popup':
         surfaces[id] = WaylandSurface(
           id: id,
