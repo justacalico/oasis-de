@@ -82,11 +82,13 @@ void output_apply_state(OasisOutput* o) {
   wlr_output_state_set_enabled(&st, o->enabled);
   if (o->enabled && o->width > 0 && o->height > 0) {
     wlr_output_mode* mode = nullptr;
-    for (wlr_output_mode* m : o->modes) {
-      if (m->width == o->width && m->height == o->height &&
-          std::abs(m->refresh - o->refresh) <= 1000) {
-        mode = m;
-        break;
+    if (!wlr_output_is_headless(o->wlr)) {
+      for (wlr_output_mode* m : o->modes) {
+        if (m->width == o->width && m->height == o->height &&
+            std::abs(m->refresh - o->refresh) <= 1000) {
+          mode = m;
+          break;
+        }
       }
     }
     if (mode != nullptr) {
@@ -452,6 +454,7 @@ void outputs_sync_host(OasisPrivate* c) {
     if (h.name.empty()) continue;
     keep.insert(h.name);
     OasisOutput* o = nullptr;
+    bool created = false;
     auto it = c->output_by_name.find(h.name);
     if (it != c->output_by_name.end()) {
       o = it->second;
@@ -463,10 +466,11 @@ void outputs_sync_host(OasisPrivate* c) {
       o = output_of(c, wlr);
       if (o == nullptr) o = output_track(c, wlr);
       wlr_output_init_render(o->wlr, c->allocator, c->renderer);
-      wlr_output_create_global(o->wlr, c->display);
+      created = true;
     }
     bool modes_stale = !modes_equal(o, h.modes);
     output_fill(o, h);
+    c->output_by_name[o->name] = o;
     if (modes_stale) {
       modes_clear(o);
       for (const HostOutputMode& m : h.modes) {
@@ -476,6 +480,7 @@ void outputs_sync_host(OasisPrivate* c) {
         mode_add(o, o->width, o->height, o->refresh, true);
       }
     }
+    if (created) wlr_output_create_global(o->wlr, c->display);
   }
   std::vector<OasisOutput*> dead;
   for (OasisOutput* o : c->outputs) {
