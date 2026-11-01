@@ -154,9 +154,13 @@ class OasisOutput {
   final int physHeightMm;
   final List<OasisOutputMode> modes;
 
-  Rect get rect =>
-      Rect.fromLTWH(x.toDouble(), y.toDouble(),
-          width.toDouble(), height.toDouble());
+  /// Layout rect in logical pixels: the mode size divided by the output
+  /// scale, matching what wlroots reports in output-layout coordinates.
+  Rect get rect => Rect.fromLTWH(
+      x.toDouble(),
+      y.toDouble(),
+      scale > 0 ? width / scale : width.toDouble(),
+      scale > 0 ? height / scale : height.toDouble());
 
   bool contains(Offset point) => rect.contains(point);
 }

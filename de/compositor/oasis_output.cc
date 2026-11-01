@@ -5,6 +5,7 @@
 #include <wayland-server.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 #include <pthread.h>
@@ -98,10 +99,11 @@ void output_apply_state(OasisOutput* o) {
                                        o->refresh);
     }
   }
+  wlr_output_state_set_scale(&st, (float)o->scale);
+  wlr_output_state_set_transform(
+      &st, (enum wl_output_transform)o->transform);
   wlr_output_commit_state(o->wlr, &st);
   wlr_output_state_finish(&st);
-  o->wlr->scale = (float)o->scale;
-  o->wlr->transform = (enum wl_output_transform)o->transform;
   o->wlr->phys_width = o->phys_w;
   o->wlr->phys_height = o->phys_h;
 }
@@ -281,8 +283,10 @@ static void outputs_reconfigure_locks(OasisPrivate* c) {
     OasisOutput* o = output_of(c, s->lock_surface->output);
     if (o == nullptr) o = output_primary(c);
     if (o != nullptr && o->enabled) {
-      wlr_session_lock_surface_v1_configure(s->lock_surface, o->width,
-                                            o->height);
+      const double scale = o->scale > 0 ? o->scale : 1;
+      wlr_session_lock_surface_v1_configure(
+          s->lock_surface, (uint32_t)lround(o->width / scale),
+          (uint32_t)lround(o->height / scale));
     }
   }
 }

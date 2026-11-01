@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <cstdio>
@@ -340,7 +341,11 @@ struct Head {
   drmModeCrtc* crtc = nullptr;
   uint32_t conn_id = 0, crtc_id = 0;
   std::string name;
+  // Heads keep the compositor's logical layout position; the physical
+  // framebuffer offset is logical position times the engine pixel ratio.
   int x = 0, y = 0;
+  double scale = 1;
+  bool primary = false;
   drmModeModeInfo mode = {};
   bool enabled = true;
 };
@@ -360,6 +365,10 @@ struct Drm {
   int pending_flips = 0;
   std::unordered_map<uint32_t, uint32_t> fbs;
   int width = 0, height = 0;
+  // Pixel ratio sent to the engine: the primary head's output scale. A
+  // single Flutter view can't express per-head scales, so the shell is
+  // rendered at the primary head's density.
+  double ratio = 1;
 };
 
 static void layout_bounds(Drm& d, int& w, int& h) {
@@ -367,8 +376,8 @@ static void layout_bounds(Drm& d, int& w, int& h) {
   h = 0;
   for (auto& hd : d.heads) {
     if (!hd.enabled) continue;
-    w = std::max(w, hd.x + (int)hd.mode.hdisplay);
-    h = std::max(h, hd.y + (int)hd.mode.vdisplay);
+    w = std::max(w, (int)lround(hd.x * d.ratio) + (int)hd.mode.hdisplay);
+    h = std::max(h, (int)lround(hd.y * d.ratio) + (int)hd.mode.vdisplay);
   }
   if (w <= 0) w = 1920;
   if (h <= 0) h = 1080;
@@ -419,9 +428,9 @@ static uint32_t pick_crtc(Drm& d, drmModeConnector* conn,
 }
 
 static void heads_scan(Drm& d) {
-  std::unordered_map<uint32_t, std::pair<int, int>> old_pos;
+  std::unordered_map<uint32_t, Head> old;
   for (auto& hd : d.heads) {
-    old_pos[hd.conn_id] = {hd.x, hd.y};
+    old[hd.conn_id] = hd;
   }
   heads_free(d);
   if (d.res != nullptr) drmModeFreeResources(d.res);
@@ -452,14 +461,18 @@ static void heads_scan(Drm& d) {
     if (hd.crtc_id != 0) {
       hd.crtc = drmModeGetCrtc(d.fd, hd.crtc_id);
     }
-    auto it = old_pos.find(hd.conn_id);
-    if (it != old_pos.end()) {
-      hd.x = it->second.first;
-      hd.y = it->second.second;
+    auto it = old.find(hd.conn_id);
+    if (it != old.end()) {
+      hd.x = it->second.x;
+      hd.y = it->second.y;
+      hd.scale = it->second.scale;
+      hd.primary = it->second.primary;
     } else {
       hd.x = next_x;
+      hd.primary = d.heads.empty();
     }
-    next_x = std::max(next_x, hd.x + (int)hd.mode.hdisplay);
+    next_x = std::max(next_x,
+                      hd.x + (int)lround(hd.mode.hdisplay / hd.scale));
     d.heads.push_back(hd);
   }
 }
@@ -661,7 +674,8 @@ static void drm_present(Drm& d) {
     int ret = drmModePageFlip(d.fd, hd.crtc_id, fb,
                               DRM_MODE_PAGE_FLIP_EVENT, &d);
     if (ret != 0) {
-      drmModeSetCrtc(d.fd, hd.crtc_id, fb, hd.x, hd.y, &hd.conn_id, 1,
+      drmModeSetCrtc(d.fd, hd.crtc_id, fb, (int)lround(hd.x * d.ratio),
+                     (int)lround(hd.y * d.ratio), &hd.conn_id, 1,
                      &hd.mode);
     } else {
       flips++;
@@ -689,7 +703,7 @@ static void send_metrics() {
   wm.struct_size = sizeof(wm);
   wm.width = g_drm.width;
   wm.height = g_drm.height;
-  wm.pixel_ratio = 1.0;
+  wm.pixel_ratio = g_drm.ratio;
   pSendWindowMetrics(engine, &wm);
 }
 
@@ -1042,13 +1056,13 @@ class KmsHost : public OasisHost {
       o.name = hd.name;
       o.description = hd.name + " display";
       o.enabled = hd.enabled;
-      o.primary = first;
+      o.primary = hd.primary || first;
       o.x = hd.x;
       o.y = hd.y;
       o.w = hd.mode.hdisplay;
       o.h = hd.mode.vdisplay;
       o.refresh = hd.mode.vrefresh * 1000;
-      o.scale = 1;
+      o.scale = hd.scale;
       o.phys_w = hd.conn != nullptr ? (int)hd.conn->mmWidth : 0;
       o.phys_h = hd.conn != nullptr ? (int)hd.conn->mmHeight : 0;
       if (hd.conn != nullptr) {
@@ -1066,11 +1080,37 @@ class KmsHost : public OasisHost {
   }
 
   void applyOutputs(const std::vector<HostOutput>& want) override {
+    for (const auto& w : want) {
+      for (auto& hd : g_drm.heads) {
+        if (hd.name != w.name) continue;
+        hd.primary = w.primary;
+        if (w.scale > 0) hd.scale = w.scale;
+      }
+    }
+    double ratio = 0;
+    for (auto& hd : g_drm.heads) {
+      if (hd.enabled && hd.primary) {
+        ratio = hd.scale;
+        break;
+      }
+    }
+    if (ratio <= 0) {
+      for (auto& hd : g_drm.heads) {
+        if (hd.enabled) {
+          ratio = hd.scale;
+          break;
+        }
+      }
+    }
+    if (ratio <= 0) ratio = 1;
+    const bool ratio_changed = ratio != g_drm.ratio;
+    g_drm.ratio = ratio;
+
     bool reprogram = false;
     for (const auto& w : want) {
       for (auto& hd : g_drm.heads) {
         if (hd.name != w.name) continue;
-        bool changed = false;
+        bool changed = ratio_changed;
         if (hd.enabled != w.enabled) {
           hd.enabled = w.enabled;
           changed = true;
@@ -1098,7 +1138,9 @@ class KmsHost : public OasisHost {
                          nullptr);
         } else if (g_drm.bo != nullptr) {
           drmModeSetCrtc(g_drm.fd, hd.crtc_id, bo_fb(g_drm, g_drm.bo),
-                         hd.x, hd.y, &hd.conn_id, 1, &hd.mode);
+                         (int)lround(hd.x * ratio),
+                         (int)lround(hd.y * ratio), &hd.conn_id, 1,
+                         &hd.mode);
         }
       }
     }
@@ -1107,8 +1149,8 @@ class KmsHost : public OasisHost {
     layout_bounds(g_drm, nw, nh);
     if (nw != g_drm.width || nh != g_drm.height) {
       run_on_raster([nw, nh] { gbm_resize(g_drm, nw, nh); });
-      send_metrics();
     }
+    send_metrics();
   }
   std::vector<std::string> hostClipboardMimes() override { return {}; }
   void hostClipboardRead(
@@ -1120,14 +1162,16 @@ class KmsHost : public OasisHost {
   bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int w,
                      int h) override {
     if (w <= 0 || h <= 0) return false;
+    const int px = (int)lround(x * g_drm.ratio);
+    const int py = (int)lround(y * g_drm.ratio);
     std::vector<uint8_t> out;
-    bool ok = run_on_raster([x, y, w, h, &out] {
+    bool ok = run_on_raster([px, py, w, h, &out] {
       eng_make_current(nullptr);
       out.resize((size_t)w * h * 4);
       GLint prev_pack = 0;
       glGetIntegerv(GL_PACK_ALIGNMENT, &prev_pack);
       glPixelStorei(GL_PACK_ALIGNMENT, 4);
-      glReadPixels(x, g_drm.height - y - h, w, h, GL_RGBA,
+      glReadPixels(px, g_drm.height - py - h, w, h, GL_RGBA,
                    GL_UNSIGNED_BYTE, out.data());
       glPixelStorei(GL_PACK_ALIGNMENT, prev_pack);
       size_t row_bytes = (size_t)w * 4;
