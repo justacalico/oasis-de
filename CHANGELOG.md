@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.10.1 - 2026-11-01
+#### Bug Fixes
+- 修复 GTK 宿主下输出缩放不生效的问题 - (6fb09a5) - user.email
+
+- - -
+
 ## v0.10.0 - 2026-11-01
 #### Features
 - 设置应用 Wi-Fi 面板列出附近网络并支持连接 - (8a3d155) - user.email
