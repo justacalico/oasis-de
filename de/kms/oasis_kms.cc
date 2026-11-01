@@ -706,6 +706,9 @@ static bool eng_clear_current(void*) {
                         EGL_NO_CONTEXT) == EGL_TRUE;
 }
 static bool eng_present(void*) {
+  // Switched to another VT: the seat controller has paused our devices,
+  // so swaps and page flips would only fail against a dead master.
+  if (g_seat != nullptr && !g_seat_active) return true;
   drm_present(g_drm);
   return true;
 }
@@ -1355,6 +1358,24 @@ static void input_dispatch() {
       if (g_input.state) {
         xkb_state_update_key(g_input.state, code + 8,
                              down ? XKB_KEY_DOWN : XKB_KEY_UP);
+      }
+      // With a managed seat the console keyboard runs in K_OFF, so the
+      // kernel never interprets Ctrl+Alt+Fn. The keymap hands us
+      // XF86Switch_VT_n keysyms instead and switching is our job.
+      bool vt_switch = false;
+      if (down && g_seat != nullptr && g_input.state != nullptr) {
+        xkb_keysym_t sym =
+            xkb_state_key_get_one_sym(g_input.state, code + 8);
+        if (sym >= XKB_KEY_XF86Switch_VT_1 &&
+            sym <= XKB_KEY_XF86Switch_VT_12) {
+          libseat_switch_session(g_seat,
+                                 sym - XKB_KEY_XF86Switch_VT_1 + 1);
+          vt_switch = true;
+        }
+      }
+      if (vt_switch) {
+        libinput_event_destroy(ev);
+        continue;
       }
       FlutterKeyEvent fev = {};
       fev.struct_size = sizeof(fev);
