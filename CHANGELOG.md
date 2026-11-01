@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.9.0 - 2026-11-01
+#### Features
+- (**kms**) 实现 Ctrl+Alt+F1-F12 虚拟终端切换 - (6655852) - user.email
+#### Bug Fixes
+- 修复显示设置中缩放不生效的问题 - (4378c5a) - user.email
+- 尊重客户端自绘窗口装饰，消除双重标题栏与黑边 - (24d3b9e) - user.email
+- 子表面事件携带已有纹理 ID 修复先提交后设角色的黑屏 - (2bfd5dd) - user.email
+- KMS 前端实现 dmabuf 纹理导入并消除跨线程 GL 竞态 - (e77bad2) - user.email
+- headless 输出提交时使用自定义模式 - (f98fdd1) - user.email
+- 修复 wlroots 0.20 下输出命名顺序导致的启动崩溃 - (2d402c7) - user.email
+
+- - -
+
 ## v0.8.0 - 2026-11-01
 #### Features
 - 移除系统主题模式 - (e99d9f4) - user.email
