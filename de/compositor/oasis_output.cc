@@ -452,6 +452,7 @@ void outputs_sync_host(OasisPrivate* c) {
     if (h.name.empty()) continue;
     keep.insert(h.name);
     OasisOutput* o = nullptr;
+    bool created = false;
     auto it = c->output_by_name.find(h.name);
     if (it != c->output_by_name.end()) {
       o = it->second;
@@ -463,10 +464,11 @@ void outputs_sync_host(OasisPrivate* c) {
       o = output_of(c, wlr);
       if (o == nullptr) o = output_track(c, wlr);
       wlr_output_init_render(o->wlr, c->allocator, c->renderer);
-      wlr_output_create_global(o->wlr, c->display);
+      created = true;
     }
     bool modes_stale = !modes_equal(o, h.modes);
     output_fill(o, h);
+    c->output_by_name[o->name] = o;
     if (modes_stale) {
       modes_clear(o);
       for (const HostOutputMode& m : h.modes) {
@@ -476,6 +478,7 @@ void outputs_sync_host(OasisPrivate* c) {
         mode_add(o, o->width, o->height, o->refresh, true);
       }
     }
+    if (created) wlr_output_create_global(o->wlr, c->display);
   }
   std::vector<OasisOutput*> dead;
   for (OasisOutput* o : c->outputs) {
