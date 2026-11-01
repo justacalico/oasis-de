@@ -63,6 +63,9 @@ test:
     - git clone --depth 1 --branch xkbcommon-1.12.4 https://github.com/xkbcommon/libxkbcommon.git /tmp/xkbcommon
     - meson setup /tmp/xkbcommon/build /tmp/xkbcommon -Denable-tools=false -Denable-x11=false -Denable-docs=false -Denable-xkbregistry=false && ninja -C /tmp/xkbcommon/build && ninja -C /tmp/xkbcommon/build install && ldconfig
     - export PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:$PKG_CONFIG_PATH
+    - git clone https://gitlab.freedesktop.org/wlroots/wlr-protocols.git /tmp/wlr-protocols
+    - git -C /tmp/wlr-protocols checkout -q 1106a4a1c57562ddd438c547da4c0d6dc150d624
+    - make -C /tmp/wlr-protocols install PREFIX=/usr
     - git clone --depth 1 --branch 0.20.2 https://gitlab.freedesktop.org/wlroots/wlroots.git /tmp/wlroots
     - meson setup /tmp/wlroots/build /tmp/wlroots -Dxwayland=enabled -Dexamples=false -Drenderers=gles2 -Dallocators=gbm -Dbackends= -Dsession=disabled -Dwerror=false
     - ninja -C /tmp/wlroots/build && ninja -C /tmp/wlroots/build install && ldconfig
@@ -76,10 +79,7 @@ integration:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "trigger"'
   script:
-    - !reference [.wlroots-deps, script]
-    - apt-get install -y --no-install-recommends xvfb xauth
-    - export XDG_RUNTIME_DIR=/tmp/xdg-runtime && mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
-    - cd de && flutter pub get && xvfb-run -a flutter test integration_test -d linux
+    - flutter test de/integration_test
 
 native-build:
   stage: test

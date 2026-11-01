@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -144,12 +143,12 @@ void main() {
     final same = d.copyWith();
     expect(same.y, -50);
     expect(same.transform, 1);
-    expect(const NoopDisplayBackend().displays(), completes);
+    expect(NoopDisplayBackend().displays(), completes);
     expect(
-      const NoopDisplayBackend().setDisplay(d),
+      NoopDisplayBackend().setDisplay(d),
       completes,
     );
-    expect(const NoopDisplayBackend().identifyDisplays(), completes);
+    expect(NoopDisplayBackend().identifyDisplays(), completes);
     expect(const CliDisplayBackend().displays(), completes);
   });
 
@@ -192,6 +191,11 @@ void main() {
     await pumpEventQueue();
     expect(wl.primaryOutput!.name, 'HDMI-A-1');
     expect(wl.outputAt(const Offset(100, 100))!.id, 1);
+    expect(
+      wl.outputAt(const Offset(-50, -50), size: const Size(200, 200))!.id,
+      1,
+    );
+    expect(wl.outputs.single.modes.single.label, '1920x1080');
     final list = await backend.displays();
     expect(list.single.name, 'HDMI-A-1');
     expect(list.single.primary, isTrue);
@@ -205,6 +209,20 @@ void main() {
     backend.restore();
     store.write('display.config', '"x"');
     backend.restore();
+    host.emit({
+      'event': 'outputs',
+      'list': [
+        {
+          'id': 2,
+          'name': 'DP-1',
+          'enabled': true,
+          'w': 1920,
+          'h': 1080,
+        },
+      ],
+    });
+    await pumpEventQueue();
+    expect(wl.primaryOutput!.name, 'DP-1');
   });
 
   test('DisplaysDaemon registers, owns name and stops', () async {
@@ -375,6 +393,43 @@ void main() {
     expect(backend.applied.length, greaterThan(0));
   });
 
+  testWidgets('DisplaysPane selects heads and edits rotation', (
+    tester,
+  ) async {
+    final backend = _FakeDisplayBackend()
+      ..list = [
+        _head('eDP-1', primary: true),
+        _head('DP-1', x: 1920).copyWith(width: 1366, height: 768),
+      ];
+    final state = SettingsState(displayBackend: backend);
+    await tester.pumpWidget(
+      wrapOasis(
+        SingleChildScrollView(child: DisplaysPane(state: state)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final gestures = find.descendant(
+      of: find.byType(DisplayArranger),
+      matching: find.byWidgetPredicate((w) => w is GestureDetector),
+    );
+    await tester.tap(gestures.last);
+    await tester.pump();
+    expect(find.text('DP-1 panel'), findsOneWidget);
+    expect(find.text('1366x768'), findsWidgets);
+
+    for (final label in ['180°', '270°']) {
+      final rotation = find.byWidgetPredicate(
+        (w) => w is DropdownButton<String>,
+      ).at(3);
+      await tester.ensureVisible(rotation);
+      await tester.tap(rotation);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+  });
+
   test('CliDisplayBackend parses busctl replies', () async {
     var command = <String>[];
     final payload = jsonEncode([_head('eDP-1').toJson()]);
@@ -483,6 +538,17 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(wayland.outputs.length, 2);
+    host.emit({
+      'event': 'layer',
+      'id': 9,
+      'ns': 'panel',
+      'layer': 2,
+      'output': 2,
+      'dw': 400,
+      'dh': 40,
+    });
+    host.emit({'event': 'size', 'id': 9, 'w': 400, 'h': 40});
+    await tester.pumpAndSettle();
     expect(wayland.outputAt(const Offset(2000, 100))!.name, 'DP-1');
     expect(
       wayland.outputsFor(const Rect.fromLTWH(0, 0, 3840, 20)).length,

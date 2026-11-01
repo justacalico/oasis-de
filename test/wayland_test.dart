@@ -485,6 +485,8 @@ void main() {
     await service.pointerAxis(0, 1);
     await service.activity();
     await service.key(30, true);
+    await service.surfaceOutputs(1, const [1]);
+    await service.configureOutput('eDP-1', enabled: true);
     expect(host.calls, isEmpty);
     service.dispose();
   });
@@ -699,7 +701,11 @@ Exec=t
       '$base\nTerminal=true',
       resolveIcon: (_) => null,
     )!;
-    final app = desktopAppToOasis(term);
+    final app = desktopAppToOasis(
+      term,
+      environment: const {},
+      which: (_) => null,
+    );
     expect(app.exec, contains('-e'));
     expect(app.exec!.last, 't');
 

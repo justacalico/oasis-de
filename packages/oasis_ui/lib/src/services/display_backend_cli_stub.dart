@@ -1,5 +1,7 @@
 import 'display_backend.dart';
 
 class CliDisplayBackend extends NoopDisplayBackend {
-  const CliDisplayBackend();
+  const CliDisplayBackend({this.run});
+
+  final Object? run;
 }
