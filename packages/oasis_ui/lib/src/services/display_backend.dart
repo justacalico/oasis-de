@@ -71,6 +71,11 @@ class OasisDisplay {
   final int physHeightMm;
   final List<OasisDisplayMode> modes;
 
+  /// Mode size divided by [scale], matching output-layout coordinates.
+  double get logicalWidth => scale > 0 ? width / scale : width.toDouble();
+  double get logicalHeight =>
+      scale > 0 ? height / scale : height.toDouble();
+
   OasisDisplay copyWith({
     int? x,
     int? y,

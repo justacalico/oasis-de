@@ -81,23 +81,23 @@ class _DisplaysPaneState extends State<DisplaysPane> {
     var ny = d.y + dy;
     for (final o in _current) {
       if (o.name == d.name) continue;
-      final edges = <int>[
-        o.x - d.width,
-        o.x,
-        o.x + o.width - d.width,
-        o.x + o.width,
+      final edges = <double>[
+        o.x - d.logicalWidth,
+        o.x.toDouble(),
+        o.x + o.logicalWidth - d.logicalWidth,
+        o.x + o.logicalWidth,
       ];
       for (final e in edges) {
-        if ((nx - e).abs() < 24) nx = e;
+        if ((nx - e).abs() < 24) nx = e.round();
       }
-      final vedges = <int>[
-        o.y - d.height,
-        o.y,
-        o.y + o.height - d.height,
-        o.y + o.height,
+      final vedges = <double>[
+        o.y - d.logicalHeight,
+        o.y.toDouble(),
+        o.y + o.logicalHeight - d.logicalHeight,
+        o.y + o.logicalHeight,
       ];
       for (final e in vedges) {
-        if ((ny - e).abs() < 24) ny = e;
+        if ((ny - e).abs() < 24) ny = e.round();
       }
     }
     _setDraft(d.copyWith(x: nx, y: ny));
@@ -349,14 +349,14 @@ class DisplayArranger extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var minX = 0, minY = 0, maxX = 1, maxY = 1;
+    var minX = 0.0, minY = 0.0, maxX = 1.0, maxY = 1.0;
     for (final d in displays) {
-      minX = math.min(minX, d.x);
-      minY = math.min(minY, d.y);
-      maxX = math.max(maxX, d.x + d.width);
-      maxY = math.max(maxY, d.y + d.height);
+      minX = math.min(minX, d.x.toDouble());
+      minY = math.min(minY, d.y.toDouble());
+      maxX = math.max(maxX, d.x + d.logicalWidth);
+      maxY = math.max(maxY, d.y + d.logicalHeight);
     }
-    final span = Size((maxX - minX).toDouble(), (maxY - minY).toDouble());
+    final span = Size(maxX - minX, maxY - minY);
 
     return AspectRatio(
       aspectRatio: 21 / 9,
@@ -386,8 +386,8 @@ class DisplayArranger extends StatelessWidget {
                           display: displays[i],
                           selected: i == selected,
                           index: i,
-                          width: displays[i].width * pxScale,
-                          height: displays[i].height * pxScale,
+                          width: displays[i].logicalWidth * pxScale,
+                          height: displays[i].logicalHeight * pxScale,
                         ),
                       ),
                     ),
