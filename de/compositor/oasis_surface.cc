@@ -311,19 +311,36 @@ static bool img_ensure(Surface* s, int w, int h) {
   return true;
 }
 
-// Preferred readback formats come back BGR-ordered; swap to RGBA in place.
+// The preferred readback format depends on the renderer and driver (GBM
+// EGL usually reports a BGR order while surfaceless GLES tends to report
+// RGBA). Normalize to RGBA bytes according to the format actually read.
 static bool texture_read_rgba(wlr_texture* tex, uint8_t* px, int w, int h) {
   wlr_texture_read_pixels_options opts = {};
   opts.data = px;
   opts.format = wlr_texture_preferred_read_format(tex);
   opts.stride = (uint32_t)w * 4;
   if (!wlr_texture_read_pixels(tex, &opts)) return false;
-  for (size_t i = 0; i < (size_t)w * h; i++) {
-    uint8_t t = px[i * 4];
-    px[i * 4] = px[i * 4 + 2];
-    px[i * 4 + 2] = t;
+  switch (opts.format) {
+    case DRM_FORMAT_ABGR8888:
+      return true;
+    case DRM_FORMAT_XBGR8888:
+      for (size_t i = 0; i < (size_t)w * h; i++) px[i * 4 + 3] = 0xff;
+      return true;
+    case DRM_FORMAT_ARGB8888:
+    case DRM_FORMAT_XRGB8888: {
+      const bool opaque = opts.format == DRM_FORMAT_XRGB8888;
+      for (size_t i = 0; i < (size_t)w * h; i++) {
+        uint8_t* p = px + i * 4;
+        uint8_t t = p[0];
+        p[0] = p[2];
+        p[2] = t;
+        if (opaque) p[3] = 0xff;
+      }
+      return true;
+    }
+    default:
+      return false;
   }
-  return true;
 }
 
 static void push_img(Surface* s) {
@@ -393,17 +410,8 @@ static void export_buffer(Surface* s) {
     s->iw = s->ih = 0;
     return;
   }
-  wlr_client_buffer* cb = wlr_client_buffer_get(buf);
-  if (cb != nullptr && cb->texture != nullptr) {
-    ensure_texture(s, 1);
-    int w = buf->width, h = buf->height;
-    if (w > 0 && h > 0 && w <= 16384 && h <= 16384 &&
-        img_ensure(s, w, h) &&
-        texture_read_rgba(cb->texture, s->img.get(), w, h)) {
-      push_img(s);
-    }
-    return;
-  }
+  // Zero-copy path first: dmabuf buffers can be handed to the host as an
+  // EGL image instead of being read back through the CPU.
   wlr_dmabuf_attributes attrs;
   if (wlr_buffer_get_dmabuf(buf, &attrs)) {
     if (!s->dmabuf_broken && s->tex_kind == 2 && s->texture_id >= 0 &&
@@ -434,6 +442,19 @@ static void export_buffer(Surface* s) {
     } else {
       ensure_texture(s, 1);
       if (readback_dmabuf(s, buf)) push_img(s);
+    }
+    return;
+  }
+  // Buffers the renderer already imported (shm and friendlier dmabufs)
+  // fall back to a GPU readback through the compositor's own context.
+  wlr_client_buffer* cb = wlr_client_buffer_get(buf);
+  if (cb != nullptr && cb->texture != nullptr) {
+    ensure_texture(s, 1);
+    int w = buf->width, h = buf->height;
+    if (w > 0 && h > 0 && w <= 16384 && h <= 16384 &&
+        img_ensure(s, w, h) &&
+        texture_read_rgba(cb->texture, s->img.get(), w, h)) {
+      push_img(s);
     }
     return;
   }
