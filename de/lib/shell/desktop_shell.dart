@@ -112,8 +112,7 @@ class _DesktopShellState extends State<DesktopShell> {
         final screenRect = Offset.zero & screen;
         final primary =
             wl?.primaryOutput ?? (heads.isEmpty ? null : heads.first);
-        final activeHead =
-            (wl?.outputAt(_pointerPos.value) ?? primary) ?? primary;
+        final activeHead = wl?.outputAt(_pointerPos.value) ?? primary;
         final activeRect = activeHead?.rect ?? screenRect;
         final primaryRect = primary?.rect ?? screenRect;
         return CallbackShortcuts(
@@ -266,12 +265,7 @@ class _DesktopShellState extends State<DesktopShell> {
                       onTap: controller.closeOverlays,
                     ),
                   ),
-                if (!controller.windows.any(
-                  (w) =>
-                      w.fullscreen &&
-                      !w.minimized &&
-                      w.workspace == controller.activeWorkspace,
-                ))
+                if (!controller.fullscreenOnActiveWorkspace)
                   for (var i = 0; i < (heads.isEmpty ? 1 : heads.length); i++)
                     Positioned.fromRect(
                       rect: heads.isEmpty
@@ -329,12 +323,7 @@ class _DesktopShellState extends State<DesktopShell> {
                     rect: activeRect,
                     child: WindowSwitcher(controller: controller),
                   ),
-                if (!controller.windows.any(
-                  (w) =>
-                      w.fullscreen &&
-                      !w.minimized &&
-                      w.workspace == controller.activeWorkspace,
-                ))
+                if (!controller.fullscreenOnActiveWorkspace)
                   Positioned(
                     top: kCcTopOffset + 4,
                     left: 0,
@@ -364,12 +353,7 @@ class _DesktopShellState extends State<DesktopShell> {
                     ),
                   ),
                 ),
-                if (!controller.windows.any(
-                  (w) =>
-                      w.fullscreen &&
-                      !w.minimized &&
-                      w.workspace == controller.activeWorkspace,
-                ))
+                if (!controller.fullscreenOnActiveWorkspace)
                   Positioned.fromRect(
                     rect: primaryRect,
                     child: Align(

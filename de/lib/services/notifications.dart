@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 
@@ -78,7 +79,7 @@ class OasisNotificationServer extends DBusObject {
             appName: (values[0] as DBusString).value,
             summary: (values[3] as DBusString).value,
             body: (values[4] as DBusString).value,
-            timestamp: DateTime.now(),
+            timestamp: clock.now(),
             urgency: urgency is int ? urgency : 1,
             expireTimeout: (values[7] as DBusInt32).value,
             transient: transient == true,
