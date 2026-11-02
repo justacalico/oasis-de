@@ -2,6 +2,26 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.12.0 - 2026-11-02
+#### Features
+- 程序坞设置：模式、位置和图标大小 - (9b66fbc) - user.email
+- 窗口最大化时避让程序坞 - (49ba09d) - user.email
+#### Bug Fixes
+- (**compositor**) 修复主机输出无名称时不创建 wl_output - (f16db68) - user.email
+- (**compositor**) 修复客户端在首次提交前设置装饰模式引发的崩溃 - (d4fd122) - user.email
+- (**kms**) 修复切换 VT 后键鼠输入全部失效 - (c22a770) - user.email
+- (**session**) 私有会话总线地址不再写入 systemd 用户环境 - (209d598) - user.email
+- 修复应用图标再次导致的 web 构建失败 - (3668f13) - user.email
+- 固定 cpuinfo 回退路径的测试覆盖 - (6ef33bf) - user.email
+- 补齐程序坞测试的行覆盖率 - (ec9cdbd) - user.email
+- 修复多显示器菜单栏崩溃并全面清理各类问题 - (9bb16b1) - user.email
+- 修复东南/西南角缩放光标方向相反 - (3fea6b1) - user.email
+- 修复 Super 键被识别为问号导致快捷键失效 - (35ccd72) - user.email
+#### Refactoring
+- 打磨外壳与组件库实现细节 - (e2ee14b) - Zhenxi
+
+- - -
+
 ## v0.11.0 - 2026-11-02
 #### Features
 - 新增全局快捷键服务并在设置中提供键盘面板 - (f558ff6) - user.email
