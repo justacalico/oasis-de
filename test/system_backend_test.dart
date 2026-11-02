@@ -378,12 +378,17 @@ void main() {
   });
 
   test('cli backend system info tolerates df failure', () async {
+    final proc = Directory.systemTemp.createTempSync('proc');
+    addTearDown(() => proc.delete(recursive: true));
+    File('${proc.path}/cpuinfo').writeAsStringSync('processor\t: 0\n');
     Future<ProcessResult> fakeRun(String exe, List<String> args) async {
       throw ProcessException('df', args);
     }
 
-    final i = await CliSystemBackend(run: fakeRun).systemInfo();
+    final i = await CliSystemBackend(run: fakeRun, procDir: proc)
+        .systemInfo();
     expect(i.disk, isEmpty);
+    expect(i.cpu, isEmpty);
   });
 
   test('settings state writes shared keys and calls backend', () {
