@@ -97,6 +97,7 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
 
   bool _onKey(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
+    if (!widget.controller.launchPadOpen) return false;
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       widget.controller.closeOverlays();
       return true;
