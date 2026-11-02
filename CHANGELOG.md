@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.10.2 - 2026-11-01
+#### Bug Fixes
+- 修复 GTK 宿主下输出尺寸不随显示缩放更新的问题 - (9b267a9) - Zhenxi
+
+- - -
+
 ## v0.10.1 - 2026-11-01
 #### Bug Fixes
 - 修复 GTK 宿主下输出缩放不生效的问题 - (6fb09a5) - user.email
