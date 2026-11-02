@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.12.1 - 2026-11-02
+#### Bug Fixes
+- 指针离开后 Dock 放大平滑结束 - (02ed573) - Calico
+
+- - -
+
 ## v0.12.0 - 2026-11-02
 #### Features
 - 程序坞设置：模式、位置和图标大小 - (9b66fbc) - user.email
