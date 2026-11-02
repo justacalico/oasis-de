@@ -81,6 +81,7 @@ class ShellController extends ChangeNotifier {
     this.wayland,
     this.backend = const NoopSystemBackend(),
     this.mpris,
+    this.dock,
     OasisKeybindsService? keybinds,
     this.batteryPollInterval = const Duration(seconds: 60),
   })  : apps = List.of(apps),
@@ -134,6 +135,7 @@ class ShellController extends ChangeNotifier {
   final List<ShellWindowData> windows = [];
   final WaylandService? wayland;
   final MprisService? mpris;
+  final OasisDockSettings? dock;
   final OasisKeybindsService keybinds;
   final Duration? batteryPollInterval;
 
@@ -728,6 +730,26 @@ class ShellController extends ChangeNotifier {
     } else if (pointer.dx <= 8 || pointer.dx >= screen.width - 8) {
       final left = pointer.dx <= 8;
       final cur = w.size ?? w.adoptedSize ?? const Size(480, 360);
+      var x = left ? 0.0 : screen.width / 2;
+      var width = screen.width / 2;
+      var height = screen.height - kMenuBarHeight - 8;
+      final d = dock;
+      if (d == null) {
+        height -= kDockHeight;
+      } else {
+        final inset = dockReservedExtent(d);
+        switch (d.position) {
+          case OasisDockPosition.bottom:
+            height -= inset;
+          case OasisDockPosition.left:
+            if (left) {
+              x += inset;
+              width -= inset;
+            }
+          case OasisDockPosition.right:
+            if (!left) width -= inset;
+        }
+      }
       w
         ..preSnapRect = Rect.fromLTWH(
           w.position.dx,
@@ -737,11 +759,8 @@ class ShellController extends ChangeNotifier {
         )
         ..zoomed = false
         ..fullscreen = false
-        ..size = Size(
-          screen.width / 2,
-          screen.height - kMenuBarHeight - 8 - kDockHeight,
-        )
-        ..position = Offset(left ? 0 : screen.width / 2, kMenuBarHeight + 4)
+        ..size = Size(width, height)
+        ..position = Offset(x, kMenuBarHeight + 4)
         ..adoptedSize = w.surface?.size
         ..animateGeom = true;
       notifyListeners();

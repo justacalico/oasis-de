@@ -183,6 +183,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get settingsDisplays => 'Taispeántais';
 
   @override
+  String get settingsDock => 'Duga';
+
+  @override
   String get settingsSound => 'Fuaim';
 
   @override
@@ -456,6 +459,48 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get dockQuit => 'Scoir';
+
+  @override
+  String get dockMode => 'Mód';
+
+  @override
+  String get dockModePush => 'Brúigh';
+
+  @override
+  String get dockModeAutoHide => 'Folaigh go huathoibríoch';
+
+  @override
+  String get dockModeOff => 'Múch';
+
+  @override
+  String get dockPosition => 'Suíomh';
+
+  @override
+  String get dockPositionLeft => 'Ar chlé';
+
+  @override
+  String get dockPositionBottom => 'Ag an mbun';
+
+  @override
+  String get dockPositionRight => 'Ar dheis';
+
+  @override
+  String get dockIconSize => 'Méid íocón';
+
+  @override
+  String get dockSizeSmall => 'Beag';
+
+  @override
+  String get dockSizeMedium => 'Meánach';
+
+  @override
+  String get dockSizeLarge => 'Mór';
+
+  @override
+  String get dockSizeCustom => 'Saincheaptha';
+
+  @override
+  String get dockCustomSize => 'Méid shaincheaptha';
 
   @override
   String get wallpaperPeaks => 'Sléibhte';

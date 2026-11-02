@@ -537,6 +537,7 @@ void main() {
 
   for (final pane in [
     SettingsPane.wallpaper,
+    SettingsPane.dock,
     SettingsPane.general,
     SettingsPane.keyboard,
     SettingsPane.power,

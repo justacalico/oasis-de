@@ -432,6 +432,12 @@ abstract class OasisLocalizations {
   /// **'Displays'**
   String get settingsDisplays;
 
+  /// No description provided for @settingsDock.
+  ///
+  /// In en, this message translates to:
+  /// **'Dock'**
+  String get settingsDock;
+
   /// No description provided for @settingsSound.
   ///
   /// In en, this message translates to:
@@ -923,6 +929,90 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Quit'**
   String get dockQuit;
+
+  /// No description provided for @dockMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get dockMode;
+
+  /// No description provided for @dockModePush.
+  ///
+  /// In en, this message translates to:
+  /// **'Push'**
+  String get dockModePush;
+
+  /// No description provided for @dockModeAutoHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-hide'**
+  String get dockModeAutoHide;
+
+  /// No description provided for @dockModeOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get dockModeOff;
+
+  /// No description provided for @dockPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Position'**
+  String get dockPosition;
+
+  /// No description provided for @dockPositionLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get dockPositionLeft;
+
+  /// No description provided for @dockPositionBottom.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottom'**
+  String get dockPositionBottom;
+
+  /// No description provided for @dockPositionRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Right'**
+  String get dockPositionRight;
+
+  /// No description provided for @dockIconSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon size'**
+  String get dockIconSize;
+
+  /// No description provided for @dockSizeSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get dockSizeSmall;
+
+  /// No description provided for @dockSizeMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get dockSizeMedium;
+
+  /// No description provided for @dockSizeLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get dockSizeLarge;
+
+  /// No description provided for @dockSizeCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get dockSizeCustom;
+
+  /// No description provided for @dockCustomSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom size'**
+  String get dockCustomSize;
 
   /// No description provided for @wallpaperPeaks.
   ///

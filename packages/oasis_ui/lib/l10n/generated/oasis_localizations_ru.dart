@@ -183,6 +183,9 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get settingsDisplays => 'Дисплеи';
 
   @override
+  String get settingsDock => 'Док';
+
+  @override
   String get settingsSound => 'Звук';
 
   @override
@@ -454,6 +457,48 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get dockQuit => 'Выйти';
+
+  @override
+  String get dockMode => 'Режим';
+
+  @override
+  String get dockModePush => 'Сдвиг';
+
+  @override
+  String get dockModeAutoHide => 'Автоскрытие';
+
+  @override
+  String get dockModeOff => 'Выкл';
+
+  @override
+  String get dockPosition => 'Положение';
+
+  @override
+  String get dockPositionLeft => 'Слева';
+
+  @override
+  String get dockPositionBottom => 'Снизу';
+
+  @override
+  String get dockPositionRight => 'Справа';
+
+  @override
+  String get dockIconSize => 'Размер значков';
+
+  @override
+  String get dockSizeSmall => 'Маленький';
+
+  @override
+  String get dockSizeMedium => 'Средний';
+
+  @override
+  String get dockSizeLarge => 'Большой';
+
+  @override
+  String get dockSizeCustom => 'Свой';
+
+  @override
+  String get dockCustomSize => 'Свой размер';
 
   @override
   String get wallpaperPeaks => 'Вершины';

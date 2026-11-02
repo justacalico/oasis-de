@@ -24,11 +24,13 @@ class DesktopShell extends StatefulWidget {
   const DesktopShell({
     super.key,
     required this.controller,
+    this.dock,
     this.wallpaper,
     required this.menusBuilder,
   });
 
   final ShellController controller;
+  final OasisDockSettings? dock;
   final OasisWallpaperService? wallpaper;
   final List<ShellMenu> Function() menusBuilder;
 
@@ -38,10 +40,49 @@ class DesktopShell extends StatefulWidget {
 
 class _DesktopShellState extends State<DesktopShell> {
   StreamSubscription<WaylandRequest>? _requestSub;
+  OasisDockSettings? _fallbackDock;
   final _pointerPos = ValueNotifier<Offset>(Offset.zero);
   DateTime? _lastActivity;
+  var _dockRevealed = false;
+  Timer? _dockHideTimer;
+  Rect _primaryRect = Rect.zero;
 
   ShellController get controller => widget.controller;
+
+  OasisDockSettings get _dock =>
+      widget.dock ?? (_fallbackDock ??= OasisDockSettings());
+
+  bool get _dockConcealed =>
+      _dock.mode == OasisDockMode.autoHide && !_dockRevealed;
+
+  /// Reveals an auto-hiding dock when the pointer hugs the screen edge it
+  /// sits on, and schedules the hide once it drifts away.
+  void _updateDockReveal(Offset pos) {
+    final dock = _dock;
+    if (dock.mode != OasisDockMode.autoHide) {
+      if (_dockRevealed) {
+        _dockHideTimer?.cancel();
+        setState(() => _dockRevealed = false);
+      }
+      return;
+    }
+    final rect = _primaryRect;
+    final d = switch (dock.position) {
+      OasisDockPosition.bottom => rect.bottom - pos.dy,
+      OasisDockPosition.left => pos.dx - rect.left,
+      OasisDockPosition.right => rect.right - pos.dx,
+    };
+    final show = _dockRevealed ? d < dock.iconSize + 45 : d <= 3;
+    if (show == _dockRevealed) return;
+    _dockHideTimer?.cancel();
+    if (show) {
+      setState(() => _dockRevealed = true);
+    } else {
+      _dockHideTimer = Timer(const Duration(milliseconds: 250), () {
+        if (mounted) setState(() => _dockRevealed = false);
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -54,6 +95,7 @@ class _DesktopShellState extends State<DesktopShell> {
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onAltRelease);
     _requestSub?.cancel();
+    _dockHideTimer?.cancel();
     _pointerPos.dispose();
     super.dispose();
   }
@@ -98,6 +140,7 @@ class _DesktopShellState extends State<DesktopShell> {
       animation: Listenable.merge([
         controller,
         controller.keybinds,
+        _dock,
         if (controller.wayland != null) controller.wayland!,
       ]),
       builder: (context, _) {
@@ -114,6 +157,7 @@ class _DesktopShellState extends State<DesktopShell> {
         final activeHead = wl?.outputAt(_pointerPos.value) ?? primary;
         final activeRect = activeHead?.rect ?? screenRect;
         final primaryRect = primary?.rect ?? screenRect;
+        _primaryRect = primaryRect;
         return CallbackShortcuts(
           bindings: {
             for (final e in controller.keybinds.activators.entries)
@@ -124,10 +168,13 @@ class _DesktopShellState extends State<DesktopShell> {
             onPointerHover: (e) {
               _pointerPos.value = e.localPosition;
               controller.lastPointerPosition = e.localPosition;
+              _updateDockReveal(e.localPosition);
               if (e.buttons == 0) controller.endSurfaceGesture();
             },
-            onPointerMove: (e) =>
-                _onShellPointerMove(e, MediaQuery.sizeOf(context)),
+            onPointerMove: (e) {
+              _updateDockReveal(e.localPosition);
+              _onShellPointerMove(e, MediaQuery.sizeOf(context));
+            },
             onPointerUp: (e) => controller.endSurfaceGesture(
               e.localPosition,
               MediaQuery.sizeOf(context),
@@ -311,12 +358,38 @@ class _DesktopShellState extends State<DesktopShell> {
                     ),
                   ),
                 ),
-                if (!controller.fullscreenOnActiveWorkspace)
+                if (!controller.fullscreenOnActiveWorkspace &&
+                    _dock.mode != OasisDockMode.off)
                   Positioned.fromRect(
                     rect: primaryRect,
                     child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: ShellDock(controller: controller),
+                      alignment: switch (_dock.position) {
+                        OasisDockPosition.left => Alignment.centerLeft,
+                        OasisDockPosition.right => Alignment.centerRight,
+                        OasisDockPosition.bottom => Alignment.bottomCenter,
+                      },
+                      child: AnimatedSlide(
+                        offset: _dockConcealed
+                            ? switch (_dock.position) {
+                                OasisDockPosition.left =>
+                                    const Offset(-1, 0),
+                                OasisDockPosition.right =>
+                                    const Offset(1, 0),
+                                OasisDockPosition.bottom =>
+                                    const Offset(0, 1),
+                              }
+                            : Offset.zero,
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOutCubic,
+                        child: IgnorePointer(
+                          ignoring: _dockConcealed,
+                          child: ShellDock(
+                            controller: controller,
+                            iconSize: _dock.iconSize,
+                            position: _dock.position,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 if (controller.launcherOpen)
@@ -536,16 +609,26 @@ class _DesktopShellState extends State<DesktopShell> {
   Rect _zoomedRect(Rect head) {
     final wl = controller.wayland;
     final insets = wl?.exclusiveInsets ?? EdgeInsets.zero;
-    final dockInset =
-        head == (wl?.primaryOutput?.rect ?? head) ? kDockHeight : 0.0;
+    var left = head.left + insets.left;
+    var width = head.width - insets.horizontal;
+    var height = head.height - kMenuBarHeight - 8 - insets.vertical;
+    if (head == (wl?.primaryOutput?.rect ?? head)) {
+      final dock = dockReservedExtent(_dock);
+      switch (_dock.position) {
+        case OasisDockPosition.left:
+          left += dock;
+          width -= dock;
+        case OasisDockPosition.right:
+          width -= dock;
+        case OasisDockPosition.bottom:
+          height -= dock;
+      }
+    }
     return Rect.fromLTWH(
-      head.left + insets.left,
+      left,
       head.top + kMenuBarHeight + 4 + insets.top,
-      math.max(0, head.width - insets.horizontal),
-      math.max(
-        0,
-        head.height - kMenuBarHeight - 8 - insets.vertical - dockInset,
-      ),
+      math.max(0, width),
+      math.max(0, height),
     );
   }
 
