@@ -252,6 +252,10 @@ void main() {
     c.dragWindow(w.id, const Offset(5, 5), screen);
     c.endSurfaceGesture(const Offset(4, 400), screen);
     expect(w.size!.width, screen.width / 2);
+    expect(
+      w.size!.height,
+      screen.height - kMenuBarHeight - 8 - kDockHeight,
+    );
     expect(w.position.dx, 0);
     c.dragWindow(w.id, const Offset(5, 5), screen);
     c.endSurfaceGesture(const Offset(1279, 400), screen);

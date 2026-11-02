@@ -103,7 +103,6 @@ class _DesktopShellState extends State<DesktopShell> {
       builder: (context, _) {
         final menus = widget.menusBuilder();
         final wl = controller.wayland;
-        final exclusive = wl?.exclusiveInsets ?? EdgeInsets.zero;
         final heads = [
           for (final o in wl?.outputs ?? const <OasisOutput>[])
             if (o.enabled) o,
@@ -152,46 +151,12 @@ class _DesktopShellState extends State<DesktopShell> {
                       key: ValueKey(w.id),
                       builder: (context) {
                         final screen = MediaQuery.sizeOf(context);
-                        final wcenter = w.position +
-                            (w.size ?? Size.zero).center(Offset.zero);
-                        final zoomHead =
-                            (wl?.outputAt(wcenter) ?? wl?.primaryOutput)?.rect ??
-                                (Offset.zero & screen);
-                        final zinsets = exclusive;
-                        final target = Rect.fromLTWH(
-                          w.zoomed
-                              ? zoomHead.left + zinsets.left
-                              : w.fullscreen
-                              ? zoomHead.left
-                              : w.position.dx,
-                          w.zoomed
-                              ? zoomHead.top +
-                                  kMenuBarHeight +
-                                  4 +
-                                  zinsets.top
-                              : w.fullscreen
-                              ? zoomHead.top
-                              : w.position.dy,
-                          w.zoomed
-                              ? math.max(
-                                  0,
-                                  zoomHead.width - zinsets.horizontal,
-                                )
-                              : w.fullscreen
-                              ? zoomHead.width
-                              : _windowSize(w, screen).width,
-                          w.fullscreen
-                              ? zoomHead.height
-                              : w.zoomed
-                              ? math.max(
-                                  0,
-                                  zoomHead.height -
-                                      kMenuBarHeight -
-                                      8 -
-                                      zinsets.vertical,
-                                )
-                              : _windowSize(w, screen).height,
-                        );
+                        final zoomHead = _windowHeadRect(w, screen);
+                        final target = w.zoomed
+                            ? _zoomedRect(zoomHead)
+                            : w.fullscreen
+                            ? zoomHead
+                            : w.position & _windowSize(w, screen);
                         return TweenAnimationBuilder<Rect?>(
                           tween: RectTween(end: target),
                           duration: w.animateGeom
@@ -568,6 +533,22 @@ class _DesktopShellState extends State<DesktopShell> {
         (Offset.zero & screen);
   }
 
+  Rect _zoomedRect(Rect head) {
+    final wl = controller.wayland;
+    final insets = wl?.exclusiveInsets ?? EdgeInsets.zero;
+    final dockInset =
+        head == (wl?.primaryOutput?.rect ?? head) ? kDockHeight : 0.0;
+    return Rect.fromLTWH(
+      head.left + insets.left,
+      head.top + kMenuBarHeight + 4 + insets.top,
+      math.max(0, head.width - insets.horizontal),
+      math.max(
+        0,
+        head.height - kMenuBarHeight - 8 - insets.vertical - dockInset,
+      ),
+    );
+  }
+
   Offset? _popupOffset(WaylandSurface popup) {
     final service = controller.wayland!;
     var offset = popup.offset;
@@ -636,15 +617,7 @@ class _DesktopShellState extends State<DesktopShell> {
 
   Rect _windowRect(ShellWindowData w, BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
-    if (w.zoomed) {
-      final head = _windowHeadRect(w, screen);
-      return Rect.fromLTWH(
-        head.left,
-        head.top + kMenuBarHeight + 4,
-        head.width,
-        head.height - kMenuBarHeight - 8,
-      );
-    }
+    if (w.zoomed) return _zoomedRect(_windowHeadRect(w, screen));
     return w.position & _windowSize(w, screen);
   }
 

@@ -627,6 +627,20 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('zoomed window stops above the dock', (tester) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.edit_note).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Window'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Zoom'));
+    await tester.pumpAndSettle();
+    final r = tester.getRect(find.byType(OasisWindow));
+    expect(r.top, kMenuBarHeight + 4);
+    expect(r.bottom, 800 - kDockHeight - 4);
+    expect(r.width, 1280);
+  });
+
   testWidgets('control center workspace pager switches', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.tune));

@@ -737,7 +737,10 @@ class ShellController extends ChangeNotifier {
         )
         ..zoomed = false
         ..fullscreen = false
-        ..size = Size(screen.width / 2, screen.height - kMenuBarHeight - 8)
+        ..size = Size(
+          screen.width / 2,
+          screen.height - kMenuBarHeight - 8 - kDockHeight,
+        )
         ..position = Offset(left ? 0 : screen.width / 2, kMenuBarHeight + 4)
         ..adoptedSize = w.surface?.size
         ..animateGeom = true;
