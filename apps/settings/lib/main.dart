@@ -18,6 +18,7 @@ Future<void> main() async {
       store: store,
       backend: const CliSystemBackend(),
       displayBackend: const CliDisplayBackend(),
+      keybinds: OasisKeybindsService(store: store),
     ),
     openUrl: (url) async {
       final uri = Uri.tryParse(url);

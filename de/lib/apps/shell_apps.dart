@@ -20,6 +20,7 @@ List<OasisApp> buildShellApps(
   OasisSystemBackend? backend,
   OasisDisplayBackend? displayBackend,
   OasisPowerBackend? powerBackend,
+  OasisKeybindsService? keybinds,
 }) {
   SettingsState? settingsState;
   return [
@@ -41,6 +42,7 @@ List<OasisApp> buildShellApps(
             backend: backend,
             displayBackend: displayBackend,
             powerBackend: powerBackend,
+            keybinds: keybinds,
           ),
         ),
       ),

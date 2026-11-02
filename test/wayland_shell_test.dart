@@ -1574,15 +1574,32 @@ void main() {
       find.byType(CallbackShortcuts),
     );
     final bindings = shortcuts.bindings;
-    bindings[const SingleActivator(LogicalKeyboardKey.tab, alt: true)]!();
+    void fire(
+      LogicalKeyboardKey trigger, {
+      bool alt = false,
+      bool shift = false,
+      bool meta = false,
+      bool control = false,
+    }) {
+      for (final e in bindings.entries) {
+        final a = e.key;
+        if (a is SingleActivator &&
+            a.trigger == trigger &&
+            a.alt == alt &&
+            a.shift == shift &&
+            a.meta == meta &&
+            a.control == control) {
+          e.value();
+          return;
+        }
+      }
+      fail('no binding for $trigger');
+    }
+
+    fire(LogicalKeyboardKey.tab, alt: true);
     await tester.pumpAndSettle();
     expect(find.byType(WindowSwitcher), findsOneWidget);
-    bindings[
-        const SingleActivator(
-          LogicalKeyboardKey.tab,
-          alt: true,
-          shift: true,
-        )]!();
+    fire(LogicalKeyboardKey.tab, alt: true, shift: true);
     await tester.pump();
     await tester.tap(
       find.descendant(
@@ -1592,26 +1609,20 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byType(WindowSwitcher), findsNothing);
-    bindings[const SingleActivator(LogicalKeyboardKey.tab, alt: true)]!();
+    fire(LogicalKeyboardKey.tab, alt: true);
     await tester.pump();
     expect(find.byType(WindowSwitcher), findsOneWidget);
-    bindings[const SingleActivator(LogicalKeyboardKey.escape)]!();
+    fire(LogicalKeyboardKey.escape);
     await tester.pump();
     expect(find.byType(WindowSwitcher), findsNothing);
-    bindings[
-        const SingleActivator(
-          LogicalKeyboardKey.arrowUp,
-          meta: true,
-        )]!();
-    bindings[
-        const SingleActivator(LogicalKeyboardKey.space, meta: true)]!();
+    fire(LogicalKeyboardKey.arrowUp, meta: true);
+    fire(LogicalKeyboardKey.space, control: true);
     await tester.pump();
     expect(c.launchPadOpen, isTrue);
-    bindings[
-        const SingleActivator(LogicalKeyboardKey.space, meta: true)]!();
+    fire(LogicalKeyboardKey.space, control: true);
     await tester.pump();
     expect(c.launchPadOpen, isFalse);
-    bindings[const SingleActivator(LogicalKeyboardKey.keyD, meta: true)]!();
+    fire(LogicalKeyboardKey.keyD, meta: true);
     await tester.pump();
     expect(c.windows.every((w) => w.minimized), isTrue);
   });

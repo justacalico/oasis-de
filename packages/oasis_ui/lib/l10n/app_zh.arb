@@ -261,5 +261,21 @@
   "displaysPrimary": "主显示器",
   "soundOutput": "输出",
   "soundInput": "输入",
-  "soundProfiles": "设备配置"
+  "soundProfiles": "设备配置",
+  "settingsKeyboard": "键盘",
+  "keybindShortcuts": "快捷键",
+  "keybindCustom": "自定义快捷键",
+  "keybindLauncher": "应用搜索",
+  "keybindCycleWindows": "下一个窗口",
+  "keybindCycleWindowsBack": "上一个窗口",
+  "keybindDismiss": "关闭浮层",
+  "keybindShowDesktop": "显示桌面",
+  "keybindZoom": "缩放窗口",
+  "keybindQuit": "退出应用",
+  "keybindNotSet": "未设置",
+  "keybindRecording": "请按下快捷键…",
+  "keybindAdd": "添加快捷键",
+  "keybindReset": "恢复默认",
+  "keybindCommandHint": "要运行的命令",
+  "keybindRemove": "移除"
 }

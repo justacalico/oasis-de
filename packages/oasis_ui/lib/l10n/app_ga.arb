@@ -261,5 +261,21 @@
   "displaysPrimary": "príomh",
   "soundOutput": "Aschur",
   "soundInput": "Ionchur",
-  "soundProfiles": "Próifílí gléas"
+  "soundProfiles": "Próifílí gléas",
+  "settingsKeyboard": "Méarchlár",
+  "keybindShortcuts": "Aicearraí",
+  "keybindCustom": "Aicearraí saincheaptha",
+  "keybindLauncher": "Cuardach aipeanna",
+  "keybindCycleWindows": "An chéad fhuinneog eile",
+  "keybindCycleWindowsBack": "An fhuinneog roimhe",
+  "keybindDismiss": "Dún na forshraithe",
+  "keybindShowDesktop": "Taispeáin an deasc",
+  "keybindZoom": "Súmáil an fhuinneog",
+  "keybindQuit": "Scoir an aip",
+  "keybindNotSet": "Gan socrú",
+  "keybindRecording": "Brúigh an aicearra…",
+  "keybindAdd": "Cuir aicearra leis",
+  "keybindReset": "Athshocraigh",
+  "keybindCommandHint": "Ordú le rith",
+  "keybindRemove": "Bain"
 }

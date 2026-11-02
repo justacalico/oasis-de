@@ -1337,6 +1337,102 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Device profiles'**
   String get soundProfiles;
+
+  /// No description provided for @settingsKeyboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Keyboard'**
+  String get settingsKeyboard;
+
+  /// No description provided for @keybindShortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcuts'**
+  String get keybindShortcuts;
+
+  /// No description provided for @keybindCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom shortcuts'**
+  String get keybindCustom;
+
+  /// No description provided for @keybindLauncher.
+  ///
+  /// In en, this message translates to:
+  /// **'App search'**
+  String get keybindLauncher;
+
+  /// No description provided for @keybindCycleWindows.
+  ///
+  /// In en, this message translates to:
+  /// **'Next window'**
+  String get keybindCycleWindows;
+
+  /// No description provided for @keybindCycleWindowsBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous window'**
+  String get keybindCycleWindowsBack;
+
+  /// No description provided for @keybindDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Close overlays'**
+  String get keybindDismiss;
+
+  /// No description provided for @keybindShowDesktop.
+  ///
+  /// In en, this message translates to:
+  /// **'Show desktop'**
+  String get keybindShowDesktop;
+
+  /// No description provided for @keybindZoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom window'**
+  String get keybindZoom;
+
+  /// No description provided for @keybindQuit.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit app'**
+  String get keybindQuit;
+
+  /// No description provided for @keybindNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get keybindNotSet;
+
+  /// No description provided for @keybindRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Type shortcut…'**
+  String get keybindRecording;
+
+  /// No description provided for @keybindAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add shortcut'**
+  String get keybindAdd;
+
+  /// No description provided for @keybindReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to defaults'**
+  String get keybindReset;
+
+  /// No description provided for @keybindCommandHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Command to run'**
+  String get keybindCommandHint;
+
+  /// No description provided for @keybindRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get keybindRemove;
 }
 
 class _OasisLocalizationsDelegate

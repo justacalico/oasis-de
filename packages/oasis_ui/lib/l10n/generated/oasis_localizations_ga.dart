@@ -672,4 +672,52 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get soundProfiles => 'Próifílí gléas';
+
+  @override
+  String get settingsKeyboard => 'Méarchlár';
+
+  @override
+  String get keybindShortcuts => 'Aicearraí';
+
+  @override
+  String get keybindCustom => 'Aicearraí saincheaptha';
+
+  @override
+  String get keybindLauncher => 'Cuardach aipeanna';
+
+  @override
+  String get keybindCycleWindows => 'An chéad fhuinneog eile';
+
+  @override
+  String get keybindCycleWindowsBack => 'An fhuinneog roimhe';
+
+  @override
+  String get keybindDismiss => 'Dún na forshraithe';
+
+  @override
+  String get keybindShowDesktop => 'Taispeáin an deasc';
+
+  @override
+  String get keybindZoom => 'Súmáil an fhuinneog';
+
+  @override
+  String get keybindQuit => 'Scoir an aip';
+
+  @override
+  String get keybindNotSet => 'Gan socrú';
+
+  @override
+  String get keybindRecording => 'Brúigh an aicearra…';
+
+  @override
+  String get keybindAdd => 'Cuir aicearra leis';
+
+  @override
+  String get keybindReset => 'Athshocraigh';
+
+  @override
+  String get keybindCommandHint => 'Ordú le rith';
+
+  @override
+  String get keybindRemove => 'Bain';
 }

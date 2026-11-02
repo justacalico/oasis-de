@@ -261,5 +261,21 @@
   "displaysPrimary": "основной",
   "soundOutput": "Вывод",
   "soundInput": "Ввод",
-  "soundProfiles": "Профили устройств"
+  "soundProfiles": "Профили устройств",
+  "settingsKeyboard": "Клавиатура",
+  "keybindShortcuts": "Сочетания клавиш",
+  "keybindCustom": "Свои сочетания",
+  "keybindLauncher": "Поиск приложений",
+  "keybindCycleWindows": "Следующее окно",
+  "keybindCycleWindowsBack": "Предыдущее окно",
+  "keybindDismiss": "Закрыть панели",
+  "keybindShowDesktop": "Показать рабочий стол",
+  "keybindZoom": "Развернуть окно",
+  "keybindQuit": "Завершить приложение",
+  "keybindNotSet": "Не задано",
+  "keybindRecording": "Нажмите сочетание…",
+  "keybindAdd": "Добавить сочетание",
+  "keybindReset": "Сбросить настройки",
+  "keybindCommandHint": "Команда для запуска",
+  "keybindRemove": "Удалить"
 }
