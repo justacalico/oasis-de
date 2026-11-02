@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.11.0 - 2026-11-02
+#### Features
+- 新增全局快捷键服务并在设置中提供键盘面板 - (f558ff6) - user.email
+#### Performance Improvements
+- (**compositor**) 帧回调改为随真实呈现派发并接入显式同步 - (a3d715c) - Zhenxi
+
+- - -
+
 ## v0.10.2 - 2026-11-01
 #### Bug Fixes
 - 修复 GTK 宿主下输出尺寸不随显示缩放更新的问题 - (9b267a9) - Zhenxi
