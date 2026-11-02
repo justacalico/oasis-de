@@ -1065,6 +1065,27 @@ void surfaceViewCoverage() {
     expect(host.calls, contains('key:56:true'));
     expect(host.calls, contains('key:15:true'));
     expect(host.calls, contains('key:15:false'));
+
+    // The Linux super key also keeps shell chords away from the client.
+    surface.shortcutsInhibited = false;
+    await tester.sendKeyDownEvent(
+      LogicalKeyboardKey.superKey,
+      physicalKey: PhysicalKeyboardKey.superKey,
+      platform: 'fuchsia',
+    );
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    expect(host.calls, isNot(contains('key:32:true')));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+    await tester.sendKeyUpEvent(
+      LogicalKeyboardKey.superKey,
+      physicalKey: PhysicalKeyboardKey.superKey,
+      platform: 'fuchsia',
+    );
+
+    // A bare space goes through to the client.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    expect(host.calls, contains('key:57:true'));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
   });
 
   testWidgets('surface view handles cancel and trackpad gestures',

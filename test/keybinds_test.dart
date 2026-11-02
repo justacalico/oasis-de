@@ -75,6 +75,12 @@ void main() {
     expect(OasisKeyCombo.decode('abc:m'), isNull);
     expect(OasisKeyCombo.decode('99999999999999:m'), isNull);
     expect(OasisKeyCombo.decode(''), isNull);
+    // A modifier saved as the trigger key is dropped instead of firing on its
+    // own press.
+    expect(
+      OasisKeyCombo.decode('${LogicalKeyboardKey.superKey.keyId}:'),
+      isNull,
+    );
 
     final activator = combo.activator;
     expect(activator.trigger, LogicalKeyboardKey.keyK);
@@ -103,6 +109,30 @@ void main() {
     );
     expect(OasisKeyCombo.fromKeyDown(modDown), isNull);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+
+    // Linux delivers the command key as superKey, which Flutter doesn't
+    // include in isMetaPressed — it must still count as meta and must not be
+    // recorded as the trigger itself.
+    await tester.sendKeyDownEvent(
+      LogicalKeyboardKey.superKey,
+      physicalKey: PhysicalKeyboardKey.superKey,
+      platform: 'fuchsia',
+    );
+    expect(
+      OasisKeyCombo.fromKeyDown(down),
+      const OasisKeyCombo(key: LogicalKeyboardKey.keyQ, meta: true),
+    );
+    final superDown = KeyDownEvent(
+      physicalKey: PhysicalKeyboardKey.superKey,
+      logicalKey: LogicalKeyboardKey.superKey,
+      timeStamp: Duration.zero,
+    );
+    expect(OasisKeyCombo.fromKeyDown(superDown), isNull);
+    await tester.sendKeyUpEvent(
+      LogicalKeyboardKey.superKey,
+      physicalKey: PhysicalKeyboardKey.superKey,
+      platform: 'fuchsia',
+    );
   });
 
   test('rebind steals combos and notifies', () {
@@ -379,6 +409,47 @@ void main() {
     expect(find.byType(TextField), findsNothing);
   });
 
+  Future<void> sendSuperCombo(
+    WidgetTester tester,
+    LogicalKeyboardKey key,
+  ) async {
+    // GTK reports the command key as superKey; fuchsia's test keymap is the
+    // only simulated one that produces that logical key.
+    await tester.sendKeyDownEvent(
+      LogicalKeyboardKey.superKey,
+      physicalKey: PhysicalKeyboardKey.superKey,
+      platform: 'fuchsia',
+    );
+    await tester.sendKeyEvent(key);
+    await tester.sendKeyUpEvent(
+      LogicalKeyboardKey.superKey,
+      physicalKey: PhysicalKeyboardKey.superKey,
+      platform: 'fuchsia',
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('linux super key opens the searcher and quits apps', (
+    tester,
+  ) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.edit_note).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+
+    await sendSuperCombo(tester, LogicalKeyboardKey.space);
+    expect(find.text('Search apps'), findsOneWidget);
+
+    await sendSuperCombo(tester, LogicalKeyboardKey.space);
+    expect(find.text('Search apps'), findsNothing);
+
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    await sendSuperCombo(tester, LogicalKeyboardKey.keyQ);
+    expect(find.byType(TextField), findsNothing);
+  });
+
   testWidgets('rebound shortcuts drive the shell', (tester) async {
     final store = MemoryOasisStore();
     final keybinds = OasisKeybindsService(store: store);
@@ -457,6 +528,30 @@ void main() {
       const OasisKeyCombo(key: LogicalKeyboardKey.keyW, meta: true),
     );
     expect(find.text('Super+W'), findsOneWidget);
+
+    // Recording with the Linux super key keeps it as a modifier too.
+    await tester.tap(find.text('Quit app'));
+    await tester.pumpAndSettle();
+    await tester.sendKeyDownEvent(
+      LogicalKeyboardKey.superKey,
+      physicalKey: PhysicalKeyboardKey.superKey,
+      platform: 'fuchsia',
+    );
+    await tester.pump();
+    expect(find.text('Type shortcut…'), findsOneWidget);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyQ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyQ);
+    await tester.sendKeyUpEvent(
+      LogicalKeyboardKey.superKey,
+      physicalKey: PhysicalKeyboardKey.superKey,
+      platform: 'fuchsia',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      keybinds.comboFor(OasisKeybindsService.actionQuit),
+      const OasisKeyCombo(key: LogicalKeyboardKey.keyQ, meta: true),
+    );
+    expect(find.text('Super+Q'), findsOneWidget);
 
     // Escape cancels a capture.
     await tester.tap(find.text('Next window'));
