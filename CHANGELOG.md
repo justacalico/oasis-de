@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.12.3 - 2026-11-02
+#### Bug Fixes
+- 修复带几何偏移窗口的指针坐标错位 - (1fbd78f) - HttpAnimations
+
+- - -
+
 ## v0.12.2 - 2026-11-02
 #### Bug Fixes
 - 启动台加开合动画并盖住程序坞 - (cc9a438) - HttpAnimations

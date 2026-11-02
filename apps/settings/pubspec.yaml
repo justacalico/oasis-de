@@ -2,7 +2,7 @@ name: oasis_settings
 description: The Oasis settings app.
 publish_to: none
 resolution: workspace
-version: 0.12.2
+version: 0.12.3
 
 environment:
   sdk: ^3.9.0
