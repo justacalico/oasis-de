@@ -36,8 +36,20 @@ class ShellDock extends StatefulWidget {
   State<ShellDock> createState() => _ShellDockState();
 }
 
-class _ShellDockState extends State<ShellDock> {
+class _ShellDockState extends State<ShellDock>
+    with SingleTickerProviderStateMixin {
   double? _pointer;
+  late final AnimationController _magnify = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 160),
+    reverseDuration: const Duration(milliseconds: 260),
+  )..addListener(() => setState(() {}));
+
+  @override
+  void dispose() {
+    _magnify.dispose();
+    super.dispose();
+  }
 
   double _sizeAt(double center) {
     final px = _pointer;
@@ -47,7 +59,7 @@ class _ShellDockState extends State<ShellDock> {
     final d = (px - center).abs();
     if (d >= range) return base;
     final falloff = 1 - d / range;
-    return base + base * 0.38 * falloff * falloff;
+    return base + base * 0.38 * falloff * falloff * _magnify.value;
   }
 
   Widget _dockMenu(
@@ -205,9 +217,11 @@ class _ShellDockState extends State<ShellDock> {
     ];
 
     return MouseRegion(
-      onHover: (e) =>
-          setState(() => _pointer = vertical ? e.position.dy : e.position.dx),
-      onExit: (_) => setState(() => _pointer = null),
+      onHover: (e) {
+        setState(() => _pointer = vertical ? e.position.dy : e.position.dx);
+        _magnify.forward();
+      },
+      onExit: (_) => _magnify.reverse(),
       child: Container(
         margin: switch (widget.position) {
           OasisDockPosition.left => const EdgeInsets.only(left: 10),
