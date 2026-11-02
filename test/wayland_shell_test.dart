@@ -1356,6 +1356,36 @@ void main() {
     service.dispose();
   });
 
+  test('cursorShape resize shapes point along the right diagonal', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    const expected = {
+      18: SystemMouseCursors.resizeLeftRight,
+      19: SystemMouseCursors.resizeUpDown,
+      20: SystemMouseCursors.resizeUpRightDownLeft,
+      21: SystemMouseCursors.resizeUpLeftDownRight,
+      22: SystemMouseCursors.resizeUpDown,
+      23: SystemMouseCursors.resizeUpLeftDownRight,
+      24: SystemMouseCursors.resizeUpRightDownLeft,
+      25: SystemMouseCursors.resizeLeftRight,
+      26: SystemMouseCursors.resizeLeftRight,
+      27: SystemMouseCursors.resizeUpDown,
+      28: SystemMouseCursors.resizeUpRightDownLeft,
+      29: SystemMouseCursors.resizeUpLeftDownRight,
+      30: SystemMouseCursors.resizeLeftRight,
+      31: SystemMouseCursors.resizeUpDown,
+      32: SystemMouseCursors.move,
+      33: SystemMouseCursors.zoomIn,
+      34: SystemMouseCursors.zoomOut,
+    };
+    for (final e in expected.entries) {
+      host.emit({'event': 'cursorShape', 'shape': e.key});
+      await pumpEventQueue();
+      expect(waylandMouseCursor(service), e.value);
+    }
+    service.dispose();
+  });
+
   test('idleInhibit event marks the surface', () async {
     final host = FakeWaylandHost();
     final service = await _service(host);
