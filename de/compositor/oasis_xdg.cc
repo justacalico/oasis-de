@@ -32,7 +32,9 @@ void popup_position(Surface* s, int* x, int* y) {
 }
 
 void apply_decoration(Surface* s) {
-  if (s->deco == nullptr) return;
+  if (s->deco == nullptr || s->xdg == nullptr || !s->xdg->initialized) {
+    return;
+  }
   auto mode = s->deco->requested_mode;
   if (mode == WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_NONE) {
     mode = WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE;
