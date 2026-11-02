@@ -309,11 +309,6 @@ class _DesktopShellState extends State<DesktopShell> {
                     rect: activeRect,
                     child: ShellControlCenter(controller: controller),
                   ),
-                if (controller.launchPadOpen)
-                  Positioned.fromRect(
-                    rect: activeRect,
-                    child: ShellLaunchPad(controller: controller),
-                  ),
                 if (controller.notificationCenterOpen)
                   Positioned.fromRect(
                     rect: activeRect,
@@ -392,6 +387,26 @@ class _DesktopShellState extends State<DesktopShell> {
                       ),
                     ),
                   ),
+                Positioned.fromRect(
+                  rect: activeRect,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 240),
+                    reverseDuration: const Duration(milliseconds: 180),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: ScaleTransition(
+                        scale: Tween(begin: 1.06, end: 1.0)
+                            .animate(animation),
+                        child: child,
+                      ),
+                    ),
+                    child: controller.launchPadOpen
+                        ? ShellLaunchPad(controller: controller)
+                        : const SizedBox.shrink(),
+                  ),
+                ),
                 if (controller.launcherOpen)
                   Positioned.fromRect(
                     rect: activeRect,

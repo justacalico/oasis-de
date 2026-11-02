@@ -144,6 +144,19 @@ void main() {
     expect(find.byType(ShellLaunchPad), findsNothing);
   });
 
+  testWidgets('keys are ignored while the pad is closing', (tester) async {
+    await pumpDesktop(tester);
+    await tester.tap(find.byIcon(Icons.rocket_launch));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.byType(ShellLaunchPad), findsNothing);
+    expect(find.text('Appearance'), findsNothing);
+  });
+
   testWidgets('tapping the backdrop closes the pad', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.rocket_launch));
@@ -159,6 +172,7 @@ void main() {
       batteryPollInterval: null,
     );
     addTearDown(controller.dispose);
+    controller.launchPadOpen = true;
     await pumpOasis(
       tester,
       Scaffold(body: ShellLaunchPad(controller: controller)),
