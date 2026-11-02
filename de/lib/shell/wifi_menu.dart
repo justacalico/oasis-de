@@ -32,6 +32,8 @@ void showWifiMenu(
       final maxY = box.size.height - 8;
       final dx = local.dx.clamp(8.0, maxX > 8 ? maxX : 8.0);
       final dy = local.dy.clamp(8.0, maxY > 8 ? maxY : 8.0);
+      final maxHeight =
+          (box.size.height - dy - 8).clamp(0.0, menuHeight).toDouble();
       return Stack(
         children: [
           Positioned.fill(
@@ -45,7 +47,7 @@ void showWifiMenu(
             left: dx,
             top: dy,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: menuHeight),
+              constraints: BoxConstraints(maxHeight: maxHeight),
               child: OasisGlass(
                 borderRadius: style.menuRadius,
                 blur: 36,

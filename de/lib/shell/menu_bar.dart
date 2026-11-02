@@ -54,18 +54,19 @@ class ShellMenuBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                GestureDetector(
-                  onTap: () => controller.selectMenu(
-                    controller.openMenu == menus[0].label
-                        ? null
-                        : menus[0].label,
+                if (menus.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => controller.selectMenu(
+                      controller.openMenu == menus[0].label
+                          ? null
+                          : menus[0].label,
+                    ),
+                    child: const Icon(
+                      Icons.water_drop,
+                      size: 15,
+                      color: Color(0xFFFFFFFF),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.water_drop,
-                    size: 15,
-                    color: Color(0xFFFFFFFF),
-                  ),
-                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: SingleChildScrollView(

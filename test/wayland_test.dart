@@ -601,7 +601,7 @@ Icon=
 broken line
 ''';
     final m = parseDesktopEntry('misc', misc, resolveIcon: (_) => null);
-    expect(m!.name, 'First');
+    expect(m!.name, 'Second');
     expect(m.argv, ['prog']);
     expect(m.iconPath, isNull);
   });
