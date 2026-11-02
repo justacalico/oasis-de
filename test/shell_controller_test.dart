@@ -423,6 +423,17 @@ void main() {
     c.dispose();
   });
 
+  test('moving the focused window promotes the next window', () {
+    final c = _controller();
+    c.openApp(c.apps[0]);
+    c.openApp(c.apps[1]);
+    expect(c.focusedId, c.windows[1].id);
+    c.moveWindowToWorkspace(c.windows[1].id, 1);
+    expect(c.windows[1].workspace, 1);
+    expect(c.focusedId, c.windows[0].id);
+    c.dispose();
+  });
+
   test('menus and overlays are mutually exclusive', () {
     final c = _controller();
     c.selectMenu('File');

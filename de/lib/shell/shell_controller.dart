@@ -990,7 +990,11 @@ class ShellController extends ChangeNotifier {
     for (final m in family) {
       m.workspace = i;
     }
-    if (family.any((m) => m.id == _focusedId)) _focusedId = null;
+    if (family.any((m) => m.id == _focusedId)) {
+      _focusedId = null;
+      _promoteFocus();
+      _pushWaylandFocus();
+    }
     notifyListeners();
   }
 
@@ -1020,7 +1024,8 @@ class ShellController extends ChangeNotifier {
     }
     var idx = _switcherIndex;
     if (idx == null) {
-      final cur = visible.indexWhere((w) => w.id == _focusedId);
+      var cur = visible.indexWhere((w) => w.id == _focusedId);
+      if (cur < 0) cur = backwards ? visible.length : -1;
       idx = backwards ? cur - 1 : cur + 1;
     } else {
       idx += backwards ? -1 : 1;
