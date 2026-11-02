@@ -14,7 +14,23 @@ final _modifierKeys = {
   LogicalKeyboardKey.altRight,
   LogicalKeyboardKey.metaLeft,
   LogicalKeyboardKey.metaRight,
+  LogicalKeyboardKey.superKey,
+  LogicalKeyboardKey.hyper,
+  LogicalKeyboardKey.fn,
 };
+
+// GTK reports the Super (command) key as LogicalKeyboardKey.superKey rather
+// than metaLeft/metaRight, so HardwareKeyboard.isMetaPressed and Flutter's
+// meta synonyms both miss it on Linux. Every meta check in the shell has to
+// go through this set instead.
+final metaModifierKeys =
+    LogicalKeyboardKey.expandSynonyms({LogicalKeyboardKey.meta})
+      ..add(LogicalKeyboardKey.superKey);
+
+/// Whether a meta modifier is held, counting the Super key that Linux
+/// reports as [LogicalKeyboardKey.superKey].
+bool isMetaOrSuperPressed(HardwareKeyboard hw) =>
+    hw.logicalKeysPressed.any(metaModifierKeys.contains);
 
 final _keyLabels = {
   LogicalKeyboardKey.space: 'Space',
@@ -55,11 +71,11 @@ class OasisKeyCombo {
       control: hw.isControlPressed,
       alt: hw.isAltPressed,
       shift: hw.isShiftPressed,
-      meta: hw.isMetaPressed,
+      meta: isMetaOrSuperPressed(hw),
     );
   }
 
-  SingleActivator get activator => SingleActivator(
+  SingleActivator get activator => _OasisActivator(
     key,
     meta: meta,
     control: control,
@@ -90,7 +106,7 @@ class OasisKeyCombo {
     if (sep <= 0) return null;
     final keyId = int.tryParse(raw.substring(0, sep));
     final key = keyId == null ? null : LogicalKeyboardKey.findKeyByKeyId(keyId);
-    if (key == null) return null;
+    if (key == null || _modifierKeys.contains(key)) return null;
     final flags = raw.substring(sep + 1);
     return OasisKeyCombo(
       key: key,
@@ -112,6 +128,43 @@ class OasisKeyCombo {
 
   @override
   int get hashCode => Object.hash(key, meta, control, alt, shift);
+}
+
+/// A [SingleActivator] that treats the Linux Super key as meta. Flutter's own
+/// meta synonyms only cover metaLeft/metaRight, so a plain [SingleActivator]
+/// never fires for Super-based shortcuts under GTK.
+class _OasisActivator extends SingleActivator {
+  const _OasisActivator(
+    super.trigger, {
+    super.control,
+    super.shift,
+    super.alt,
+    super.meta,
+  });
+
+  static final _controlKeys = LogicalKeyboardKey.expandSynonyms({
+    LogicalKeyboardKey.control,
+  });
+  static final _shiftKeys = LogicalKeyboardKey.expandSynonyms({
+    LogicalKeyboardKey.shift,
+  });
+  static final _altKeys = LogicalKeyboardKey.expandSynonyms({
+    LogicalKeyboardKey.alt,
+  });
+
+  @override
+  bool accepts(KeyEvent event, HardwareKeyboard state) {
+    if (event is! KeyDownEvent &&
+        !(includeRepeats && event is KeyRepeatEvent)) {
+      return false;
+    }
+    final pressed = state.logicalKeysPressed;
+    return event.logicalKey == trigger &&
+        control == pressed.any(_controlKeys.contains) &&
+        shift == pressed.any(_shiftKeys.contains) &&
+        alt == pressed.any(_altKeys.contains) &&
+        meta == pressed.any(metaModifierKeys.contains);
+  }
 }
 
 /// A user-defined binding that runs a shell command.

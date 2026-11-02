@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:oasis_ui/oasis_ui.dart';
 
 import 'keymap.dart';
 import 'wayland_service.dart';
@@ -80,9 +81,10 @@ KeyEventResult waylandKeyEvent(
   final hw = HardwareKeyboard.instance;
   final shellChord = switch (event.logicalKey) {
     LogicalKeyboardKey.tab => hw.isAltPressed,
-    LogicalKeyboardKey.keyD => hw.isMetaPressed,
-    LogicalKeyboardKey.arrowUp => hw.isMetaPressed,
-    LogicalKeyboardKey.space => hw.isMetaPressed || hw.isControlPressed,
+    LogicalKeyboardKey.keyD => isMetaOrSuperPressed(hw),
+    LogicalKeyboardKey.arrowUp => isMetaOrSuperPressed(hw),
+    LogicalKeyboardKey.space =>
+      isMetaOrSuperPressed(hw) || hw.isControlPressed,
     LogicalKeyboardKey.escape => escReserved,
     _ => false,
   };
