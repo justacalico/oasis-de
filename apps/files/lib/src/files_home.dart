@@ -112,44 +112,46 @@ class _FilesHomeState extends State<FilesHome> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style: Theme.of(dialogContext).textTheme.titleSmall),
-          const SizedBox(height: 10),
-          OasisTextField(
-            controller: ctrl,
-            autofocus: true,
-            filled: true,
-            hintText: l10n.filesName,
-            onSubmitted: (v) {
-              if (v.trim().isNotEmpty) {
-                onDone(v.trim());
-                close();
-              }
-            },
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              OasisButton(
-                label: l10n.filesCancel,
-                variant: OasisButtonVariant.text,
-                dense: true,
-                onPressed: close,
-              ),
-              const SizedBox(width: 8),
-              OasisButton(
-                label: confirm,
-                dense: true,
-                onPressed: () {
-                  if (ctrl.text.trim().isNotEmpty) {
-                    onDone(ctrl.text.trim());
-                    close();
-                  }
-                },
-              ),
-            ],
-          ),
+            Text(
+              title,
+              style: Theme.of(dialogContext).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 10),
+            OasisTextField(
+              controller: ctrl,
+              autofocus: true,
+              filled: true,
+              hintText: l10n.filesName,
+              onSubmitted: (v) {
+                if (v.trim().isNotEmpty) {
+                  onDone(v.trim());
+                  close();
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OasisButton(
+                  label: l10n.filesCancel,
+                  variant: OasisButtonVariant.text,
+                  dense: true,
+                  onPressed: close,
+                ),
+                const SizedBox(width: 8),
+                OasisButton(
+                  label: confirm,
+                  dense: true,
+                  onPressed: () {
+                    if (ctrl.text.trim().isNotEmpty) {
+                      onDone(ctrl.text.trim());
+                      close();
+                    }
+                  },
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -370,7 +372,7 @@ class _FilesHomeState extends State<FilesHome> {
 
   Widget _body(
     OasisLocalizations l10n,
-    dynamic p,
+    OasisPalette p,
     List<FileItem> items,
   ) {
     final s = _state;

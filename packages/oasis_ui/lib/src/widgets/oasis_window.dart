@@ -152,103 +152,119 @@ class _OasisWindowState extends State<OasisWindow> {
       ),
     );
     if (onResize == null) return window;
-    const grab = 6.0;
-    const corner = 16.0;
     return Stack(
       children: [
         window,
-        Positioned(
-          top: 0,
-          left: corner,
-          right: corner,
-          height: grab,
-          child: _ResizeGrabber(
-            edge: OasisResizeEdge.top,
-            cursor: SystemMouseCursors.resizeUpDown,
-            onResize: onResize,
+        for (final g in _grabbers)
+          Positioned(
+            top: g.top,
+            bottom: g.bottom,
+            left: g.left,
+            right: g.right,
+            width: g.width,
+            height: g.height,
+            child: _ResizeGrabber(
+              edge: g.edge,
+              cursor: g.cursor,
+              onResize: onResize,
+            ),
           ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: corner,
-          right: corner,
-          height: grab,
-          child: _ResizeGrabber(
-            edge: OasisResizeEdge.bottom,
-            cursor: SystemMouseCursors.resizeUpDown,
-            onResize: onResize,
-          ),
-        ),
-        Positioned(
-          left: 0,
-          top: corner,
-          bottom: corner,
-          width: grab,
-          child: _ResizeGrabber(
-            edge: OasisResizeEdge.left,
-            cursor: SystemMouseCursors.resizeLeftRight,
-            onResize: onResize,
-          ),
-        ),
-        Positioned(
-          right: 0,
-          top: corner,
-          bottom: corner,
-          width: grab,
-          child: _ResizeGrabber(
-            edge: OasisResizeEdge.right,
-            cursor: SystemMouseCursors.resizeLeftRight,
-            onResize: onResize,
-          ),
-        ),
-        Positioned(
-          top: 0,
-          left: 0,
-          width: corner,
-          height: corner,
-          child: _ResizeGrabber(
-            edge: OasisResizeEdge.topLeft,
-            cursor: SystemMouseCursors.resizeUpLeftDownRight,
-            onResize: onResize,
-          ),
-        ),
-        Positioned(
-          top: 0,
-          right: 0,
-          width: corner,
-          height: corner,
-          child: _ResizeGrabber(
-            edge: OasisResizeEdge.topRight,
-            cursor: SystemMouseCursors.resizeUpRightDownLeft,
-            onResize: onResize,
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          width: corner,
-          height: corner,
-          child: _ResizeGrabber(
-            edge: OasisResizeEdge.bottomLeft,
-            cursor: SystemMouseCursors.resizeUpRightDownLeft,
-            onResize: onResize,
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          right: 0,
-          width: corner,
-          height: corner,
-          child: _ResizeGrabber(
-            edge: OasisResizeEdge.bottomRight,
-            cursor: SystemMouseCursors.resizeUpLeftDownRight,
-            onResize: onResize,
-          ),
-        ),
       ],
     );
   }
 }
+
+class _GrabberSpec {
+  const _GrabberSpec(
+    this.edge,
+    this.cursor, {
+    this.top,
+    this.bottom,
+    this.left,
+    this.right,
+    this.width,
+    this.height,
+  });
+
+  final OasisResizeEdge edge;
+  final MouseCursor cursor;
+  final double? top;
+  final double? bottom;
+  final double? left;
+  final double? right;
+  final double? width;
+  final double? height;
+}
+
+const _grab = 6.0;
+const _corner = 16.0;
+
+const _grabbers = [
+  _GrabberSpec(
+    OasisResizeEdge.top,
+    SystemMouseCursors.resizeUpDown,
+    top: 0,
+    left: _corner,
+    right: _corner,
+    height: _grab,
+  ),
+  _GrabberSpec(
+    OasisResizeEdge.bottom,
+    SystemMouseCursors.resizeUpDown,
+    bottom: 0,
+    left: _corner,
+    right: _corner,
+    height: _grab,
+  ),
+  _GrabberSpec(
+    OasisResizeEdge.left,
+    SystemMouseCursors.resizeLeftRight,
+    left: 0,
+    top: _corner,
+    bottom: _corner,
+    width: _grab,
+  ),
+  _GrabberSpec(
+    OasisResizeEdge.right,
+    SystemMouseCursors.resizeLeftRight,
+    right: 0,
+    top: _corner,
+    bottom: _corner,
+    width: _grab,
+  ),
+  _GrabberSpec(
+    OasisResizeEdge.topLeft,
+    SystemMouseCursors.resizeUpLeftDownRight,
+    top: 0,
+    left: 0,
+    width: _corner,
+    height: _corner,
+  ),
+  _GrabberSpec(
+    OasisResizeEdge.topRight,
+    SystemMouseCursors.resizeUpRightDownLeft,
+    top: 0,
+    right: 0,
+    width: _corner,
+    height: _corner,
+  ),
+  _GrabberSpec(
+    OasisResizeEdge.bottomLeft,
+    SystemMouseCursors.resizeUpRightDownLeft,
+    bottom: 0,
+    left: 0,
+    width: _corner,
+    height: _corner,
+  ),
+  _GrabberSpec(
+    OasisResizeEdge.bottomRight,
+    SystemMouseCursors.resizeUpLeftDownRight,
+    bottom: 0,
+    right: 0,
+    width: _corner,
+    height: _corner,
+  ),
+];
 
 class _ResizeGrabber extends StatelessWidget {
   const _ResizeGrabber({

@@ -1,12 +1,11 @@
-import 'dart:async';
 import 'dart:ui';
 
-import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import 'context_menu.dart';
+import 'minute_clock.dart';
 import 'shell_controller.dart';
 import 'wifi_menu.dart';
 
@@ -133,7 +132,16 @@ class ShellMenuBar extends StatelessWidget {
                 const SizedBox(width: 6),
                 GestureDetector(
                   onTap: controller.toggleNotificationCenter,
-                  child: _MenuClock(style: textStyle),
+                  child: MinuteClock(
+                    builder: (context, now) {
+                      final locale =
+                          Localizations.localeOf(context).toString();
+                      final text =
+                          '${DateFormat.MEd(locale).format(now)} '
+                          '${DateFormat.jm(locale).format(now)}';
+                      return Text(text, style: textStyle);
+                    },
+                  ),
                 ),
               ],
             ),
@@ -220,59 +228,6 @@ class _StatusIcon extends StatelessWidget {
           ? iconWidget
           : OasisTooltip(message: tip, child: iconWidget),
     );
-  }
-}
-
-class _MenuClock extends StatefulWidget {
-  const _MenuClock({this.style});
-
-  final TextStyle? style;
-
-  @override
-  State<_MenuClock> createState() => _MenuClockState();
-}
-
-class _MenuClockState extends State<_MenuClock> {
-  late DateTime _now;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _now = clock.now();
-    _scheduleTick();
-  }
-
-  void _scheduleTick() {
-    final next = DateTime(
-      _now.year,
-      _now.month,
-      _now.day,
-      _now.hour,
-      _now.minute + 1,
-    );
-    _timer = Timer(next.difference(_now), _tick);
-  }
-
-  void _tick() {
-    if (mounted) {
-      setState(() => _now = clock.now());
-      _scheduleTick();
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final locale = Localizations.localeOf(context).toString();
-    final text =
-        '${DateFormat.MEd(locale).format(_now)} ${DateFormat.jm(locale).format(_now)}';
-    return Text(text, style: widget.style);
   }
 }
 

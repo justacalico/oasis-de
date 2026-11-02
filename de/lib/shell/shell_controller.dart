@@ -200,6 +200,17 @@ class ShellController extends ChangeNotifier {
     return o?.rect.topLeft ?? Offset.zero;
   }
 
+  ShellWindowData _spawnWindow(OasisApp app) => ShellWindowData(
+        id: _nextId++,
+        app: app,
+        workspace: activeWorkspace,
+        position: _spawnOrigin +
+            Offset(
+              56 + _cascadeCount * 28.0,
+              52 + _cascadeCount * 24.0,
+            ),
+      );
+
   void pushNotification(OasisNotification n) {
     if (!n.transient) {
       notifications.removeWhere((o) => o.id == n.id);
@@ -354,6 +365,16 @@ class ShellController extends ChangeNotifier {
     return null;
   }
 
+  /// Whether an unminimized fullscreen window covers the active
+  /// workspace, in which case chrome (menu bar, dock, banner)
+  /// stays hidden.
+  bool get fullscreenOnActiveWorkspace => windows.any(
+        (w) =>
+            w.fullscreen &&
+            !w.minimized &&
+            w.workspace == activeWorkspace,
+      );
+
   final Map<String, int> launchCounts = {};
   String? launchError;
 
@@ -395,10 +416,11 @@ class ShellController extends ChangeNotifier {
       return best;
     }
 
-    final scored = [
-      for (final a in apps)
-        if (score(a) > 0) (a, score(a)),
-    ];
+    final scored = <(OasisApp, int)>[];
+    for (final a in apps) {
+      final s = score(a);
+      if (s > 0) scored.add((a, s));
+    }
     scored.sort((x, y) {
       final byScore = y.$2.compareTo(x.$2);
       if (byScore != 0) return byScore;
@@ -433,16 +455,7 @@ class ShellController extends ChangeNotifier {
         closeOverlays();
         return;
       }
-      window = ShellWindowData(
-        id: _nextId++,
-        app: app,
-        workspace: activeWorkspace,
-        position: _spawnOrigin +
-            Offset(
-              56 + _cascadeCount * 28.0,
-              52 + _cascadeCount * 24.0,
-            ),
-      );
+      window = _spawnWindow(app);
       unawaited(
         service.launch(app.exec!).catchError((Object e) {
           _failLaunch(window!);
@@ -453,18 +466,7 @@ class ShellController extends ChangeNotifier {
       });
     }
     launchCounts[app.id] = (launchCounts[app.id] ?? 0) + 1;
-    final w =
-        window ??
-        ShellWindowData(
-          id: _nextId++,
-          app: app,
-          workspace: activeWorkspace,
-          position: _spawnOrigin +
-              Offset(
-                56 + _cascadeCount * 28.0,
-                52 + _cascadeCount * 24.0,
-              ),
-        );
+    final w = window ?? _spawnWindow(app);
     w.launching = app.isExternal;
     windows.add(w);
     _focus(w.id);
@@ -770,7 +772,7 @@ class ShellController extends ChangeNotifier {
         appName: window.app.name,
         summary: window.app.name,
         body: launchFailedMessage(window.app.name),
-        timestamp: DateTime.now(),
+        timestamp: clock.now(),
       ),
     );
   }
@@ -795,13 +797,13 @@ class ShellController extends ChangeNotifier {
       for (final w in windows)
         if (w.surface != null) w.surface!.id,
     };
+    final launching = [
+      for (final w in windows)
+        if (w.launching) w,
+    ];
     for (final s in service.toplevels) {
       if (bound.contains(s.id)) continue;
       ShellWindowData? target;
-      final launching = [
-        for (final w in windows)
-          if (w.launching) w,
-      ];
       if (s.appId.isNotEmpty) {
         final match = _appForSurface(s);
         for (final w in launching) {
@@ -812,20 +814,12 @@ class ShellController extends ChangeNotifier {
         }
       }
       target ??= launching.isEmpty ? null : launching.first;
-      target ??= () {
-        final w = ShellWindowData(
-          id: _nextId++,
-          app: _appForSurface(s),
-          workspace: activeWorkspace,
-          position: _spawnOrigin +
-              Offset(
-                56 + _cascadeCount * 28.0,
-                52 + _cascadeCount * 24.0,
-              ),
-        );
-        windows.add(w);
-        return w;
-      }();
+      if (target == null) {
+        target = _spawnWindow(_appForSurface(s));
+        windows.add(target);
+      } else {
+        launching.remove(target);
+      }
       target
         ..surface = s
         ..launching = false
