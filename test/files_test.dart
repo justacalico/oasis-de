@@ -76,8 +76,13 @@ class _FakeBackend extends FilesBackend {
   }) async =>
       pasted.add('${paths.join(",")}>$destDir:${move ? "mv" : "cp"}');
 
+  var failTrash = false;
+
   @override
-  Future<void> trash(List<String> paths) async => trashed.addAll(paths);
+  Future<void> trash(List<String> paths) async {
+    if (failTrash) throw StateError('trash failed');
+    trashed.addAll(paths);
+  }
 
   @override
   Future<void> open(String path) async => opened.add(path);
@@ -320,12 +325,62 @@ void main() {
     expect(() => b.trash(['/x']), throwsStateError);
   });
 
+  test('IoFilesBackend falls back to copy on cross-device move', () async {
+    final root = Directory.systemTemp.createTempSync('oasisfiles_mv');
+    addTearDown(() => root.delete(recursive: true));
+    Directory('${root.path}/sub').createSync();
+    Directory('${root.path}/dest').createSync();
+    File('${root.path}/f.txt').writeAsStringSync('data');
+    File('${root.path}/sub/n.txt').writeAsStringSync('inner');
+    final b = IoFilesBackend(
+      renameEntity: (e, t) async => throw const FileSystemException(),
+    );
+    await b.paste(
+      ['${root.path}/f.txt', '${root.path}/sub'],
+      '${root.path}/dest',
+      move: true,
+    );
+    expect(File('${root.path}/dest/f.txt').existsSync(), isTrue);
+    expect(File('${root.path}/dest/sub/n.txt').existsSync(), isTrue);
+    expect(File('${root.path}/f.txt').existsSync(), isFalse);
+    expect(Directory('${root.path}/sub').existsSync(), isFalse);
+  });
+
+  test('failed operations surface an error and keep selection', () async {
+    final b = _FakeBackend({'/x': [_file('/x/a.txt')]})
+      ..failTrash = true;
+    final s = _state(b);
+    s.selection.add('/x/a.txt');
+    await s.trashSelection();
+    expect(s.error, '/x/a.txt');
+    expect(s.selection, contains('/x/a.txt'));
+    s.dispose();
+  });
+
   Widget host(FilesState s) => OasisHost(
         appearance: OasisAppearance(),
         updates: UpdateService(currentVersion: () async => '1'),
         setLocale: (_) {},
         child: FilesHome(state: s, startDir: '/home/u'),
       );
+
+  testWidgets('search field clears when navigating', (tester) async {
+    final s = _state(_backend());
+    addTearDown(s.dispose);
+    await pumpOasis(tester, host(s));
+    await tester.enterText(find.byType(EditableText).last, 'zzz');
+    await tester.pumpAndSettle();
+    expect(s.query, 'zzz');
+    await s.cd('/home/u/docs');
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<EditableText>(find.byType(EditableText).last)
+          .controller
+          .text,
+      '',
+    );
+  });
 
   testWidgets('files home browses and selects', (tester) async {
     final b = _backend();

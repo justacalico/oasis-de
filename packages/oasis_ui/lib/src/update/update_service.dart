@@ -24,7 +24,14 @@ class UpdateService extends ChangeNotifier {
     UpdateInstaller? installer,
     UpdateFileWriter? writeFile,
     ProcessRunner? runProcess,
-  })  : _checker = checker ?? UpdateChecker(),
+    List<String>? assetPreference,
+    String? osReleasePath,
+  })  : _checker = checker ??
+            UpdateChecker(
+              assetPreference: assetPreference ??
+                  _detectAssetPreference(osReleasePath) ??
+                  const [],
+            ),
         _currentVersion = currentVersion,
         _downloader = downloader,
         _installer = installer,
@@ -142,6 +149,40 @@ class UpdateService extends ChangeNotifier {
       if (fname == name || fname.endsWith('/$name')) return hex == sum;
     }
     return false;
+  }
+
+  /// Picks a package suffix that matches the local distro so the checker
+  /// prefers e.g. the rpm on Fedora instead of whatever link comes first.
+  static List<String>? _detectAssetPreference([String? osReleasePath]) {
+    if (kIsWeb) return null;
+    try {
+      final text = File(osReleasePath ?? '/etc/os-release')
+          .readAsStringSync()
+          .toLowerCase();
+      final ids = RegExp(r'^(?:id|id_like)="?([a-z0-9 ]+)', multiLine: true)
+          .allMatches(text)
+          .expand((m) => m.group(1)!.split(RegExp(r'\s+')));
+      for (final id in ids) {
+        switch (id) {
+          case 'debian':
+          case 'ubuntu':
+          case 'raspbian':
+          case 'linuxmint':
+          case 'pop':
+            return const ['.deb'];
+          case 'fedora':
+          case 'rhel':
+          case 'centos':
+          case 'opensuse':
+          case 'suse':
+            return const ['.rpm'];
+          case 'arch':
+          case 'manjaro':
+            return const ['.pkg.tar.zst'];
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<bool> _systemInstall(String path) async {

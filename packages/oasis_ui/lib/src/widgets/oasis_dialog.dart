@@ -5,8 +5,9 @@ import 'oasis_glass.dart';
 
 void showOasisDialog(
   BuildContext context,
-  Widget Function(BuildContext context, VoidCallback close) builder,
-) {
+  Widget Function(BuildContext context, VoidCallback close) builder, {
+  VoidCallback? onClosed,
+}) {
   final overlay = Overlay.maybeOf(context);
   if (overlay == null) return;
   late final OverlayEntry entry;
@@ -15,6 +16,7 @@ void showOasisDialog(
     if (closed) return;
     closed = true;
     entry.remove();
+    onClosed?.call();
   }
 
   entry = OverlayEntry(

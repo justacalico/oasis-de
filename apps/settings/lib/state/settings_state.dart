@@ -49,7 +49,12 @@ class SettingsState extends ChangeNotifier {
   Future<void> _hydrate() async {
     final b = backend;
     if (b == null) return;
-    final s = await b.read();
+    OasisSystemState s;
+    try {
+      s = await b.read();
+    } catch (_) {
+      return;
+    }
     if (_disposed) return;
     if (s.wifi != null) wifiOn = s.wifi!;
     if (s.bluetooth != null) bluetoothOn = s.bluetooth!;
@@ -81,9 +86,14 @@ class SettingsState extends ChangeNotifier {
     if (b == null) return;
     displaysBusy = true;
     notifyListeners();
-    displays = await b.displays();
-    displaysBusy = false;
-    notifyListeners();
+    try {
+      displays = await b.displays();
+    } catch (_) {
+      displays = const [];
+    } finally {
+      displaysBusy = false;
+      notifyListeners();
+    }
   }
 
   Future<void> applyDisplay(OasisDisplay d) async {
@@ -102,12 +112,20 @@ class SettingsState extends ChangeNotifier {
   Future<void> refreshWifiNetworks() async {
     final b = backend;
     if (!wifiOn || b == null) {
-      wifiNetworks = const [];
+      if (wifiNetworks.isNotEmpty) {
+        wifiNetworks = const [];
+        notifyListeners();
+      }
       return;
     }
     wifiScanning = true;
     notifyListeners();
-    final found = await b.wifiNetworks();
+    List<OasisWifiNetwork> found;
+    try {
+      found = await b.wifiNetworks();
+    } catch (_) {
+      found = const [];
+    }
     if (_disposed) return;
     wifiNetworks = wifiOn ? found : const [];
     wifiScanning = false;
@@ -129,11 +147,16 @@ class SettingsState extends ChangeNotifier {
   Future<void> refreshAudio() async {
     final b = backend;
     if (b == null) return;
-    final results = await Future.wait([
-      b.audioOutputs(),
-      b.audioInputs(),
-      b.audioCards(),
-    ]);
+    final List<Object> results;
+    try {
+      results = await Future.wait([
+        b.audioOutputs(),
+        b.audioInputs(),
+        b.audioCards(),
+      ]);
+    } catch (_) {
+      return;
+    }
     audioOutputs = results[0] as List<OasisAudioDevice>;
     audioInputs = results[1] as List<OasisAudioDevice>;
     audioCards = results[2] as List<OasisAudioCard>;

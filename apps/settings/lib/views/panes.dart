@@ -409,6 +409,46 @@ String _timeoutLabel(OasisLocalizations l10n, int minutes) {
   return l10n.powerHours(minutes ~/ 60);
 }
 
+void _confirmSession(
+  BuildContext context, {
+  required String message,
+  required String confirmLabel,
+  required VoidCallback onConfirm,
+}) {
+  final l10n = OasisLocalizations.of(context);
+  showOasisDialog(
+    context,
+    (ctx, close) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(message, style: Theme.of(ctx).textTheme.bodyMedium),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            OasisButton(
+              label: l10n.dialogCancel,
+              variant: OasisButtonVariant.text,
+              dense: true,
+              onPressed: close,
+            ),
+            const SizedBox(width: 8),
+            OasisButton(
+              label: confirmLabel,
+              variant: OasisButtonVariant.primary,
+              dense: true,
+              onPressed: () {
+                close();
+                onConfirm();
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
 class PowerPane extends StatelessWidget {
   const PowerPane({super.key, required this.state});
 
@@ -480,15 +520,35 @@ class PowerPane extends StatelessWidget {
               OasisSection(
                 children: [
                   for (final a in [
-                    (l10n.settingsSuspend, OasisSessionAction.suspend),
-                    (l10n.settingsReboot, OasisSessionAction.reboot),
-                    (l10n.settingsPowerOff, OasisSessionAction.poweroff),
+                    (
+                      l10n.settingsSuspend,
+                      OasisSessionAction.suspend,
+                      l10n.sessionConfirmSuspend,
+                      l10n.sessionSleep,
+                    ),
+                    (
+                      l10n.settingsReboot,
+                      OasisSessionAction.reboot,
+                      l10n.sessionConfirmRestart,
+                      l10n.sessionRestart,
+                    ),
+                    (
+                      l10n.settingsPowerOff,
+                      OasisSessionAction.poweroff,
+                      l10n.sessionConfirmPoweroff,
+                      l10n.sessionShutDown,
+                    ),
                   ])
                     OasisRow(
                       leading:
                           const Icon(Icons.power_settings_new, size: 20),
                       title: a.$1,
-                      onTap: () => b.session(a.$2),
+                      onTap: () => _confirmSession(
+                        context,
+                        message: a.$3,
+                        confirmLabel: a.$4,
+                        onConfirm: () => b.session(a.$2),
+                      ),
                     ),
                 ],
               ),
@@ -568,7 +628,12 @@ class UsersPane extends StatelessWidget {
               OasisRow(
                 leading: const Icon(Icons.logout, size: 20),
                 title: l10n.settingsLogout,
-                onTap: () => b.session(OasisSessionAction.logout),
+                onTap: () => _confirmSession(
+                  context,
+                  message: l10n.sessionConfirmLogOut,
+                  confirmLabel: l10n.sessionLogOut,
+                  onConfirm: () => b.session(OasisSessionAction.logout),
+                ),
               ),
           ],
         ),

@@ -7,6 +7,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 import 'context_menu.dart';
 import 'minute_clock.dart';
 import 'shell_controller.dart';
+import 'view_scale.dart';
 import 'wifi_menu.dart';
 
 
@@ -15,12 +16,16 @@ class ShellMenuBar extends StatelessWidget {
     super.key,
     required this.controller,
     required this.menus,
-    required this.labelKeys,
   });
 
   final ShellController controller;
   final List<ShellMenu> menus;
-  final List<GlobalKey> labelKeys;
+
+  Rect? _logicalAnchor(BuildContext context, Rect? global) {
+    if (global == null) return null;
+    final k = ViewScale.of(context);
+    return global.topLeft / k & global.size / k;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,20 +74,23 @@ class ShellMenuBar extends StatelessWidget {
                       children: [
                         for (var i = 0; i < menus.length; i++) ...[
                           _MenuLabel(
-                            key: labelKeys[i],
                             label: menus[i].label,
                             bold: i == 0,
                             open: controller.openMenu == menus[i].label,
                             style: textStyle,
-                            onTap: () => controller.selectMenu(
+                            onTap: (anchor) => controller.selectMenu(
                               controller.openMenu == menus[i].label
                                   ? null
                                   : menus[i].label,
+                              anchor: _logicalAnchor(context, anchor),
                             ),
-                            onHover: () {
+                            onHover: (anchor) {
                               if (controller.openMenu != null &&
                                   controller.openMenu != menus[i].label) {
-                                controller.selectMenu(menus[i].label);
+                                controller.selectMenu(
+                                  menus[i].label,
+                                  anchor: _logicalAnchor(context, anchor),
+                                );
                               }
                             },
                           ),
@@ -154,7 +162,6 @@ class ShellMenuBar extends StatelessWidget {
 
 class _MenuLabel extends StatelessWidget {
   const _MenuLabel({
-    super.key,
     required this.label,
     required this.bold,
     required this.open,
@@ -167,8 +174,15 @@ class _MenuLabel extends StatelessWidget {
   final bool bold;
   final bool open;
   final TextStyle? style;
-  final VoidCallback onTap;
-  final VoidCallback onHover;
+  final ValueChanged<Rect?> onTap;
+  final ValueChanged<Rect?> onHover;
+
+  Rect? _anchor(BuildContext context) {
+    final box = context.findRenderObject();
+    return box is RenderBox && box.hasSize
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -176,9 +190,9 @@ class _MenuLabel extends StatelessWidget {
         ? style?.copyWith(fontWeight: FontWeight.w700)
         : style;
     return MouseRegion(
-      onEnter: (_) => onHover(),
+      onEnter: (_) => onHover(_anchor(context)),
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () => onTap(_anchor(context)),
         child: Semantics(
           button: true,
           label: label,

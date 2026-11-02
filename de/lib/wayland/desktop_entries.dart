@@ -453,7 +453,7 @@ DesktopAppEntry? parseDesktopEntry(
     name: name,
     argv: argv,
     genericName: _localized(entry, 'GenericName', locale),
-    keywords: _splitList(entry['Keywords']),
+    keywords: _splitList(_localized(entry, 'Keywords', locale)),
     categories: _splitList(entry['Categories']),
     iconPath: resolveIcon(icon ?? ''),
     terminal: entry['Terminal'] == 'true',
@@ -542,24 +542,27 @@ OasisApp desktopAppToOasis(
   DesktopAppEntry entry, {
   Map<String, String>? environment,
   String? Function(String)? which,
-}) => OasisApp(
-  id: 'desktop:${entry.id}',
-  name: entry.name,
-  icon: Icons.apps,
-  iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
-  iconPath: entry.iconPath,
-  exec: entry.terminal
+}) {
+  List<String> wrap(List<String> argv) => entry.terminal
       ? [
           ..._terminalPrefix(environment: environment, which: which),
-          ...entry.argv,
+          ...argv,
         ]
-      : entry.argv,
-  builder: (_) => const SizedBox.shrink(),
-  actions: [
-    for (final a in entry.actions)
-      OasisAppAction(name: a.name, exec: a.argv),
-  ],
-);
+      : argv;
+  return OasisApp(
+    id: 'desktop:${entry.id}',
+    name: entry.name,
+    icon: Icons.apps,
+    iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
+    iconPath: entry.iconPath,
+    exec: wrap(entry.argv),
+    builder: (_) => const SizedBox.shrink(),
+    actions: [
+      for (final a in entry.actions)
+        OasisAppAction(name: a.name, exec: wrap(a.argv)),
+    ],
+  );
+}
 
 Stream<void> watchDesktopDirs({
   List<String>? dirs,

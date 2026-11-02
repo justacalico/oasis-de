@@ -139,11 +139,22 @@ class FilesState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _op(String path, Future<void> Function() run) async {
+    try {
+      await run();
+    } catch (_) {
+      error = path;
+      notifyListeners();
+      return;
+    }
+    await refresh();
+  }
+
   Future<void> open(FileItem item) async {
     if (item.isDir) {
       await cd(item.path);
     } else {
-      await _backend.open(item.path);
+      await _op(item.path, () => _backend.open(item.path));
     }
   }
 
@@ -156,31 +167,30 @@ class FilesState extends ChangeNotifier {
 
   Future<void> paste() async {
     if (_clipboard.isEmpty) return;
-    await _backend.paste(_clipboard, dir, move: _clipboardCut);
-    if (_clipboardCut) {
-      _clipboard = [];
-      _clipboardCut = false;
-    }
-    await refresh();
+    await _op(dir, () async {
+      await _backend.paste(_clipboard, dir, move: _clipboardCut);
+      if (_clipboardCut) {
+        _clipboard = [];
+        _clipboardCut = false;
+      }
+    });
   }
 
   Future<void> newFolder(String name) async {
-    await _backend.mkdir(dir, name);
-    await refresh();
+    await _op('$dir/$name', () => _backend.mkdir(dir, name));
   }
 
   Future<void> renameSelected(String newName) async {
     final item = singleSelection;
     if (item == null) return;
-    await _backend.rename(item.path, newName);
-    selection.clear();
-    await refresh();
+    await _op(item.path, () => _backend.rename(item.path, newName));
+    if (error == null) selection.clear();
   }
 
   Future<void> trashSelection() async {
     if (selection.isEmpty) return;
-    await _backend.trash(selection.toList());
-    selection.clear();
-    await refresh();
+    final path = selection.first;
+    await _op(path, () => _backend.trash(selection.toList()));
+    if (error == null) selection.clear();
   }
 }

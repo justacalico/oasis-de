@@ -206,6 +206,32 @@ void main() {
     expect(update.asset == Object(), isFalse);
   });
 
+  test('asset preference picks the matching package type', () async {
+    final client = MockClient(
+      (req) async => http.Response(
+        _page([
+          {
+            'tag_name': 'v1.2.0',
+            'assets': {
+              'links': [
+                {'name': 'oasis_1.2.0_amd64.deb', 'url': 'https://x/a.deb'},
+                {'name': 'oasis-1.2.0-1.x86_64.rpm', 'url': 'https://x/a.rpm'},
+              ],
+            },
+          },
+        ]),
+        200,
+      ),
+    );
+    final update = await UpdateChecker(
+      client: client,
+      projectPath: 'a/b',
+      host: 'example.com',
+      assetPreference: const ['.rpm'],
+    ).check('1.0.0');
+    expect(update.asset!.name, endsWith('.rpm'));
+  });
+
   test('no links or no package yields no asset', () async {
     final client = MockClient(
       (req) async => http.Response(

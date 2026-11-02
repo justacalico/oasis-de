@@ -32,32 +32,36 @@ class IoFilesBackend implements FilesBackend {
     String? home,
     FilesProcessRunner? runProcess,
     List<String>? mountRoots,
+    Future<void> Function(FileSystemEntity, String)? renameEntity,
   })  : _home = home ?? Platform.environment['HOME'] ?? '/',
         _runProcess = runProcess ?? Process.run,
-        _mountRoots = mountRoots;
+        _mountRoots = mountRoots,
+        _renameEntity = renameEntity;
 
   final String _home;
   final FilesProcessRunner _runProcess;
   final List<String>? _mountRoots;
+  final Future<void> Function(FileSystemEntity, String)? _renameEntity;
 
   @override
   Future<List<FileItem>> list(String dir, {bool showHidden = false}) async {
-    final items = <FileItem>[];
+    final entities = <FileSystemEntity>[];
     await for (final entity in Directory(dir).list(followLinks: false)) {
       final name = entity.path.split('/').last;
       if (!showHidden && name.startsWith('.')) continue;
-      final stat = await entity.stat();
-      items.add(
-        FileItem(
-          path: entity.path,
-          name: name,
-          isDir: stat.type == FileSystemEntityType.directory,
-          size: stat.size,
-          modified: stat.modified,
-        ),
-      );
+      entities.add(entity);
     }
-    return items;
+    final stats = await Future.wait([for (final e in entities) e.stat()]);
+    return [
+      for (var i = 0; i < entities.length; i++)
+        FileItem(
+          path: entities[i].path,
+          name: entities[i].path.split('/').last,
+          isDir: stats[i].type == FileSystemEntityType.directory,
+          size: stats[i].size,
+          modified: stats[i].modified,
+        ),
+    ];
   }
 
   @override
@@ -143,11 +147,20 @@ class IoFilesBackend implements FilesBackend {
       final name = path.split('/').last;
       final target = '$destDir/$name';
       if (move) {
-        if (FileSystemEntity.typeSync(path) ==
-            FileSystemEntityType.directory) {
-          await Directory(path).rename(target);
-        } else {
-          await File(path).rename(target);
+        final isDir = FileSystemEntity.typeSync(path) ==
+            FileSystemEntityType.directory;
+        final rename = _renameEntity ??
+            (FileSystemEntity e, String t) async => e.rename(t);
+        try {
+          await rename(isDir ? Directory(path) : File(path), target);
+        } on FileSystemException {
+          // rename fails across filesystems; copy then remove the source.
+          await _copy(path, target);
+          if (isDir) {
+            await Directory(path).delete(recursive: true);
+          } else {
+            await File(path).delete();
+          }
         }
       } else {
         await _copy(path, target);
