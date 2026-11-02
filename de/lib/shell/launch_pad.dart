@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ class ShellLaunchPad extends StatefulWidget {
 class _ShellLaunchPadState extends State<ShellLaunchPad> {
   static const _cellWidth = 148.0;
   static const _cellHeight = 118.0;
+  static const _gridGap = 10.0;
 
   final _field = TextEditingController();
   final _fieldFocus = FocusNode();
@@ -26,6 +28,7 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
   var _selected = -1;
   var _columns = 1;
   var _perPage = 1;
+  var _results = const <OasisApp>[];
 
   @override
   void initState() {
@@ -42,9 +45,6 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
     super.dispose();
   }
 
-  List<OasisApp> get _results =>
-      widget.controller.filterApps(_field.text);
-
   void _open(OasisApp app) {
     widget.controller.openApp(app);
     _field.clear();
@@ -55,6 +55,30 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
     final results = _results;
     if (results.isEmpty) return;
     _open(results[_selected < 0 ? 0 : _selected]);
+  }
+
+  Widget _gridRow(List<OasisApp> results, int start, int end, double cellW) {
+    return SizedBox(
+      height: cellW * _cellHeight / _cellWidth,
+      child: Row(
+        children: [
+          for (var i = start; i < end; i++) ...[
+            if (i != start) const SizedBox(width: _gridGap),
+            Expanded(
+              child: _LaunchPadIcon(
+                app: results[i],
+                selected: i == _selected,
+                onTap: () => _open(results[i]),
+              ),
+            ),
+          ],
+          for (var i = end; i < start + _columns; i++) ...[
+            const SizedBox(width: _gridGap),
+            const Spacer(),
+          ],
+        ],
+      ),
+    );
   }
 
   void _move(int delta) {
@@ -108,9 +132,9 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
     final p = OasisStyle.of(context).palette;
     final size = MediaQuery.sizeOf(context);
     _columns = (size.width / _cellWidth).floor().clamp(1, 8);
-    _perPage = _columns *
-        ((size.height - 210) / _cellHeight).floor().clamp(1, 6);
-    final results = _results;
+    _perPage =
+        _columns * ((size.height - 210) / _cellHeight).floor().clamp(1, 6);
+    final results = _results = widget.controller.filterApps(_field.text);
     if (_selected >= results.length) _selected = -1;
     final pageCount = (results.length / _perPage).ceil();
 
@@ -119,8 +143,9 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
         child: Container(
-          color: const Color(0xFF000000)
-              .withValues(alpha: p.isDark ? 0.5 : 0.32),
+          color: const Color(
+            0xFF000000,
+          ).withValues(alpha: p.isDark ? 0.5 : 0.32),
           child: Column(
             children: [
               const SizedBox(height: 52),
@@ -145,43 +170,45 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
                     ? Center(
                         child: Text(
                           l10n.launcherNoResults,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                  color:
-                                      const Color(0xFFFFFFFF)),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(color: const Color(0xFFFFFFFF)),
                         ),
                       )
                     : PageView.builder(
                         controller: _pages,
                         itemCount: pageCount,
-                        onPageChanged: (i) =>
-                            setState(() => _page = i),
+                        allowImplicitScrolling: true,
+                        onPageChanged: (i) => setState(() => _page = i),
                         itemBuilder: (context, page) {
                           final start = page * _perPage;
-                          final end = (start + _perPage)
-                              .clamp(0, results.length);
+                          final end = math.min(
+                            start + _perPage,
+                            results.length,
+                          );
+                          final cellW =
+                              (_columns * _cellWidth -
+                                  (_columns - 1) * _gridGap) /
+                              _columns;
                           return Center(
                             child: SizedBox(
                               width: _columns * _cellWidth,
-                              child: GridView.count(
-                                crossAxisCount: _columns,
-                                shrinkWrap: true,
-                                physics:
-                                    const NeverScrollableScrollPhysics(),
-                                mainAxisSpacing: 10,
-                                crossAxisSpacing: 10,
-                                childAspectRatio:
-                                    _cellWidth / _cellHeight,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  for (var i = start; i < end; i++)
-                                    _LaunchPadIcon(
-                                      app: results[i],
-                                      selected: i == _selected,
-                                      onTap: () =>
-                                          _open(results[i]),
+                                  for (
+                                    var row = start;
+                                    row < end;
+                                    row += _columns
+                                  ) ...[
+                                    if (row != start)
+                                      const SizedBox(height: _gridGap),
+                                    _gridRow(
+                                      results,
+                                      row,
+                                      math.min(row + _columns, end),
+                                      cellW,
                                     ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -191,8 +218,7 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
               ),
               if (pageCount > 1)
                 Padding(
-                  padding:
-                      const EdgeInsets.only(bottom: 30, top: 10),
+                  padding: const EdgeInsets.only(bottom: 30, top: 10),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -200,22 +226,18 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
                         GestureDetector(
                           onTap: () => _pages.animateToPage(
                             i,
-                            duration: const Duration(
-                                milliseconds: 240),
+                            duration: const Duration(milliseconds: 240),
                             curve: Curves.easeOutCubic,
                           ),
                           child: Container(
                             width: 8,
                             height: 8,
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 5),
+                            margin: const EdgeInsets.symmetric(horizontal: 5),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: const Color(0xFFFFFFFF)
-                                  .withValues(
-                                      alpha: i == _page
-                                          ? 0.95
-                                          : 0.35),
+                              color: const Color(
+                                0xFFFFFFFF,
+                              ).withValues(alpha: i == _page ? 0.95 : 0.35),
                             ),
                           ),
                         ),
@@ -265,27 +287,23 @@ class _LaunchPadIcon extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Text(
                 app.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(
-                      fontSize: 12,
-                      color: const Color(0xFFFFFFFF),
-                      shadows: [
-                        const Shadow(
-                          color: Color(0x80000000),
-                          blurRadius: 6,
-                          offset: Offset(0, 1),
-                        ),
-                      ],
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontSize: 12,
+                  color: const Color(0xFFFFFFFF),
+                  shadows: [
+                    const Shadow(
+                      color: Color(0x80000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 1),
                     ),
+                  ],
+                ),
               ),
             ),
           ],
