@@ -182,6 +182,87 @@ void main() {
     );
   });
 
+  testWidgets('auto-hide tracks the left and right screen edges', (
+    tester,
+  ) async {
+    for (final position in [OasisDockPosition.left, OasisDockPosition.right]) {
+      final dock = OasisDockSettings()
+        ..mode = OasisDockMode.autoHide
+        ..position = position;
+      addTearDown(dock.dispose);
+      final c = ShellController(batteryPollInterval: null, apps: [_app('a')]);
+      addTearDown(c.dispose);
+      await pumpOasis(
+        tester,
+        Scaffold(
+          body: DesktopShell(
+            controller: c,
+            dock: dock,
+            menusBuilder: () => const [],
+          ),
+        ),
+      );
+      final hidden = tester.getRect(find.byType(ShellDock));
+
+      final m = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await m.addPointer(location: Offset.zero);
+      await m.moveTo(
+        position == OasisDockPosition.left
+            ? const Offset(1, 400)
+            : const Offset(1279, 400),
+      );
+      await tester.pumpAndSettle();
+      final shown = tester.getRect(find.byType(ShellDock));
+      if (position == OasisDockPosition.left) {
+        expect(shown.left, greaterThan(hidden.left));
+        expect(shown.left, greaterThanOrEqualTo(0));
+      } else {
+        expect(shown.right, lessThan(hidden.right));
+        expect(shown.right, lessThanOrEqualTo(1280));
+      }
+
+      await m.moveTo(const Offset(640, 400));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byType(ShellDock)), hidden);
+      await m.removePointer();
+    }
+  });
+
+  testWidgets('leaving auto-hide clears the revealed state', (tester) async {
+    final dock = OasisDockSettings()..mode = OasisDockMode.autoHide;
+    addTearDown(dock.dispose);
+    final c = ShellController(batteryPollInterval: null, apps: [_app('a')]);
+    addTearDown(c.dispose);
+    await pumpOasis(
+      tester,
+      Scaffold(
+        body: DesktopShell(
+          controller: c,
+          dock: dock,
+          menusBuilder: () => const [],
+        ),
+      ),
+    );
+
+    final m = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await m.addPointer(location: Offset.zero);
+    addTearDown(m.removePointer);
+    await m.moveTo(const Offset(640, 799));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(ShellDock)).top, lessThan(780));
+
+    dock.mode = OasisDockMode.push;
+    await tester.pumpAndSettle();
+    await m.moveTo(const Offset(640, 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.byType(ShellDock)).bottom,
+      lessThanOrEqualTo(800),
+    );
+  });
+
   testWidgets('left and right positions render a vertical dock', (
     tester,
   ) async {
@@ -256,6 +337,34 @@ void main() {
         moreOrLessEquals(left, epsilon: 0.01),
       );
     }
+  });
+
+  testWidgets('zoomed window clears a right dock', (tester) async {
+    final dock = OasisDockSettings()..position = OasisDockPosition.right;
+    addTearDown(dock.dispose);
+    final c = ShellController(
+      batteryPollInterval: null,
+      apps: [_app('a')],
+      dock: dock,
+    );
+    addTearDown(c.dispose);
+    await pumpOasis(
+      tester,
+      Scaffold(
+        body: DesktopShell(
+          controller: c,
+          dock: dock,
+          menusBuilder: () => const [],
+        ),
+      ),
+    );
+    c.openApp(c.apps.first);
+    c.toggleZoom(c.windows.single.id);
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.byType(OasisWindow)).right,
+      moreOrLessEquals(1280 - (kDockIconSizeMedium + 37), epsilon: 0.01),
+    );
   });
 
   test('half snap respects the dock edge', () {
