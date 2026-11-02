@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.12.2 - 2026-11-02
+#### Bug Fixes
+- 启动台加开合动画并盖住程序坞 - (cc9a438) - HttpAnimations
+- 菜单越界与桌面项解析 - (6f14a4e) - HttpAnimations
+- 工作区焦点和媒体信息解析 - (ceeaf8f) - HttpAnimations
+- 启动台翻页卡顿 - (f3f9272) - HttpAnimations
+
+- - -
+
 ## v0.12.1 - 2026-11-02
 #### Bug Fixes
 - 指针离开后 Dock 放大平滑结束 - (02ed573) - Calico
