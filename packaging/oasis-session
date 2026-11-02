@@ -14,13 +14,33 @@ if ! command -v cage >/dev/null 2>&1; then
   exit 1
 fi
 
+# Prefer the persistent user bus over a private dbus-run-session bus. A
+# throwaway bus dies with the session, and exporting its address to the
+# systemd user manager leaves every dbus-activated service (such as the
+# flatpak document portal) pointing at a dead socket afterwards.
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+  if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/bus" ]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+  elif command -v dbus-run-session >/dev/null 2>&1; then
+    OASIS_PRIVATE_BUS=1 exec dbus-run-session -- "$0" "$@"
+  fi
+fi
+
 run_oasis() {
   mkdir -p "$(dirname "$OASIS_CRASH_LOG")"
   crashes=0
   while true; do
     cage -- sh -c '
-      dbus-update-activation-environment --all 2>/dev/null || true
-      systemctl --user import-environment 2>/dev/null || true
+      if [ -z "$OASIS_PRIVATE_BUS" ]; then
+        dbus-update-activation-environment --all 2>/dev/null || true
+        systemctl --user import-environment 2>/dev/null || true
+      else
+        # On a private bus, push session variables by name so its
+        # short-lived address never reaches the systemd user manager.
+        vars="XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP DESKTOP_SESSION XDG_SESSION_TYPE OASIS_SESSION WAYLAND_DISPLAY"
+        dbus-update-activation-environment $vars 2>/dev/null || true
+        systemctl --user import-environment $vars 2>/dev/null || true
+      fi
       exec "$OASIS_BIN" "$@"
     ' oasis-session-inner "$@"
     code=$?
@@ -39,8 +59,4 @@ run_oasis() {
   done
 }
 
-if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && \
-   command -v dbus-run-session >/dev/null 2>&1; then
-  exec dbus-run-session -- "$0" "$@"
-fi
 run_oasis "$@"

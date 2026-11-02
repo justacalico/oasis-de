@@ -164,7 +164,7 @@ class GtkHost : public OasisHost {
                           ? gdk_monitor_get_refresh_rate(mon)
                           : 60000;
           const char* model = gdk_monitor_get_model(mon);
-          if (model != nullptr) {
+          if (model != nullptr && *model != '\0') {
             o.description = model;
             o.name = model;
           }

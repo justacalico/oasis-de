@@ -439,6 +439,8 @@ static void output_fill(OasisOutput* o, const HostOutput& h) {
 }
 
 void outputs_sync_host(OasisPrivate* c) {
+  // The host can report output changes before the compositor starts.
+  if (c->backend == nullptr) return;
   auto want = c->host->outputs();
   if (want.empty()) {
     HostOutput fallback;
@@ -454,30 +456,36 @@ void outputs_sync_host(OasisPrivate* c) {
   if (!any_primary) want.front().primary = true;
 
   std::unordered_set<std::string> keep;
+  int unnamed = 0;
   for (const HostOutput& h : want) {
-    if (h.name.empty()) continue;
-    keep.insert(h.name);
+    HostOutput host = h;
+    // A nameless host output must still become a wl_output; clients
+    // like Qt fall back to a placeholder screen when none exist.
+    if (host.name.empty()) {
+      host.name = "oasis-" + std::to_string(++unnamed);
+    }
+    keep.insert(host.name);
     OasisOutput* o = nullptr;
     bool created = false;
-    auto it = c->output_by_name.find(h.name);
-    if (it != c->output_by_name.end()) {
+    auto it = c->output_by_name.find(host.name);
+    if (it != c->output_by_name.end() && it->second->name == host.name) {
       o = it->second;
     } else {
       wlr_output* wlr = wlr_headless_add_output(
-          c->backend, h.w > 0 ? (unsigned)h.w : 1920,
-          h.h > 0 ? (unsigned)h.h : 1080);
+          c->backend, host.w > 0 ? (unsigned)host.w : 1920,
+          host.h > 0 ? (unsigned)host.h : 1080);
       if (wlr == nullptr) continue;
       o = output_of(c, wlr);
       if (o == nullptr) o = output_track(c, wlr);
       wlr_output_init_render(o->wlr, c->allocator, c->renderer);
       created = true;
     }
-    bool modes_stale = !modes_equal(o, h.modes);
-    output_fill(o, h);
+    bool modes_stale = !modes_equal(o, host.modes);
+    output_fill(o, host);
     c->output_by_name[o->name] = o;
     if (modes_stale) {
       modes_clear(o);
-      for (const HostOutputMode& m : h.modes) {
+      for (const HostOutputMode& m : host.modes) {
         mode_add(o, m.w, m.h, m.refresh, m.preferred);
       }
       if (o->modes.empty()) {
