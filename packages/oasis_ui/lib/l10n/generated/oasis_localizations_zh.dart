@@ -655,4 +655,52 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get soundProfiles => '设备配置';
+
+  @override
+  String get settingsKeyboard => '键盘';
+
+  @override
+  String get keybindShortcuts => '快捷键';
+
+  @override
+  String get keybindCustom => '自定义快捷键';
+
+  @override
+  String get keybindLauncher => '应用搜索';
+
+  @override
+  String get keybindCycleWindows => '下一个窗口';
+
+  @override
+  String get keybindCycleWindowsBack => '上一个窗口';
+
+  @override
+  String get keybindDismiss => '关闭浮层';
+
+  @override
+  String get keybindShowDesktop => '显示桌面';
+
+  @override
+  String get keybindZoom => '缩放窗口';
+
+  @override
+  String get keybindQuit => '退出应用';
+
+  @override
+  String get keybindNotSet => '未设置';
+
+  @override
+  String get keybindRecording => '请按下快捷键…';
+
+  @override
+  String get keybindAdd => '添加快捷键';
+
+  @override
+  String get keybindReset => '恢复默认';
+
+  @override
+  String get keybindCommandHint => '要运行的命令';
+
+  @override
+  String get keybindRemove => '移除';
 }

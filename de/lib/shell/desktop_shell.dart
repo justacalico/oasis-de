@@ -97,6 +97,7 @@ class _DesktopShellState extends State<DesktopShell> {
     return AnimatedBuilder(
       animation: Listenable.merge([
         controller,
+        controller.keybinds,
         if (controller.wayland != null) controller.wayland!,
       ]),
       builder: (context, _) {
@@ -117,26 +118,8 @@ class _DesktopShellState extends State<DesktopShell> {
         final primaryRect = primary?.rect ?? screenRect;
         return CallbackShortcuts(
           bindings: {
-            const SingleActivator(LogicalKeyboardKey.tab, alt: true): () =>
-                controller.cycleWindows(),
-            const SingleActivator(
-              LogicalKeyboardKey.tab,
-              alt: true,
-              shift: true,
-            ): () =>
-                controller.cycleWindows(backwards: true),
-            const SingleActivator(LogicalKeyboardKey.escape): () {
-              controller.closeSwitcher();
-              controller.closeOverlays();
-            },
-            const SingleActivator(LogicalKeyboardKey.keyD, meta: true):
-                controller.showDesktop,
-            const SingleActivator(LogicalKeyboardKey.arrowUp, meta: true):
-                controller.toggleZoomFocused,
-            const SingleActivator(LogicalKeyboardKey.space, meta: true):
-                controller.toggleLaunchPad,
-            const SingleActivator(LogicalKeyboardKey.space, control: true):
-                controller.toggleLauncher,
+            for (final e in controller.keybinds.activators.entries)
+              e.key: () => controller.runKeybindAction(e.value),
           },
           child: Listener(
             onPointerDown: _onShellPointerDown,

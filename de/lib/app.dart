@@ -40,6 +40,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.store,
     this.backend,
     this.locale,
+    this.keybinds,
   });
 
   final String version;
@@ -55,6 +56,7 @@ class OasisDesktopApp extends StatefulWidget {
   final OasisStore? store;
   final OasisSystemBackend? backend;
   final Locale? locale;
+  final OasisKeybindsService? keybinds;
 
   @override
   State<OasisDesktopApp> createState() => _OasisDesktopAppState();
@@ -71,6 +73,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final WaylandDisplayBackend _displayBackend;
   late final DisplaysDaemon _displaysDaemon;
   late final MprisService _mpris;
+  late final OasisKeybindsService _keybinds;
   List<OasisApp> _externalApps = const [];
   late final String? _savedPins = widget.store?.read('shell.pinned');
   Locale? _locale;
@@ -92,11 +95,14 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _powerBackend = WaylandPowerBackend(_wayland, store: widget.store);
     _mpris = widget.mpris ?? MprisService();
     _backend = widget.backend ?? const CliSystemBackend();
+    _keybinds =
+        widget.keybinds ?? OasisKeybindsService(store: widget.store);
     _controller = ShellController(
       apps: const [],
       wayland: _wayland,
       backend: _backend,
       mpris: _mpris,
+      keybinds: _keybinds,
     );
     _controller.unknownAppName = () =>
         lookupOasisLocalizations(_locale ?? const Locale('en')).appUnknown;
@@ -242,6 +248,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _controller.dispose();
     _wayland.dispose();
     _mpris.dispose();
+    _keybinds.dispose();
     _updates.dispose();
     super.dispose();
   }
@@ -283,6 +290,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 backend: _backend,
                 displayBackend: _displayBackend,
                 powerBackend: _powerBackend,
+                keybinds: _keybinds,
               );
               final apps = [...builtins, ..._externalApps];
               final appsById = {for (final a in apps) a.id: a};

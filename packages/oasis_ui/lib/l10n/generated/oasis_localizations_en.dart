@@ -664,4 +664,52 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get soundProfiles => 'Device profiles';
+
+  @override
+  String get settingsKeyboard => 'Keyboard';
+
+  @override
+  String get keybindShortcuts => 'Shortcuts';
+
+  @override
+  String get keybindCustom => 'Custom shortcuts';
+
+  @override
+  String get keybindLauncher => 'App search';
+
+  @override
+  String get keybindCycleWindows => 'Next window';
+
+  @override
+  String get keybindCycleWindowsBack => 'Previous window';
+
+  @override
+  String get keybindDismiss => 'Close overlays';
+
+  @override
+  String get keybindShowDesktop => 'Show desktop';
+
+  @override
+  String get keybindZoom => 'Zoom window';
+
+  @override
+  String get keybindQuit => 'Quit app';
+
+  @override
+  String get keybindNotSet => 'Not set';
+
+  @override
+  String get keybindRecording => 'Type shortcut…';
+
+  @override
+  String get keybindAdd => 'Add shortcut';
+
+  @override
+  String get keybindReset => 'Reset to defaults';
+
+  @override
+  String get keybindCommandHint => 'Command to run';
+
+  @override
+  String get keybindRemove => 'Remove';
 }

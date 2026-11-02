@@ -12,6 +12,7 @@ enum SettingsPane {
   wallpaper,
   displays,
   sound,
+  keyboard,
   general,
   wifi,
   bluetooth,
@@ -26,7 +27,8 @@ class SettingsState extends ChangeNotifier {
       {SettingsStore? store,
       this.backend,
       this.displayBackend,
-      this.powerBackend})
+      this.powerBackend,
+      this.keybinds})
       : _store = store ?? MemorySettingsStore() {
     wifiOn = _store.read('shell.wifi') != '0';
     bluetoothOn = _store.read('shell.bluetooth') != '0';
@@ -69,6 +71,7 @@ class SettingsState extends ChangeNotifier {
   final OasisSystemBackend? backend;
   final OasisDisplayBackend? displayBackend;
   final OasisPowerBackend? powerBackend;
+  final OasisKeybindsService? keybinds;
 
   List<OasisDisplay> displays = const [];
   var displaysBusy = false;

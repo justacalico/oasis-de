@@ -81,8 +81,10 @@ class ShellController extends ChangeNotifier {
     this.wayland,
     this.backend = const NoopSystemBackend(),
     this.mpris,
+    OasisKeybindsService? keybinds,
     this.batteryPollInterval = const Duration(seconds: 60),
-  }) : apps = List.of(apps) {
+  })  : apps = List.of(apps),
+        keybinds = keybinds ?? OasisKeybindsService() {
     wayland?.addListener(_syncSurfaces);
     wayland?.onIdleSuspend = idleSuspend;
     mpris?.addListener(notifyListeners);
@@ -122,6 +124,7 @@ class ShellController extends ChangeNotifier {
   final List<ShellWindowData> windows = [];
   final WaylandService? wayland;
   final MprisService? mpris;
+  final OasisKeybindsService keybinds;
   final Duration? batteryPollInterval;
 
   String Function() unknownAppName =
@@ -1019,6 +1022,76 @@ class ShellController extends ChangeNotifier {
     if (w == null) return;
     w.zoomed = !w.zoomed;
     notifyListeners();
+  }
+
+  void quitFocusedApp() {
+    final focused = focusedWindow;
+    if (focused == null) return;
+    final appId = focused.app.id;
+    final surfaceAppId = focused.surface?.appId;
+    for (final w in List.of(windows)) {
+      if (w.app.id == appId ||
+          (surfaceAppId != null &&
+              surfaceAppId.isNotEmpty &&
+              w.surface?.appId == surfaceAppId)) {
+        closeWindow(w.id);
+      }
+    }
+  }
+
+  void runKeybindAction(String action) {
+    switch (action) {
+      case OasisKeybindsService.actionLauncher:
+        toggleLauncher();
+      case OasisKeybindsService.actionLaunchpad:
+        toggleLaunchPad();
+      case OasisKeybindsService.actionCycleWindows:
+        cycleWindows();
+      case OasisKeybindsService.actionCycleWindowsBack:
+        cycleWindows(backwards: true);
+      case OasisKeybindsService.actionDismiss:
+        closeSwitcher();
+        closeOverlays();
+      case OasisKeybindsService.actionShowDesktop:
+        showDesktop();
+      case OasisKeybindsService.actionZoom:
+        toggleZoomFocused();
+      case OasisKeybindsService.actionQuit:
+        quitFocusedApp();
+      default:
+        final command = keybinds.customById(action)?.command;
+        if (command != null) {
+          final argv = _splitArgv(command);
+          if (argv.isNotEmpty) launchAction(argv);
+        }
+    }
+  }
+
+  static List<String> _splitArgv(String command) {
+    final argv = <String>[];
+    final buf = StringBuffer();
+    String? quote;
+    for (var i = 0; i < command.length; i++) {
+      final ch = command[i];
+      if (quote != null) {
+        if (ch == quote) {
+          quote = null;
+        } else {
+          buf.write(ch);
+        }
+      } else if (ch == '"' || ch == "'") {
+        quote = ch;
+      } else if (ch == ' ' || ch == '\t') {
+        if (buf.isNotEmpty) {
+          argv.add(buf.toString());
+          buf.clear();
+        }
+      } else {
+        buf.write(ch);
+      }
+    }
+    if (buf.isNotEmpty) argv.add(buf.toString());
+    return argv;
   }
 
   final Set<int> _desktopHiddenIds = {};

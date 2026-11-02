@@ -275,5 +275,21 @@
   "displaysPrimary": "primary",
   "soundOutput": "Output",
   "soundInput": "Input",
-  "soundProfiles": "Device profiles"
+  "soundProfiles": "Device profiles",
+  "settingsKeyboard": "Keyboard",
+  "keybindShortcuts": "Shortcuts",
+  "keybindCustom": "Custom shortcuts",
+  "keybindLauncher": "App search",
+  "keybindCycleWindows": "Next window",
+  "keybindCycleWindowsBack": "Previous window",
+  "keybindDismiss": "Close overlays",
+  "keybindShowDesktop": "Show desktop",
+  "keybindZoom": "Zoom window",
+  "keybindQuit": "Quit app",
+  "keybindNotSet": "Not set",
+  "keybindRecording": "Type shortcut…",
+  "keybindAdd": "Add shortcut",
+  "keybindReset": "Reset to defaults",
+  "keybindCommandHint": "Command to run",
+  "keybindRemove": "Remove"
 }

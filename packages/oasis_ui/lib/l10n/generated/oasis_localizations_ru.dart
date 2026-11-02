@@ -669,4 +669,52 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get soundProfiles => 'Профили устройств';
+
+  @override
+  String get settingsKeyboard => 'Клавиатура';
+
+  @override
+  String get keybindShortcuts => 'Сочетания клавиш';
+
+  @override
+  String get keybindCustom => 'Свои сочетания';
+
+  @override
+  String get keybindLauncher => 'Поиск приложений';
+
+  @override
+  String get keybindCycleWindows => 'Следующее окно';
+
+  @override
+  String get keybindCycleWindowsBack => 'Предыдущее окно';
+
+  @override
+  String get keybindDismiss => 'Закрыть панели';
+
+  @override
+  String get keybindShowDesktop => 'Показать рабочий стол';
+
+  @override
+  String get keybindZoom => 'Развернуть окно';
+
+  @override
+  String get keybindQuit => 'Завершить приложение';
+
+  @override
+  String get keybindNotSet => 'Не задано';
+
+  @override
+  String get keybindRecording => 'Нажмите сочетание…';
+
+  @override
+  String get keybindAdd => 'Добавить сочетание';
+
+  @override
+  String get keybindReset => 'Сбросить настройки';
+
+  @override
+  String get keybindCommandHint => 'Команда для запуска';
+
+  @override
+  String get keybindRemove => 'Удалить';
 }
