@@ -7,7 +7,8 @@ runs inside the Oasis shell. The split:
   globals (seat, xdg-shell, dmabuf, fractional-scale, text-input-v3, ...)
   and timers.
 - `oasis_surface.cc` — wl_surface lifecycle: commit, buffer export
-  (texture readback, dmabuf, shm swizzle), size and input-region events.
+  (texture readback, dmabuf, shm swizzle — all clipped to buffer damage),
+  explicit-sync acquire/release handling, size and input-region events.
 - `oasis_xdg.cc` — xdg toplevels and popups.
 - `oasis_xwayland.cc` — Xwayland surfaces.
 - `oasis_input.cc` — seat input fed from Flutter pointer/touch/key events.
@@ -19,6 +20,22 @@ runs inside the Oasis shell. The split:
 core: it drives the wl_event_loop from GTK, registers `FlTexture`s and
 forwards events over the method channel. `de/kms/oasis_kms.cc` drives the
 same core directly on KMS/DRM via the Flutter embedder API.
+
+## Frame pacing
+
+Frame callbacks are not fired at commit. Each commit marks the surface
+pending; the host reports presentation (`OasisCore::presented`) — the GTK
+frame clock for the nested shell, the DRM page-flip timestamp on KMS — and
+all pending callbacks go out with that timestamp, together with real
+`wp_presentation` feedback. A 40 ms fallback timer covers periods where
+the host stops painting. The KMS host also answers the engine's vsync
+baton with the next predicted vblank so Flutter's scheduler is locked to
+the display clock.
+
+Client buffers stay locked while displayed, so a re-attach without new
+damage skips the export entirely. Commits that carry a linux-drm-syncobj
+acquire fence defer the export until the fence signals; release points
+are signalled via wlroots' buffer-release helper.
 
 ## Configure tracking
 

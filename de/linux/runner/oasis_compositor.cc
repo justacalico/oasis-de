@@ -27,6 +27,8 @@ struct _OasisCompositor {
   GIOChannel* watch_channel = nullptr;
   guint watch = 0;
   guint resize_idle = 0;
+  guint pump = 0;
+  guint tick = 0;
   // Scale picked through configureOutput; 0 falls back to the GDK scale
   // factor. The GTK window's physical size is fixed, but the logical
   // output size has to follow the configured scale across re-syncs.
@@ -94,11 +96,19 @@ class GtkHost : public OasisHost {
     return id;
   }
 
-  void pushPixels(int64_t id, const uint8_t* rgba, int w, int h) override {
+  uint8_t* mapPixels(int64_t id, int w, int h) override {
     auto it = c_->textures.find(id);
-    if (it == c_->textures.end()) return;
-    oasis_texture_push(OASIS_TEXTURE(it->second), rgba,
-                       (uint32_t)w, (uint32_t)h);
+    if (it == c_->textures.end() || !OASIS_IS_TEXTURE(it->second)) {
+      return nullptr;
+    }
+    return oasis_texture_map(OASIS_TEXTURE(it->second), (uint32_t)w,
+                             (uint32_t)h);
+  }
+
+  void unmapPixels(int64_t id) override {
+    auto it = c_->textures.find(id);
+    if (it == c_->textures.end() || !OASIS_IS_TEXTURE(it->second)) return;
+    oasis_texture_unmap(OASIS_TEXTURE(it->second));
   }
 
   void pushDmabuf(int64_t id, const DmabufInfo& buf) override {
@@ -272,6 +282,34 @@ static gboolean watch_cb(GIOChannel*, GIOCondition cond, gpointer data) {
   auto* c = static_cast<_OasisCompositor*>(data);
   if (cond & (G_IO_ERR | G_IO_HUP)) return G_SOURCE_REMOVE;
   c->core->dispatch();
+  return G_SOURCE_CONTINUE;
+}
+
+// The nested wl_event_loop only advances when the socket is readable; pump
+// it on a beat so its timers (frame-callback fallback, xdg ping, idle
+// blank) fire while clients are quiet.
+static gboolean wl_pump(gpointer data) {
+  auto* c = static_cast<_OasisCompositor*>(data);
+  c->core->dispatch();
+  return G_SOURCE_CONTINUE;
+}
+
+// Runs every painted frame. Frame callbacks for freshly committed client
+// buffers are released here with the frame clock's presentation estimate
+// so clients pace themselves to real vsync instead of commit bursts.
+static gboolean frame_tick(GtkWidget*, GdkFrameClock* clock,
+                           gpointer data) {
+  auto* c = static_cast<_OasisCompositor*>(data);
+  if (!c->core->running()) return G_SOURCE_CONTINUE;
+  gint64 t = gdk_frame_clock_get_frame_time(clock);
+  GdkFrameTimings* timings = gdk_frame_clock_get_current_timings(clock);
+  if (timings != nullptr) {
+    gint64 pt = gdk_frame_timings_get_predicted_presentation_time(timings);
+    if (pt > 0) t = pt;
+  }
+  if (t <= 0) return G_SOURCE_CONTINUE;
+  timespec ts = {t / 1000000, (t % 1000000) * 1000};
+  c->core->presented(ts, false);
   return G_SOURCE_CONTINUE;
 }
 
@@ -540,6 +578,9 @@ OasisCompositor* oasis_compositor_new(FlPluginRegistrar* registrar,
   fl_event_channel_set_stream_handlers(c->event_channel, listen_cb,
                                        cancel_cb, c, nullptr);
   c->core = new OasisCore(new GtkHost(c));
+  c->tick =
+      gtk_widget_add_tick_callback(c->view, frame_tick, c, nullptr);
+  c->pump = g_timeout_add(50, wl_pump, c);
   return c;
 }
 
@@ -547,6 +588,8 @@ void oasis_compositor_free(OasisCompositor* c) {
   if (c == nullptr) return;
   if (c->watch != 0) g_source_remove(c->watch);
   if (c->resize_idle != 0) g_source_remove(c->resize_idle);
+  if (c->pump != 0) g_source_remove(c->pump);
+  if (c->tick != 0) gtk_widget_remove_tick_callback(c->view, c->tick);
   if (c->view != nullptr) {
     g_signal_handlers_disconnect_by_data(c->view, c);
   }

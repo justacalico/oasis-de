@@ -11,6 +11,10 @@
 #include <unordered_set>
 #include <vector>
 
+extern "C" {
+#include <wlr/render/drm_syncobj.h>
+}
+
 #include "oasis_core.h"
 
 struct wlr_backend;
@@ -57,6 +61,7 @@ struct wlr_idle_notifier_v1;
 struct wlr_ext_output_image_capture_source_manager_v1;
 struct wlr_ext_image_copy_capture_manager_v1;
 struct wlr_output_power_manager_v1;
+struct wlr_linux_drm_syncobj_manager_v1;
 struct wlr_pointer_constraints_v1;
 struct wlr_pointer_constraint_v1;
 struct wlr_relative_pointer_manager_v1;
@@ -170,8 +175,18 @@ struct Surface {
   wlr_buffer* readback = nullptr;
   wlr_texture* rb_tex = nullptr;
   int rb_w = 0, rb_h = 0;
-  std::unique_ptr<uint8_t[]> img;
   int iw = 0, ih = 0;
+
+  // Frame callbacks queued by commits we have not presented yet.
+  bool frame_pending = false;
+  // Buffer the host was last handed, locked so it can't be reused under us.
+  wlr_buffer* exported = nullptr;
+  // Set when the next export has to cover the whole buffer (first frame,
+  // texture kind swap, size change); partial damage can't be trusted then.
+  bool need_full = true;
+  // linux-drm-syncobj acquire fence bookkeeping.
+  wlr_drm_syncobj_timeline_waiter acquire_waiter = {};
+  bool acquire_waiting = false;
 
   int sx = 0, sy = 0;
   int rep_sx = 0, rep_sy = 0;
@@ -269,6 +284,7 @@ struct OasisPrivate {
       nullptr;
   wlr_ext_image_copy_capture_manager_v1* copy_capture_mgr = nullptr;
   wlr_output_power_manager_v1* power_mgr = nullptr;
+  wlr_linux_drm_syncobj_manager_v1* syncobj_mgr = nullptr;
   wlr_pointer_constraints_v1* constraints_mgr = nullptr;
   wlr_relative_pointer_manager_v1* rel_ptr_mgr = nullptr;
   wlr_keyboard_shortcuts_inhibit_manager_v1* ksi_mgr = nullptr;
@@ -334,6 +350,8 @@ struct OasisPrivate {
   int32_t touch_id = -1;
 
   wl_event_source* ping_timer = nullptr;
+  wl_event_source* frame_fallback = nullptr;
+  int pending_frames = 0;
   wl_event_source* idle_off_timer = nullptr;
   wl_event_source* idle_suspend_timer = nullptr;
   int idle_off_ms = 300000;
@@ -373,7 +391,9 @@ void emit_cursor(OasisPrivate* c);
 void free_surface(Surface* s);
 void remove_listeners(Surface* s);
 void announce_toplevel(Surface* s);
-void send_frame_done(Surface* s);
+void send_frame_done(Surface* s, const timespec& ts, bool vsync);
+void frames_presented(OasisPrivate* c, const timespec& ts, bool vsync);
+void frame_pending_add(Surface* s);
 void sync_text_input_focus(OasisPrivate* c);
 void seat_focus(OasisPrivate* c, Surface* s);
 void constraint_activate(OasisPrivate* c, Surface* s, double sx, double sy);

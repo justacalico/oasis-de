@@ -1,6 +1,7 @@
 #ifndef OASIS_CORE_H_
 #define OASIS_CORE_H_
 
+#include <time.h>
 #include <unistd.h>
 
 #include <cstdint>
@@ -78,7 +79,11 @@ class OasisHost {
   virtual ~OasisHost() = default;
   virtual void sendEvent(OEvent fields) = 0;
   virtual int64_t createTexture(bool dmabuf) = 0;
-  virtual void pushPixels(int64_t id, const uint8_t* rgba, int w, int h) = 0;
+  // mapPixels returns a persistent RGBA staging buffer for the texture,
+  // resized to w*h if needed. The buffer keeps the last committed frame, so
+  // partial writes are safe. unmapPixels flags the staged content ready.
+  virtual uint8_t* mapPixels(int64_t id, int w, int h) = 0;
+  virtual void unmapPixels(int64_t id) = 0;
   virtual void pushDmabuf(int64_t id, const DmabufInfo& buf) = 0;
   virtual bool dmabufImportFailed(int64_t id) { return false; }
   virtual void frameAvailable(int64_t id) = 0;
@@ -115,6 +120,10 @@ class OasisCore {
   const char* xwaylandDisplay() const;
   int fd() const;
   void dispatch();
+  // The host calls this when its compositor finishes painting a frame, with
+  // the real presentation timestamp. Pending frame callbacks are fired with
+  // it so clients pace themselves to the actual display clock.
+  void presented(const timespec& ts, bool vsync);
   void outputChanged();
   void replayEvents();
   void configure(int64_t id, int w, int h, bool maximized, bool fullscreen,
