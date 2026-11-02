@@ -532,11 +532,8 @@ static libseat* g_seat = nullptr;
 static bool g_seat_active = false;
 static std::unordered_map<int, int> g_seat_devs;
 
-static void seat_enable(libseat*, void*) { g_seat_active = true; }
-static void seat_disable(libseat* seat, void*) {
-  g_seat_active = false;
-  libseat_disable_seat(seat);
-}
+static void seat_enable(libseat*, void*);
+static void seat_disable(libseat*, void*);
 static libseat_seat_listener g_seat_listener = {
     .enable_seat = seat_enable,
     .disable_seat = seat_disable,
@@ -562,15 +559,15 @@ static int seat_dev_open(const char* path, int flags) {
   return open(path, flags | O_CLOEXEC);
 }
 
-// libseat_close_device also closes the fd for seat-opened devices.
+// libseat_close_device only releases the device on the seat; the fd it
+// handed out stays owned by us and still needs closing.
 static void seat_dev_close(int fd) {
   auto it = g_seat_devs.find(fd);
-  if (it == g_seat_devs.end()) {
-    close(fd);
-    return;
+  if (it != g_seat_devs.end()) {
+    if (g_seat != nullptr) libseat_close_device(g_seat, it->second);
+    g_seat_devs.erase(it);
   }
-  if (g_seat != nullptr) libseat_close_device(g_seat, it->second);
-  g_seat_devs.erase(it);
+  close(fd);
 }
 
 static void drm_init(Drm& d) {
@@ -1621,6 +1618,27 @@ static uint64_t key_logical(uint32_t code) {
     if (cp != 0) return cp;
   }
   return 0x00100000001;
+}
+
+// A lost seat revokes, not just pauses: the seat controller kills every
+// evdev fd it handed out and they can never be used again. libinput has
+// to drop its devices on the way out and re-open them through the seat
+// on return, or input is dead for good after the first VT switch.
+static void seat_enable(libseat*, void*) {
+  g_seat_active = true;
+  if (g_input.li != nullptr) libinput_resume(g_input.li);
+  // Buttons and modifiers held across the switch released onto revoked
+  // fds, so any state kept for them is stale now.
+  g_buttons = 0;
+  if (g_input.map != nullptr) {
+    xkb_state_unref(g_input.state);
+    g_input.state = xkb_state_new(g_input.map);
+  }
+}
+static void seat_disable(libseat* seat, void*) {
+  g_seat_active = false;
+  if (g_input.li != nullptr) libinput_suspend(g_input.li);
+  libseat_disable_seat(seat);
 }
 
 static void input_dispatch() {
