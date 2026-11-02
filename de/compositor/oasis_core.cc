@@ -507,9 +507,7 @@ static void handle_new_decoration(wl_listener* listener, void* data) {
   wl_signal_add(&deco->events.destroy, &s->deco_destroy);
   s->deco_request.notify = deco_requested;
   wl_signal_add(&deco->events.request_mode, &s->deco_request);
-  if (s->xdg != nullptr && s->xdg->initialized) {
-    apply_decoration(s);
-  }
+  apply_decoration(s);
 }
 
 static void kde_mode_changed(wl_listener* listener, void*) {
