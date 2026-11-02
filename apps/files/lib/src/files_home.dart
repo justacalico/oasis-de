@@ -44,6 +44,9 @@ class _FilesHomeState extends State<FilesHome> {
     if (_state.dir != _pathCtrl.text) {
       _pathCtrl.text = _state.dir;
     }
+    if (_state.query.isEmpty && _searchCtrl.text.isNotEmpty) {
+      _searchCtrl.clear();
+    }
   }
 
   @override
@@ -90,10 +93,16 @@ class _FilesHomeState extends State<FilesHome> {
     return '${v.toStringAsFixed(v >= 10 ? 0 : 1)} ${units[i]}';
   }
 
+  final _dateFormats = <String, DateFormat>{};
+
   String _fmtDate(BuildContext context, DateTime? dt) {
     if (dt == null) return '';
     final locale = Localizations.localeOf(context).toString();
-    return DateFormat.yMMMd(locale).add_Hm().format(dt);
+    final fmt = _dateFormats.putIfAbsent(
+      locale,
+      () => DateFormat.yMMMd(locale).add_Hm(),
+    );
+    return fmt.format(dt);
   }
 
   void _nameDialog(
@@ -106,6 +115,7 @@ class _FilesHomeState extends State<FilesHome> {
     final ctrl = TextEditingController(text: initial);
     showOasisDialog(
       context,
+      onClosed: ctrl.dispose,
       (dialogContext, close) => Material(
         type: MaterialType.transparency,
         child: Column(
@@ -390,11 +400,14 @@ class _FilesHomeState extends State<FilesHome> {
       );
     }
     if (s.gridView) {
-      return GridView.extent(
-        maxCrossAxisExtent: 110,
-        childAspectRatio: 0.85,
+      return GridView.builder(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 110,
+          childAspectRatio: 0.85,
+        ),
         padding: const EdgeInsets.all(8),
-        children: [for (final i in items) _tile(l10n, i, grid: true)],
+        itemCount: items.length,
+        itemBuilder: (context, idx) => _tile(l10n, items[idx], grid: true),
       );
     }
     return ListView.builder(
@@ -621,8 +634,14 @@ class _GridTile extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: Image(
-                  image: item.thumb ?? FileImage(File(item.path)),
+                  image: item.thumb ??
+                      ResizeImage(
+                        FileImage(File(item.path)),
+                        width: 220,
+                      ),
                   fit: BoxFit.cover,
+                  filterQuality: FilterQuality.low,
+                  gaplessPlayback: true,
                   errorBuilder: (context, error, stack) =>
                       Icon(fileIcon(item), size: 34, color: p.accent),
                 ),

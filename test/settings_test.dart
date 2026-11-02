@@ -462,6 +462,25 @@ void main() {
     plain.dispose();
   });
 
+  test('SettingsState tolerates backend failures', () async {
+    final s = SettingsState(
+      store: MemorySettingsStore(),
+      displayBackend: _ThrowDisplays(),
+    );
+    await s.refreshDisplays();
+    expect(s.displays, isEmpty);
+    expect(s.displaysBusy, isFalse);
+
+    s.wifiOn = false;
+    s.wifiNetworks = const [OasisWifiNetwork(ssid: 'Stale')];
+    var notified = 0;
+    s.addListener(() => notified++);
+    await s.refreshWifiNetworks();
+    expect(s.wifiNetworks, isEmpty);
+    expect(notified, greaterThan(0));
+    s.dispose();
+  });
+
   test('SettingsState wifi futures tolerate disposal', () async {
     final scanGate = Completer<List<OasisWifiNetwork>>();
     final connectGate = Completer<void>();
@@ -724,9 +743,19 @@ void main() {
     expect(find.text('72%'), findsOneWidget);
     await tester.tap(find.text('Suspend'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Suspend'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sleep').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Restart'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Restart').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Power off'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Shut Down'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(DropdownButton<String>).first);
@@ -741,6 +770,8 @@ void main() {
     await tester.tap(find.text('Users'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Log out'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Log Out'));
     await tester.pumpAndSettle();
     expect(
       calls.where((c) => c == 'session').length,
@@ -803,6 +834,11 @@ class _StubPowerBackend extends NoopPowerBackend {
       '${suspend?.inMilliseconds ?? 0}',
     );
   }
+}
+
+class _ThrowDisplays extends NoopDisplayBackend {
+  @override
+  Future<List<OasisDisplay>> displays() async => throw StateError('down');
 }
 
 class _StubBackend extends NoopSystemBackend {

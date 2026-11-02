@@ -229,4 +229,35 @@ void main() {
     expect(service.installFailed, isTrue);
     service.dispose();
   });
+
+  test('asset preference detects the local distro', () {
+    final dir = Directory.systemTemp.createTempSync('oasis_osrel');
+    addTearDown(() => dir.delete(recursive: true));
+    File('${dir.path}/fedora')
+        .writeAsStringSync('NAME="Fedora Linux"\nID=fedora\n');
+    File('${dir.path}/arch')
+        .writeAsStringSync('ID_LIKE="arch manjaro"\nID=x\n');
+    File('${dir.path}/other').writeAsStringSync('ID=somethingelse\n');
+
+    UpdateService(
+      currentVersion: () async => '1',
+      osReleasePath: '${dir.path}/fedora',
+    ).dispose();
+    UpdateService(
+      currentVersion: () async => '1',
+      osReleasePath: '${dir.path}/arch',
+    ).dispose();
+    UpdateService(
+      currentVersion: () async => '1',
+      osReleasePath: '${dir.path}/other',
+    ).dispose();
+    UpdateService(
+      currentVersion: () async => '1',
+      osReleasePath: '${dir.path}/missing',
+    ).dispose();
+    UpdateService(
+      currentVersion: () async => '1',
+      assetPreference: const ['.rpm'],
+    ).dispose();
+  });
 }

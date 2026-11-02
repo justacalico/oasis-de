@@ -20,11 +20,16 @@ class UpdateChecker {
     http.Client? client,
     this.projectPath = 'HttpAnimations/oasis-de',
     this.host = 'gitlab.com',
+    this.assetPreference = const [],
   })  : _client = client,
         _ownsClient = client == null;
 
   final String projectPath;
   final String host;
+
+  /// Filename suffixes in preference order (e.g. `['.rpm', '.deb']`); the
+  /// first matching release asset wins when several package types exist.
+  final List<String> assetPreference;
 
   static const _perPage = 100;
   static const _maxPages = 10;
@@ -175,7 +180,17 @@ class UpdateChecker {
       }
     }
     if (packages.isEmpty) return null;
-    final pkg = packages.first;
+    var pkg = packages.first;
+    var rank = assetPreference.length + 1;
+    for (final p in packages) {
+      final i = assetPreference.indexWhere(
+        (s) => p.name.toLowerCase().endsWith(s),
+      );
+      if (i >= 0 && i < rank) {
+        rank = i;
+        pkg = p;
+      }
+    }
     return UpdateAsset(
       name: pkg.name,
       url: pkg.url,

@@ -65,14 +65,14 @@ class OasisAppIcon extends StatelessWidget {
               ),
             ),
           ),
-          if (!kIsWeb && iconPath != null && File(iconPath!).existsSync())
+          if (!kIsWeb && iconPath != null)
             Padding(
               padding: EdgeInsets.all(size * 0.12),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(size * 0.16),
                 child: iconPath!.endsWith('.svg')
-                    ? SvgPicture.memory(
-                        File(iconPath!).readAsBytesSync(),
+                    ? SvgPicture.file(
+                        File(iconPath!),
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stack) => Icon(
                           icon,

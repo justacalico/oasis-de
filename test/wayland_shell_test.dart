@@ -984,25 +984,28 @@ void main() {
       ..createSync(recursive: true);
     final png = File('${dir.path}/icon.png');
     png.writeAsBytesSync(_onePxPng);
-    await pumpOasis(
-      tester,
-      Column(
-        children: [
-          OasisAppIcon(
-            icon: Icons.apps,
-            colors: const [Color(0xFF000000), Color(0xFF333333)],
-            iconPath: png.path,
-          ),
-          OasisAppIcon(
-            icon: Icons.apps,
-            colors: const [Color(0xFF000000), Color(0xFF333333)],
-            iconPath: '${dir.path}/missing.png',
-          ),
-        ],
-      ),
-    );
+    await tester.runAsync(() async {
+      await pumpOasis(
+        tester,
+        Column(
+          children: [
+            OasisAppIcon(
+              icon: Icons.apps,
+              colors: const [Color(0xFF000000), Color(0xFF333333)],
+              iconPath: png.path,
+            ),
+            OasisAppIcon(
+              icon: Icons.apps,
+              colors: const [Color(0xFF000000), Color(0xFF333333)],
+              iconPath: '${dir.path}/missing.png',
+            ),
+          ],
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
     await tester.pump();
-    expect(find.byType(Image), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(2));
     expect(find.byIcon(Icons.apps), findsOneWidget);
   });
   testWidgets('shell state persists and restores', (tester) async {
@@ -1260,6 +1263,44 @@ void main() {
     host.emit({'event': 'windowMenu', 'id': 1, 'x': 10, 'y': 5});
     await tester.pumpAndSettle();
     expect(find.text('Minimise'), findsOneWidget);
+  });
+
+  testWidgets('window menu and popups anchor on zoomed and fullscreen windows',
+      (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    host.emit({
+      'event': 'popup',
+      'id': 2,
+      'parent': 1,
+      'textureId': 55,
+      'x': 10,
+      'y': 10,
+    });
+    host.emit({'event': 'size', 'id': 2, 'w': 50, 'h': 30});
+    await tester.pump();
+    final w = c.windows.single;
+    w.zoomed = true;
+    await pumpOasis(
+      tester,
+      DesktopShell(controller: c, menusBuilder: () => const []),
+      size: const Size(1280, 800),
+    );
+    host.emit({'event': 'windowMenu', 'id': 1, 'x': 10, 'y': 5});
+    await tester.pump();
+    w.zoomed = false;
+    w.fullscreen = true;
+    c.notifyListeners();
+    await tester.pump();
+    host.emit({'event': 'windowMenu', 'id': 1, 'x': 10, 'y': 5});
+    await tester.pump();
+    expect(find.byType(WaylandPopupView), findsOneWidget);
+    c.dispose();
+    service.dispose();
   });
 
   test('window switcher cycles in both directions', () async {

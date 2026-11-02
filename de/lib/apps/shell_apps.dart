@@ -159,12 +159,27 @@ class _CalculatorWindowState extends State<CalculatorWindow> {
       _ => b,
     };
     _error = r.isNaN || r.isInfinite;
-    _display = _error
-        ? 'NaN'
-        : (r == r.truncateToDouble() ? '${r.toInt()}' : '$r');
+    _display = _error ? 'NaN' : _fmt(r);
     _acc = null;
     _op = null;
     _fresh = true;
+  }
+
+  String _fmt(double r) {
+    if (r == r.truncateToDouble() && r.abs() < 1e15) {
+      return '${r.toInt()}';
+    }
+    var s = r.toStringAsPrecision(12);
+    final e = s.indexOf('e');
+    var mantissa = e < 0 ? s : s.substring(0, e);
+    final suffix = e < 0 ? '' : s.substring(e);
+    if (mantissa.contains('.')) {
+      mantissa = mantissa.replaceFirst(RegExp(r'0+$'), '');
+      if (mantissa.endsWith('.')) {
+        mantissa = mantissa.substring(0, mantissa.length - 1);
+      }
+    }
+    return '$mantissa$suffix';
   }
 
   void _press(String key) {

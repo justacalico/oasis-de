@@ -21,18 +21,11 @@ class _DisplaysPaneState extends State<DisplaysPane> {
   var _dirty = false;
   var _applying = false;
   var _selected = 0;
-  Timer? _wait;
 
   @override
   void initState() {
     super.initState();
     unawaited(_refresh());
-  }
-
-  @override
-  void dispose() {
-    _wait?.cancel();
-    super.dispose();
   }
 
   List<OasisDisplay> get _current =>

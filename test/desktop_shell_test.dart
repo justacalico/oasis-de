@@ -899,6 +899,22 @@ void main() {
     expect(find.text('05'), findsNothing);
     expect(find.text('5'), findsNWidgets(2));
   });
+
+  testWidgets('calculator rounds float results', (tester) async {
+    await pumpOasis(tester, const Scaffold(body: CalculatorWindow()));
+    for (final k in ['0', '.', '1', '+', '0', '.', '2', '=']) {
+      await tester.tap(find.widgetWithText(OasisButton, k));
+      await tester.pump();
+    }
+    expect(find.text('0.3'), findsOneWidget);
+    await tester.tap(find.widgetWithText(OasisButton, 'C'));
+    await tester.pump();
+    for (final k in ['1', '÷', '1', '0', '0', '0', '0', '0', '0', '0', '=']) {
+      await tester.tap(find.widgetWithText(OasisButton, k));
+      await tester.pump();
+    }
+    expect(find.text('1e-7'), findsOneWidget);
+  });
   testWidgets('wallpaper and titlebar context menus act', (tester) async {
     await pumpDesktop(tester);
     await tester.tapAt(const Offset(640, 400), buttons: kSecondaryMouseButton);

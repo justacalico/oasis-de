@@ -18,7 +18,6 @@ import 'lock_screen.dart';
 import 'menu_bar.dart';
 import 'notification_center.dart';
 import 'shell_controller.dart';
-import 'view_scale.dart';
 import 'window_switcher.dart';
 
 class DesktopShell extends StatefulWidget {
@@ -38,9 +37,9 @@ class DesktopShell extends StatefulWidget {
 }
 
 class _DesktopShellState extends State<DesktopShell> {
-  final Map<String, GlobalKey> _menuLabelKeys = {};
   StreamSubscription<WaylandRequest>? _requestSub;
   final _pointerPos = ValueNotifier<Offset>(Offset.zero);
+  DateTime? _lastActivity;
 
   ShellController get controller => widget.controller;
 
@@ -78,10 +77,11 @@ class _DesktopShellState extends State<DesktopShell> {
     final buf = logicalSurfaceSize(s);
     final sx = buf.width > 0 ? s.size.width / buf.width : 1.0;
     final sy = buf.height > 0 ? s.size.height / buf.height : 1.0;
+    final head = _windowHeadRect(w, MediaQuery.sizeOf(context));
     final base = w.zoomed
-        ? const Offset(0, kMenuBarHeight + 4)
+        ? head.topLeft + const Offset(0, kMenuBarHeight + 4)
         : w.fullscreen
-        ? Offset.zero
+        ? head.topLeft
         : w.position;
     final pos =
         base +
@@ -280,18 +280,11 @@ class _DesktopShellState extends State<DesktopShell> {
                       child: ShellMenuBar(
                         controller: controller,
                         menus: menus,
-                        labelKeys: [
-                          for (final m in menus)
-                            _menuLabelKeys.putIfAbsent(
-                              m.label,
-                              () => GlobalKey(debugLabel: m.label),
-                            ),
-                        ],
                       ),
                     ),
                 if (controller.openMenu != null)
                   Positioned(
-                    top: kMenuBarHeight + 2,
+                    top: (controller.menuAnchor?.bottom ?? kMenuBarHeight) + 2,
                     left: _menuLeft(context, menus),
                     child: MenuDropdown(
                       menuIndex: _menuIndex(menus),
@@ -416,10 +409,8 @@ class _DesktopShellState extends State<DesktopShell> {
                   Positioned.fill(
                     child: Listener(
                       behavior: HitTestBehavior.opaque,
-                      onPointerDown: (_) =>
-                          controller.wayland?.activity(),
-                      onPointerHover: (_) =>
-                          controller.wayland?.activity(),
+                      onPointerDown: (_) => _pokeActivity(),
+                      onPointerHover: (_) => _pokeActivity(),
                       child: const ColoredBox(color: Color(0xFF000000)),
                     ),
                   ),
@@ -461,6 +452,17 @@ class _DesktopShellState extends State<DesktopShell> {
     for (final popup in service.popups) {
       if (!keep.contains(popup.id)) service.close(popup.id);
     }
+  }
+
+  void _pokeActivity() {
+    final now = DateTime.now();
+    final last = _lastActivity;
+    if (last != null &&
+        now.difference(last) < const Duration(milliseconds: 400)) {
+      return;
+    }
+    _lastActivity = now;
+    controller.wayland?.activity();
   }
 
   void _onShellPointerMove(PointerMoveEvent e, Size screen) {
@@ -559,6 +561,13 @@ class _DesktopShellState extends State<DesktopShell> {
     ];
   }
 
+  Rect _windowHeadRect(ShellWindowData w, Size screen) {
+    final wl = controller.wayland;
+    final center = w.position + (w.size ?? Size.zero).center(Offset.zero);
+    return (wl?.outputAt(center) ?? wl?.primaryOutput)?.rect ??
+        (Offset.zero & screen);
+  }
+
   Offset? _popupOffset(WaylandSurface popup) {
     final service = controller.wayland!;
     var offset = popup.offset;
@@ -596,10 +605,11 @@ class _DesktopShellState extends State<DesktopShell> {
     final buf = logicalSurfaceSize(parent);
     final sx = buf.width > 0 ? parent.size.width / buf.width : 1.0;
     final sy = buf.height > 0 ? parent.size.height / buf.height : 1.0;
+    final head = _windowHeadRect(w, MediaQuery.sizeOf(context));
     final base = w.fullscreen
-        ? Offset.zero
+        ? head.topLeft
         : w.zoomed
-        ? const Offset(0, kMenuBarHeight + 4)
+        ? head.topLeft + const Offset(0, kMenuBarHeight + 4)
         : w.position;
     var pos =
         base +
@@ -626,10 +636,16 @@ class _DesktopShellState extends State<DesktopShell> {
 
   Rect _windowRect(ShellWindowData w, BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
-    final s = w.zoomed
-        ? Size(screen.width, screen.height - kMenuBarHeight - 8)
-        : _windowSize(w, screen);
-    return (w.zoomed ? const Offset(0, kMenuBarHeight + 4) : w.position) & s;
+    if (w.zoomed) {
+      final head = _windowHeadRect(w, screen);
+      return Rect.fromLTWH(
+        head.left,
+        head.top + kMenuBarHeight + 4,
+        head.width,
+        head.height - kMenuBarHeight - 8,
+      );
+    }
+    return w.position & _windowSize(w, screen);
   }
 
   Widget _windowContent(ShellWindowData w, BuildContext context, Size size) {
@@ -699,12 +715,7 @@ class _DesktopShellState extends State<DesktopShell> {
   }
 
   double _menuLeft(BuildContext context, List<ShellMenu> menus) {
-    final idx = _menuIndex(menus);
-    final box =
-        _menuLabelKeys[menus[idx].label]!.currentContext?.findRenderObject()
-            as RenderBox?;
-    final x = (box?.localToGlobal(Offset.zero).dx ?? 40) /
-        ViewScale.of(context);
+    final x = controller.menuAnchor?.left ?? 40;
     final max = MediaQuery.sizeOf(context).width - 218;
     return x.clamp(0.0, max > 0 ? max : 0.0);
   }

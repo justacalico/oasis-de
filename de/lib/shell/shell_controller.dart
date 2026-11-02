@@ -99,7 +99,12 @@ class ShellController extends ChangeNotifier {
   }
 
   Future<void> pollBattery() async {
-    final b = await backend.battery();
+    OasisBattery b;
+    try {
+      b = await backend.battery();
+    } catch (_) {
+      return;
+    }
     if (_disposed) return;
     if (b.level == batteryLevel && b.charging == batteryCharging) return;
     batteryLevel = b.level;
@@ -108,8 +113,13 @@ class ShellController extends ChangeNotifier {
   }
 
   Future<void> _refreshSystemState() async {
-    pollBattery();
-    final s = await backend.read();
+    unawaited(pollBattery());
+    OasisSystemState s;
+    try {
+      s = await backend.read();
+    } catch (_) {
+      return;
+    }
     if (_disposed) return;
     if (s.wifi != null) wifiOn = s.wifi!;
     if (s.bluetooth != null) bluetoothOn = s.bluetooth!;
@@ -294,6 +304,10 @@ class ShellController extends ChangeNotifier {
   int _nextId = 1;
   int? _focusedId;
   String? _openMenu;
+
+  /// Logical rect of the menubar label that opened [_openMenu], used to
+  /// position the dropdown under the correct output.
+  Rect? menuAnchor;
   int? _surfaceDragId;
   ({int id, OasisResizeEdge edge})? _surfaceResize;
   var launcherOpen = false;
@@ -349,6 +363,10 @@ class ShellController extends ChangeNotifier {
         pinned.add(a);
         _pendingPinIds.removeAt(i);
       }
+    }
+    for (var i = 0; i < pinned.length; i++) {
+      final updated = byId[pinned[i].id];
+      if (updated != null) pinned[i] = updated;
     }
     for (final w in windows) {
       final updated = byId[w.app.id];
@@ -1110,7 +1128,8 @@ class ShellController extends ChangeNotifier {
     }
   }
 
-  void selectMenu(String? label) {
+  void selectMenu(String? label, {Rect? anchor}) {
+    if (anchor != null) menuAnchor = anchor;
     if (_openMenu == label) return;
     _openMenu = label;
     if (label != null) {
@@ -1166,12 +1185,20 @@ class ShellController extends ChangeNotifier {
 
   Future<void> refreshWifiNetworks() async {
     if (!wifiOn) {
-      wifiNetworks = const [];
+      if (wifiNetworks.isNotEmpty) {
+        wifiNetworks = const [];
+        notifyListeners();
+      }
       return;
     }
     wifiScanning = true;
     notifyListeners();
-    final found = await backend.wifiNetworks();
+    List<OasisWifiNetwork> found;
+    try {
+      found = await backend.wifiNetworks();
+    } catch (_) {
+      found = const [];
+    }
     if (_disposed) return;
     wifiNetworks = wifiOn ? found : const [];
     wifiScanning = false;

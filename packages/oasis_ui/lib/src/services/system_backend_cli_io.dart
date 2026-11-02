@@ -14,6 +14,7 @@ class CliSystemBackend implements OasisSystemBackend {
     this.drmDir,
     this.sessionId,
     this.procDir,
+    this.checkpwdPaths,
   });
 
   final Future<ProcessResult> Function(String, List<String>)? run;
@@ -23,6 +24,24 @@ class CliSystemBackend implements OasisSystemBackend {
   final Directory? drmDir;
   final String Function()? sessionId;
   final Directory? procDir;
+  final List<String>? checkpwdPaths;
+
+  /// unix_chkpwd lives in sbin on most distros, which is not on PATH for a
+  /// user session, so bare invocation fails. Check the usual absolute
+  /// locations first and only then fall back to PATH lookup.
+  static const _checkpwdCandidates = [
+    '/usr/sbin/unix_chkpwd',
+    '/sbin/unix_chkpwd',
+    '/usr/lib/pam/unix_chkpwd',
+    '/usr/libexec/unix_chkpwd',
+  ];
+
+  String _checkpwdExe() {
+    for (final p in checkpwdPaths ?? _checkpwdCandidates) {
+      if (File(p).existsSync()) return p;
+    }
+    return 'unix_chkpwd';
+  }
 
   Future<void> _exec(String exe, List<String> args) async {
     if (kIsWeb) return;
@@ -312,7 +331,7 @@ class CliSystemBackend implements OasisSystemBackend {
     if (user.isEmpty) return false;
     try {
       final p = await (startProcess ?? Process.start)(
-        'unix_chkpwd',
+        _checkpwdExe(),
         [user],
       );
       p.stdin.writeln(password);
@@ -335,9 +354,9 @@ class CliSystemBackend implements OasisSystemBackend {
     }
 
     final proc = procDir?.path ?? '/proc';
-    final cpuLine = read('$proc/cpuinfo')
-        .split('\n')
-        .firstWhere((l) => l.startsWith('model name'), orElse: () => '');
+    final cpuLine = read('$proc/cpuinfo').split('\n').firstWhere(
+        (l) => l.startsWith('model name') || l.startsWith('Hardware'),
+        orElse: () => '');
     final memKb = RegExp(r'MemTotal:\s+(\d+)')
         .firstMatch(read('$proc/meminfo'))
         ?.group(1);

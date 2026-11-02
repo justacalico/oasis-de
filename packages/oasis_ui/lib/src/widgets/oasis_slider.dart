@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/oasis_theme.dart';
 
-class OasisSlider extends StatelessWidget {
+class OasisSlider extends StatefulWidget {
   const OasisSlider({
     super.key,
     required this.value,
@@ -18,15 +18,27 @@ class OasisSlider extends StatelessWidget {
   final double min;
   final double max;
 
-  double get _fraction => max <= min
+  @override
+  State<OasisSlider> createState() => _OasisSliderState();
+}
+
+class _OasisSliderState extends State<OasisSlider> {
+  double? _last;
+
+  double get _fraction => widget.max <= widget.min
       ? 0.0
-      : ((value - min) / (max - min)).clamp(0.0, 1.0);
+      : ((widget.value - widget.min) / (widget.max - widget.min))
+          .clamp(0.0, 1.0);
 
   void _update(Offset local, double width) {
+    final onChanged = widget.onChanged;
     if (onChanged == null || width <= 0) return;
     final f = (local.dx / width).clamp(0.0, 1.0);
-    onChanged!(min + f * (max - min));
+    _last = widget.min + f * (widget.max - widget.min);
+    onChanged(_last!);
   }
+
+  void _end() => widget.onChangeEnd?.call(_last ?? widget.value);
 
   @override
   Widget build(BuildContext context) {
@@ -36,10 +48,10 @@ class OasisSlider extends StatelessWidget {
         final width = constraints.maxWidth;
         return GestureDetector(
           onTapDown: (d) => _update(d.localPosition, width),
-          onTapUp: (_) => onChangeEnd?.call(value),
+          onTapUp: (_) => _end(),
           onPanStart: (d) => _update(d.localPosition, width),
           onPanUpdate: (d) => _update(d.localPosition, width),
-          onPanEnd: (_) => onChangeEnd?.call(value),
+          onPanEnd: (_) => _end(),
           child: SizedBox(
             height: 24,
             width: width,
@@ -91,7 +103,7 @@ class OasisSlider extends StatelessWidget {
         );
       },
     );
-    return onChanged == null
+    return widget.onChanged == null
         ? Opacity(opacity: 0.4, child: slider)
         : slider;
   }

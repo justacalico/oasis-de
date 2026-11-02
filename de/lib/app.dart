@@ -299,7 +299,12 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 if (!mounted) return;
                 _controller.syncApps(
                   apps,
-                  pinnedIds: savedPins?.split(','),
+                  pinnedIds: savedPins == null
+                      ? null
+                      : [
+                          for (final p in savedPins.split(','))
+                            if (p.isNotEmpty) p,
+                        ],
                   fallback: builtins,
                 );
               });
