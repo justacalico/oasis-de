@@ -41,8 +41,12 @@ Offset surfaceCoordsAt(WaylandSurface surface, Offset local, Size box) {
   final s = src != null ? src.size : logicalSurfaceSize(surface);
   if (s.width <= 0 || s.height <= 0) return local;
   return Offset(
-    (src?.left ?? 0) + local.dx * s.width / box.width,
-    (src?.top ?? 0) + local.dy * s.height / box.height,
+    (src?.left ?? 0) +
+        surface.geoOffset.dx +
+        local.dx * s.width / box.width,
+    (src?.top ?? 0) +
+        surface.geoOffset.dy +
+        local.dy * s.height / box.height,
   );
 }
 
@@ -188,15 +192,21 @@ class SurfaceHitRegion extends SingleChildRenderObjectWidget {
     super.key,
     required this.region,
     required this.surfaceSize,
+    this.geoOffset = Offset.zero,
     super.child,
   });
 
   final List<Rect>? region;
   final Size surfaceSize;
+  final Offset geoOffset;
 
   @override
   RenderObject createRenderObject(BuildContext context) =>
-      RenderSurfaceHitRegion(region: region, surfaceSize: surfaceSize);
+      RenderSurfaceHitRegion(
+        region: region,
+        surfaceSize: surfaceSize,
+        geoOffset: geoOffset,
+      );
 
   @override
   void updateRenderObject(
@@ -205,7 +215,8 @@ class SurfaceHitRegion extends SingleChildRenderObjectWidget {
   ) {
     renderObject
       ..region = region
-      ..surfaceSize = surfaceSize;
+      ..surfaceSize = surfaceSize
+      ..geoOffset = geoOffset;
   }
 }
 
@@ -213,23 +224,28 @@ class RenderSurfaceHitRegion extends RenderProxyBox {
   RenderSurfaceHitRegion({
     required List<Rect>? region,
     required Size surfaceSize,
+    required Offset geoOffset,
   }) : _region = region,
-       _surfaceSize = surfaceSize;
+       _surfaceSize = surfaceSize,
+       _geoOffset = geoOffset;
 
   List<Rect>? _region;
   Size _surfaceSize;
+  Offset _geoOffset;
 
   set region(List<Rect>? v) => _region = v;
   set surfaceSize(Size v) => _surfaceSize = v;
+  set geoOffset(Offset v) => _geoOffset = v;
 
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
     final region = _region;
     if (region != null && size.width > 0 && size.height > 0) {
-      final p = Offset(
-        position.dx * _surfaceSize.width / size.width,
-        position.dy * _surfaceSize.height / size.height,
-      );
+      final p = _geoOffset +
+          Offset(
+            position.dx * _surfaceSize.width / size.width,
+            position.dy * _surfaceSize.height / size.height,
+          );
       if (!region.any((r) => r.contains(p))) return false;
     }
     return super.hitTest(result, position: position);
@@ -360,6 +376,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
               return SurfaceHitRegion(
                 region: surface.inputRegion,
                 surfaceSize: logicalSurfaceSize(surface),
+                geoOffset: surface.geoOffset,
                 child: MouseRegion(
                   onExit: (_) => service.pointerExit(surface.id),
                   cursor: waylandMouseCursor(service),
@@ -504,6 +521,7 @@ class _WaylandPopupViewState extends State<WaylandPopupView> {
         return SurfaceHitRegion(
           region: widget.surface.inputRegion,
           surfaceSize: size,
+          geoOffset: widget.surface.geoOffset,
           child: SizedBox(
             width: size.width,
             height: size.height,
@@ -613,7 +631,7 @@ class WaylandLayerTree extends StatelessWidget {
               surface.transform,
             ),
           ),
-        ..._layers(surface, Offset.zero),
+        ..._layers(surface, -surface.geoOffset),
       ],
     );
   }
