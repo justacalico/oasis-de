@@ -1240,6 +1240,8 @@ static void launch_app(const std::vector<std::string>& argv) {
   setenv("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1", 1);
   setenv("SDL_VIDEODRIVER", "wayland", 1);
   setenv("XDG_SESSION_TYPE", "wayland", 1);
+  setenv("XDG_CURRENT_DESKTOP", "oasis", 1);
+  setenv("XDG_SESSION_DESKTOP", "oasis", 1);
   setenv("MOZ_ENABLE_WAYLAND", "1", 1);
   setenv("WINIT_UNIX_BACKEND", "wayland", 1);
   std::vector<char*> cargv;
