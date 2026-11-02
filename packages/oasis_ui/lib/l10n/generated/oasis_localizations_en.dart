@@ -182,6 +182,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get settingsDisplays => 'Displays';
 
   @override
+  String get settingsDock => 'Dock';
+
+  @override
   String get settingsSound => 'Sound';
 
   @override
@@ -449,6 +452,48 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get dockQuit => 'Quit';
+
+  @override
+  String get dockMode => 'Mode';
+
+  @override
+  String get dockModePush => 'Push';
+
+  @override
+  String get dockModeAutoHide => 'Auto-hide';
+
+  @override
+  String get dockModeOff => 'Off';
+
+  @override
+  String get dockPosition => 'Position';
+
+  @override
+  String get dockPositionLeft => 'Left';
+
+  @override
+  String get dockPositionBottom => 'Bottom';
+
+  @override
+  String get dockPositionRight => 'Right';
+
+  @override
+  String get dockIconSize => 'Icon size';
+
+  @override
+  String get dockSizeSmall => 'Small';
+
+  @override
+  String get dockSizeMedium => 'Medium';
+
+  @override
+  String get dockSizeLarge => 'Large';
+
+  @override
+  String get dockSizeCustom => 'Custom';
+
+  @override
+  String get dockCustomSize => 'Custom size';
 
   @override
   String get wallpaperPeaks => 'Peaks';

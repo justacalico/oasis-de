@@ -64,6 +64,7 @@ class OasisDesktopApp extends StatefulWidget {
 
 class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final OasisAppearance _appearance;
+  late final OasisDockSettings _dock;
   late final OasisWallpaperService _wallpaper;
   late final UpdateService _updates;
   late final ShellController _controller;
@@ -86,6 +87,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   void initState() {
     super.initState();
     _appearance = widget.appearance ?? OasisAppearance();
+    _dock = OasisDockSettings(store: widget.store);
     _wallpaper = widget.wallpaper ?? OasisWallpaperService();
     _updates = UpdateService(
       checker: widget.updateChecker,
@@ -102,6 +104,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       wayland: _wayland,
       backend: _backend,
       mpris: _mpris,
+      dock: _dock,
       keybinds: _keybinds,
     );
     _controller.unknownAppName = () =>
@@ -291,6 +294,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 displayBackend: _displayBackend,
                 powerBackend: _powerBackend,
                 keybinds: _keybinds,
+                dock: _dock,
               );
               final apps = [...builtins, ..._externalApps];
               final appsById = {for (final a in apps) a.id: a};
@@ -317,6 +321,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 child: Scaffold(
                   body: DesktopShell(
                     controller: _controller,
+                    dock: _dock,
                     wallpaper: _wallpaper,
                     menusBuilder: () => buildShellMenus(
                       l10n,

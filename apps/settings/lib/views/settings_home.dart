@@ -3,6 +3,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 
 import '../state/settings_state.dart';
 import 'displays_pane.dart';
+import 'dock_pane.dart';
 import 'keyboard_pane.dart';
 import 'panes.dart';
 import 'sound_pane.dart';
@@ -53,6 +54,8 @@ class _SettingsHomeState extends State<SettingsHome> {
           Icons.landscape, const Color(0xFF30B0C7)),
       (SettingsPane.displays, l10n.settingsDisplays,
           Icons.desktop_windows, const Color(0xFF0A84FF)),
+      (SettingsPane.dock, l10n.settingsDock, Icons.dock,
+          const Color(0xFF64D2FF)),
       (SettingsPane.sound, l10n.settingsSound, Icons.volume_up,
           const Color(0xFFFF375F)),
       (SettingsPane.keyboard, l10n.settingsKeyboard, Icons.keyboard,
@@ -126,6 +129,7 @@ class _SettingsHomeState extends State<SettingsHome> {
                       WallpaperPane(wallpaper: wallpaper),
                     SettingsPane.general => const GeneralPane(),
                     SettingsPane.displays => DisplaysPane(state: s),
+                    SettingsPane.dock => DockPane(state: s),
                     SettingsPane.sound => SoundPane(state: s),
                     SettingsPane.keyboard => KeyboardPane(state: s),
                     SettingsPane.power => PowerPane(state: s),

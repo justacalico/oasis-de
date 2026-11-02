@@ -21,6 +21,7 @@ List<OasisApp> buildShellApps(
   OasisDisplayBackend? displayBackend,
   OasisPowerBackend? powerBackend,
   OasisKeybindsService? keybinds,
+  OasisDockSettings? dock,
 }) {
   SettingsState? settingsState;
   return [
@@ -43,6 +44,7 @@ List<OasisApp> buildShellApps(
             displayBackend: displayBackend,
             powerBackend: powerBackend,
             keybinds: keybinds,
+            dock: dock,
           ),
         ),
       ),

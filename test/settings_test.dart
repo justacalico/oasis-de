@@ -706,7 +706,7 @@ void main() {
     expect(find.byType(OasisNavRow), findsNWidgets(1));
     await tester.enterText(find.byType(TextField).first, '');
     await tester.pumpAndSettle();
-    expect(find.byType(OasisNavRow), findsNWidgets(12));
+    expect(find.byType(OasisNavRow), findsNWidgets(13));
   });
 
   testWidgets('new panes drive backend and render', (tester) async {

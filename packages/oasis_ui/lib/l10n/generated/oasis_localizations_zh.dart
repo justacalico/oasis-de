@@ -182,6 +182,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get settingsDisplays => '显示器';
 
   @override
+  String get settingsDock => 'Dock';
+
+  @override
   String get settingsSound => '声音';
 
   @override
@@ -440,6 +443,48 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get dockQuit => '退出';
+
+  @override
+  String get dockMode => '模式';
+
+  @override
+  String get dockModePush => '推移';
+
+  @override
+  String get dockModeAutoHide => '自动隐藏';
+
+  @override
+  String get dockModeOff => '关闭';
+
+  @override
+  String get dockPosition => '位置';
+
+  @override
+  String get dockPositionLeft => '左侧';
+
+  @override
+  String get dockPositionBottom => '底部';
+
+  @override
+  String get dockPositionRight => '右侧';
+
+  @override
+  String get dockIconSize => '图标大小';
+
+  @override
+  String get dockSizeSmall => '小';
+
+  @override
+  String get dockSizeMedium => '中';
+
+  @override
+  String get dockSizeLarge => '大';
+
+  @override
+  String get dockSizeCustom => '自定义';
+
+  @override
+  String get dockCustomSize => '自定义大小';
 
   @override
   String get wallpaperPeaks => '山峰';
