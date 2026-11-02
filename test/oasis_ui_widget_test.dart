@@ -799,15 +799,18 @@ void iconCoverage() {
         '<rect width="48" height="48" fill="#ffffff"/></svg>',
       );
     addTearDown(() => f.delete());
-    await pumpOasis(
-      tester,
-      OasisAppIcon(
-        icon: Icons.broken_image,
-        colors: const [Color(0xFF000000), Color(0xFF111111)],
-        iconPath: f.path,
-      ),
-    );
-    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      await pumpOasis(
+        tester,
+        OasisAppIcon(
+          icon: Icons.broken_image,
+          colors: const [Color(0xFF000000), Color(0xFF111111)],
+          iconPath: f.path,
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump();
     expect(find.byType(SvgPicture), findsOneWidget);
     expect(find.byIcon(Icons.broken_image), findsNothing);
   });
@@ -816,15 +819,18 @@ void iconCoverage() {
     final f = File('${Directory.systemTemp.path}/badicon.svg')
       ..writeAsStringSync('junk');
     addTearDown(() => f.delete());
-    await pumpOasis(
-      tester,
-      OasisAppIcon(
-        icon: Icons.broken_image,
-        colors: const [Color(0xFF000000), Color(0xFF111111)],
-        iconPath: f.path,
-      ),
-    );
-    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      await pumpOasis(
+        tester,
+        OasisAppIcon(
+          icon: Icons.broken_image,
+          colors: const [Color(0xFF000000), Color(0xFF111111)],
+          iconPath: f.path,
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump();
     expect(find.byIcon(Icons.broken_image), findsWidgets);
   });
 }
