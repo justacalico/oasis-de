@@ -635,6 +635,11 @@ int OasisCore::fd() const {
   return wl_event_loop_get_fd(p->loop);
 }
 
+void OasisCore::presented(const timespec& ts, bool vsync) {
+  if (p->display == nullptr) return;
+  frames_presented(p, ts, vsync);
+}
+
 void OasisCore::dispatch() {
   if (p->display == nullptr) return;
   wl_event_loop_dispatch(p->loop, 0);
@@ -711,6 +716,13 @@ bool OasisCore::start(std::string* error) {
   wlr_server_decoration_manager_set_default_mode(
       p->kde_deco_mgr, WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
   p->viewporter = wlr_viewporter_create(p->display);
+  // Explicit sync is only worth advertising when the renderer can actually
+  // wait and signal DRM timelines; implicit sync is used otherwise.
+  int render_fd = wlr_renderer_get_drm_fd(p->renderer);
+  if (render_fd >= 0 && p->renderer->features.timeline) {
+    p->syncobj_mgr =
+        wlr_linux_drm_syncobj_manager_v1_create(p->display, 1, render_fd);
+  }
   p->dmabuf_v1 =
       wlr_linux_dmabuf_v1_create_with_renderer(p->display, 5, p->renderer);
   if (p->dmabuf_v1 != nullptr) {
@@ -893,6 +905,14 @@ void OasisCore::stop() {
   for (Surface* s : p->surfaces) {
     s->announced = false;
     remove_listeners(s);
+    if (s->acquire_waiting) {
+      wlr_drm_syncobj_timeline_waiter_finish(&s->acquire_waiter);
+      s->acquire_waiting = false;
+    }
+    if (s->exported != nullptr) {
+      wlr_buffer_unlock(s->exported);
+      s->exported = nullptr;
+    }
     for (Inhibitor* inh : s->inhibitors) {
       wl_list_remove(&inh->destroy.link);
       delete inh;

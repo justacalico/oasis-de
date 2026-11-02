@@ -23,6 +23,7 @@ struct _OasisTexture {
   uint8_t* stage;
   uint32_t stage_w;
   uint32_t stage_h;
+  gboolean dirty;
   uint8_t* frame;
   uint32_t frame_w;
   uint32_t frame_h;
@@ -38,20 +39,23 @@ static gboolean oasis_texture_copy_pixels(FlPixelBufferTexture* texture,
                                           GError** error) {
   OasisTexture* self = OASIS_TEXTURE(texture);
   g_mutex_lock(&self->mutex);
-  size_t need = static_cast<size_t>(self->stage_w) * self->stage_h * 4;
-  if (need > self->frame_cap) {
-    uint8_t* frame = static_cast<uint8_t*>(g_try_malloc(need));
-    if (frame == nullptr) {
-      g_mutex_unlock(&self->mutex);
-      return FALSE;
+  if (self->dirty) {
+    self->dirty = FALSE;
+    size_t need = static_cast<size_t>(self->stage_w) * self->stage_h * 4;
+    if (need > self->frame_cap) {
+      uint8_t* frame = static_cast<uint8_t*>(g_try_malloc(need));
+      if (frame == nullptr) {
+        g_mutex_unlock(&self->mutex);
+        return FALSE;
+      }
+      g_free(self->frame);
+      self->frame = frame;
+      self->frame_cap = need;
     }
-    g_free(self->frame);
-    self->frame = frame;
-    self->frame_cap = need;
+    memcpy(self->frame, self->stage, need);
+    self->frame_w = self->stage_w;
+    self->frame_h = self->stage_h;
   }
-  memcpy(self->frame, self->stage, need);
-  self->frame_w = self->stage_w;
-  self->frame_h = self->stage_h;
   g_mutex_unlock(&self->mutex);
   *out_buffer = self->frame;
   *width = self->frame_w;
@@ -78,25 +82,31 @@ static void oasis_texture_init(OasisTexture* self) {
   self->stage = static_cast<uint8_t*>(g_malloc0(4));
   self->stage_w = 1;
   self->stage_h = 1;
+  self->dirty = TRUE;
 }
 
-void oasis_texture_push(OasisTexture* self,
-                               const uint8_t* rgba,
-                               uint32_t w,
-                               uint32_t h) {
+// The compositor maps the stage, writes straight into it (possibly only the
+// damaged rects — the buffer keeps the previous frame), then unmaps. The
+// mutex stays held between the two calls so copy_pixels can't sample a
+// half-written frame.
+uint8_t* oasis_texture_map(OasisTexture* self, uint32_t w, uint32_t h) {
   g_mutex_lock(&self->mutex);
   if (self->stage_w != w || self->stage_h != h) {
     uint8_t* stage = static_cast<uint8_t*>(g_try_malloc((size_t)w * h * 4));
     if (stage == nullptr) {
       g_mutex_unlock(&self->mutex);
-      return;
+      return nullptr;
     }
     g_free(self->stage);
     self->stage = stage;
     self->stage_w = w;
     self->stage_h = h;
   }
-  memcpy(self->stage, rgba, (size_t)w * h * 4);
+  return self->stage;
+}
+
+void oasis_texture_unmap(OasisTexture* self) {
+  self->dirty = TRUE;
   g_mutex_unlock(&self->mutex);
 }
 

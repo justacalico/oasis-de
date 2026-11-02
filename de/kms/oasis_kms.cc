@@ -326,6 +326,8 @@ static FlutterEngineResult (*pRunTask)(FLUTTER_API_SYMBOL(FlutterEngine),
 static FlutterEngineResult (*pDeinit)(FLUTTER_API_SYMBOL(FlutterEngine));
 static FlutterEngineResult (*pPostRenderTask)(
     FLUTTER_API_SYMBOL(FlutterEngine), VoidCallback, void*);
+static FlutterEngineResult (*pOnVsync)(FLUTTER_API_SYMBOL(FlutterEngine),
+                                       intptr_t, uint64_t, uint64_t);
 
 template <typename T>
 static T sym(const char* name) {
@@ -651,16 +653,28 @@ static uint32_t bo_fb(Drm& d, gbm_bo* bo) {
   return fb;
 }
 
+// ---- embedder glue ---------------------------------------------------------------
+
+static Drm g_drm;
+static OasisCore* g_core = nullptr;
+static uint64_t g_last_vblank_ns = 0;
+
 static void release_stale(Drm& d) {
   if (d.stale_bo == nullptr) return;
   gbm_surface_release_buffer(d.surface, d.stale_bo);
   d.stale_bo = nullptr;
 }
 
-static void on_flip(int, unsigned, unsigned, unsigned, void* data) {
+static void on_flip(int, unsigned, unsigned sec, unsigned usec,
+                    void* data) {
   auto* d = static_cast<Drm*>(data);
   if (d->pending_flips > 0) d->pending_flips--;
   if (d->pending_flips == 0) release_stale(*d);
+  g_last_vblank_ns = (uint64_t)sec * 1000000000ULL + (uint64_t)usec * 1000;
+  if (g_core != nullptr && g_core->running()) {
+    timespec ts = {(time_t)sec, (long)usec * 1000};
+    g_core->presented(ts, true);
+  }
 }
 
 static void drm_present(Drm& d) {
@@ -693,11 +707,6 @@ static void drm_present(Drm& d) {
   d.bo = next;
 }
 
-// ---- embedder glue ---------------------------------------------------------------
-
-static Drm g_drm;
-static OasisCore* g_core = nullptr;
-
 static void send_metrics() {
   FlutterWindowMetricsEvent wm = {};
   wm.struct_size = sizeof(wm);
@@ -711,7 +720,7 @@ static void send_metrics() {
 //
 // The compositor hands each client buffer to the engine as an external
 // texture. There is a single EGL context and it belongs to the raster
-// thread, so the platform thread never touches GL here: pushPixels and
+// thread, so the platform thread never touches GL here: mapPixels and
 // pushDmabuf only stage data under g_tex_mu, and every glGenTextures,
 // upload, EGL import and delete happens inside the engine's texture frame
 // callback (or another task posted to the render thread). Doing the GL
@@ -1003,17 +1012,29 @@ class KmsHost : public OasisHost {
     pRegisterTexture(engine, id);
     return id;
   }
-  void pushPixels(int64_t id, const uint8_t* rgba, int w,
-                  int h) override {
-    if (w <= 0 || h <= 0) return;
-    std::lock_guard<std::mutex> lk(g_tex_mu);
+  // mapPixels holds g_tex_mu until unmapPixels so the raster thread can't
+  // sample a half-written stage; the buffer keeps the previous frame so
+  // partial writes are fine.
+  uint8_t* mapPixels(int64_t id, int w, int h) override {
+    if (w <= 0 || h <= 0) return nullptr;
+    g_tex_mu.lock();
     auto it = g_textures.find(id);
-    if (it == g_textures.end()) return;
+    if (it == g_textures.end() || it->second->is_dmabuf) {
+      g_tex_mu.unlock();
+      return nullptr;
+    }
     KmsTex* t = it->second.get();
-    t->pixels.assign(rgba, rgba + (size_t)w * h * 4);
-    t->pix_w = w;
-    t->pix_h = h;
-    t->pix_dirty = true;
+    if (t->pix_w != w || t->pix_h != h) {
+      t->pixels.resize((size_t)w * h * 4);
+      t->pix_w = w;
+      t->pix_h = h;
+    }
+    return t->pixels.data();
+  }
+  void unmapPixels(int64_t id) override {
+    auto it = g_textures.find(id);
+    if (it != g_textures.end()) it->second->pix_dirty = true;
+    g_tex_mu.unlock();
   }
   void pushDmabuf(int64_t id, const DmabufInfo& buf) override {
     std::lock_guard<std::mutex> lk(g_tex_mu);
@@ -1736,6 +1757,58 @@ static void run_flutter_tasks() {
   }
 }
 
+// ---- vsync ---------------------------------------------------------------------
+//
+// The engine asks for a vsync baton on an internal thread; the platform
+// thread answers with the next predicted vblank so frame production tracks
+// the real display clock instead of falling back to a timer.
+
+static std::mutex g_vsync_mu;
+static std::deque<intptr_t> g_vsync_batons;
+
+static void eng_vsync(void*, intptr_t baton) {
+  {
+    std::lock_guard<std::mutex> lk(g_vsync_mu);
+    g_vsync_batons.push_back(baton);
+  }
+  if (g_wake_fd >= 0) {
+    const uint64_t one = 1;
+    ssize_t unused = write(g_wake_fd, &one, sizeof(one));
+    (void)unused;
+  }
+}
+
+static uint64_t vblank_period_ns() {
+  for (auto& hd : g_drm.heads) {
+    if (hd.enabled && hd.mode.vrefresh > 0) {
+      return 1000000000ULL / hd.mode.vrefresh;
+    }
+  }
+  return 16666666;
+}
+
+// Runs on the platform thread, where FlutterEngineRun was called.
+static void vsync_flush() {
+  for (;;) {
+    intptr_t baton;
+    {
+      std::lock_guard<std::mutex> lk(g_vsync_mu);
+      if (g_vsync_batons.empty()) return;
+      baton = g_vsync_batons.front();
+      g_vsync_batons.pop_front();
+    }
+    uint64_t period = vblank_period_ns();
+    uint64_t now = pGetTime();
+    uint64_t start = now + period;
+    if (g_last_vblank_ns != 0) {
+      uint64_t elapsed =
+          now > g_last_vblank_ns ? now - g_last_vblank_ns : 0;
+      start = g_last_vblank_ns + (elapsed / period + 1) * period;
+    }
+    pOnVsync(engine, baton, start, start + period);
+  }
+}
+
 int main(int argc, char** argv) {
   const char* bundle = argc > 1 ? argv[1] : "./bundle";
   std::string assets = std::string(bundle) + "/data/flutter_assets";
@@ -1772,6 +1845,7 @@ int main(int argc, char** argv) {
   pDeinit = sym<decltype(pDeinit)>("FlutterEngineDeinitialize");
   pPostRenderTask = sym<decltype(pPostRenderTask)>(
       "FlutterEnginePostRenderThreadTask");
+  pOnVsync = sym<decltype(pOnVsync)>("FlutterEngineOnVsync");
 
   FlutterRendererConfig rc = {};
   rc.type = kOpenGL;
@@ -1804,6 +1878,7 @@ int main(int argc, char** argv) {
   args.icu_data_path = icu.c_str();
   args.platform_message_callback = platform_message_cb;
   args.custom_task_runners = &runners;
+  args.vsync_callback = eng_vsync;
 
   g_wake_fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
   if (g_wake_fd < 0) die("eventfd");
@@ -1837,6 +1912,10 @@ int main(int argc, char** argv) {
     if (wlfd >= 0) fds[nf++] = {wlfd, POLLIN, 0};
     int ret = poll(fds, nf, 50);
     run_flutter_tasks();
+    vsync_flush();
+    // The wayland loop only runs its timers when we dispatch it; poll
+    // timeouts alone would starve xdg pings and idle blanking.
+    if (g_core != nullptr && g_core->running()) g_core->dispatch();
     if (++rescans >= 20) {
       rescans = 0;
       if (heads_hotplugged(g_drm)) {

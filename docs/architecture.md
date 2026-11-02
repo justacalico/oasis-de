@@ -29,10 +29,11 @@ Each external toplevel maps to a `WaylandSurface` in Dart and gets an `OasisWind
 
 | Global / interface | Status | Notes |
 |---|---|---|
-| `wl_compositor`, `wl_surface`, `wl_region`, `wl_callback` | supported | frame callbacks sent at commit |
+| `wl_compositor`, `wl_surface`, `wl_region`, `wl_callback` | supported | frame callbacks fired on real presentation |
 | `wl_subcompositor`, `wl_subsurface` | supported | |
 | `wl_shm` | supported | client buffers swizzled to GL textures |
 | `zwp_linux_dmabuf_v1` | supported | EGLImage import, zero-copy path |
+| `wp_linux_drm_syncobj_v1` | supported | explicit sync; acquire fences defer export, release points signalled |
 | `wl_seat` (`wl_pointer`, `wl_keyboard`, `wl_touch`) | supported | input forwarded from Flutter pointer/key events |
 | `wl_data_device_manager` | supported | clipboard + drag selection inside the session |
 | `wl_output` | supported | single output advertized to clients |

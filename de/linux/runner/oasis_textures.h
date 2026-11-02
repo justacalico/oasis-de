@@ -21,10 +21,8 @@ G_DECLARE_FINAL_TYPE(OasisGLTexture,
                      GL_TEXTURE,
                      FlTextureGL)
 
-void oasis_texture_push(OasisTexture* self,
-                        const uint8_t* rgba,
-                        uint32_t w,
-                        uint32_t h);
+uint8_t* oasis_texture_map(OasisTexture* self, uint32_t w, uint32_t h);
+void oasis_texture_unmap(OasisTexture* self);
 void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, const DmabufInfo& db);
 gboolean oasis_gl_texture_import_failed(OasisGLTexture* self);
 
