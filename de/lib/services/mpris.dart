@@ -159,26 +159,26 @@ class MprisService extends ChangeNotifier {
 
   void _apply(DBusString key, DBusValue value) {
     if (value is DBusVariant) value = value.value;
-    if (key.value == 'PlaybackStatus') {
-      playing = (value as DBusString).value == 'Playing';
-    } else if (key.value == 'Metadata') {
+    if (key.value == 'PlaybackStatus' && value is DBusString) {
+      playing = value.value == 'Playing';
+    } else if (key.value == 'Metadata' && value is DBusDict) {
       var t = '';
       var ar = '';
       var al = '';
-      for (final e in (value as DBusDict).children.entries) {
-        final k = (e.key as DBusString).value;
-        final v = e.value is DBusVariant
-            ? (e.value as DBusVariant).value
-            : e.value;
-        if (k == 'xesam:title') {
-          t = (v as DBusString).value;
-        } else if (k == 'xesam:artist') {
-          ar = (v as DBusArray)
-              .children
-              .map((a) => (a as DBusString).value)
+      for (final e in value.children.entries) {
+        final k = e.key;
+        if (k is! DBusString) continue;
+        var v = e.value;
+        if (v is DBusVariant) v = v.value;
+        if (k.value == 'xesam:title' && v is DBusString) {
+          t = v.value;
+        } else if (k.value == 'xesam:artist' && v is DBusArray) {
+          ar = v.children
+              .whereType<DBusString>()
+              .map((a) => a.value)
               .join(', ');
-        } else if (k == 'xesam:album') {
-          al = (v as DBusString).value;
+        } else if (k.value == 'xesam:album' && v is DBusString) {
+          al = v.value;
         }
       }
       title = t;

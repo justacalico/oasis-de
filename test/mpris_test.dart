@@ -194,6 +194,45 @@ void main() {
     s.dispose();
   });
 
+  test('mpris ignores malformed metadata values', () async {
+    final bus = _FakeBus(
+      names: const ['org.mpris.MediaPlayer2.spotify'],
+      props: {
+        'PlaybackStatus': DBusString('Playing'),
+        'Metadata': _metadata('Song', ['A'], 'Rec'),
+      },
+    );
+    final signals = StreamController<DBusSignal>.broadcast();
+    addTearDown(signals.close);
+    final s = _service(bus, signals);
+    await s.start();
+    expect(s.title, 'Song');
+
+    signals.add(_propsChanged({'PlaybackStatus': DBusInt32(1)}));
+    signals.add(_propsChanged({'Metadata': DBusString('not a dict')}));
+    signals.add(
+      _propsChanged({
+        'Metadata': DBusDict.stringVariant({
+          'xesam:title': DBusInt32(1),
+          'xesam:artist': DBusString('not-an-array'),
+          'xesam:album': DBusArray.string(const []),
+        }),
+      }),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(s.playing, isTrue);
+    expect(s.title, isEmpty);
+    expect(s.artist, isEmpty);
+
+    signals.add(
+      _propsChanged({'Metadata': _metadata('Back', ['B'], 'Al')}),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(s.title, 'Back');
+    expect(s.artist, 'B');
+    s.dispose();
+  });
+
   test('mpris tolerates a dead bus', () async {
     final bus = _FakeBus()..fail = true;
     final signals = StreamController<DBusSignal>.broadcast();

@@ -153,10 +153,8 @@ _IconThemeIndex? _loadIconIndex(String root, String theme) {
       } else if (line.contains('=')) {
         final eq = line.indexOf('=');
         sections.putIfAbsent(current, () => {});
-        sections[current]!.putIfAbsent(
-          line.substring(0, eq).trim(),
-          () => line.substring(eq + 1).trim(),
-        );
+        sections[current]![line.substring(0, eq).trim()] =
+            line.substring(eq + 1).trim();
       }
     }
     final meta = sections['Icon Theme'];
@@ -387,10 +385,8 @@ DesktopAppEntry? parseDesktopEntry(
     if (!line.contains('=')) continue;
     final eq = line.indexOf('=');
     sections.putIfAbsent(current, () => {});
-    sections[current]!.putIfAbsent(
-      line.substring(0, eq).trim(),
-      () => line.substring(eq + 1).trim(),
-    );
+    sections[current]![line.substring(0, eq).trim()] =
+        line.substring(eq + 1).trim();
   }
 
   final entry = sections['[Desktop Entry]'];
