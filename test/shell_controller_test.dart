@@ -220,7 +220,7 @@ void main() {
     expect(w.size, const Size(kMinWindowWidth, 630));
     c.toggleZoom(w.id);
 
-    w.transition = ShellWindowTransition.restoring;
+    w.markRestoring();
     c.resizeWindow(
       w.id,
       const Offset(5, 5),
@@ -248,7 +248,7 @@ void main() {
     c.dragWindow(w.id, const Offset(1, 1), screen);
     expect(w.position.dx, w.position.dx);
 
-    w.zoomed = false;
+    w.setZoomed(false);
     c.dragWindow(w.id, const Offset(5, 5), screen);
     c.endSurfaceGesture(const Offset(4, 400), screen);
     expect(w.size!.width, screen.width / 2);
@@ -347,6 +347,32 @@ void main() {
     await pending;
   });
 
+  test('backend failures are swallowed and logged', () async {
+    final c = ShellController(
+      apps: const [],
+      backend: const _ThrowingBackend(),
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    await pumpEventQueue();
+    await c.pollBattery();
+    await c.refreshWifiNetworks();
+    expect(c.wifiNetworks, isEmpty);
+  });
+
+  test('failed launch action is logged', () async {
+    final service = WaylandService(host: _FailingLaunchHost());
+    await service.start();
+    final c = ShellController(
+      apps: const [],
+      wayland: service,
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    c.launchAction(const ['x']);
+    await pumpEventQueue();
+  });
+
   test('slider previews apply live, deduped per percent', () async {
     final calls = <String>[];
     final c = ShellController(
@@ -390,7 +416,7 @@ void main() {
     c.cycleWindows();
     c.commitSwitcher();
     expect(c.focusedId, w2.id);
-    w1.minimized = true;
+    w1.markMinimizing();
     c.cycleWindows();
     c.commitSwitcher();
     expect(c.focusedId, w2.id);
@@ -584,7 +610,7 @@ void main() {
     final items = windowMenu.items(ctx);
     expect(items.length, greaterThanOrEqualTo(4));
     final minimised = c.windows.first;
-    minimised.minimized = true;
+    minimised.markMinimizing();
     final entries = windowMenu.items(ctx);
     for (final item in entries) {
       if (item.checked) expect(item.label, isNotEmpty);
@@ -878,4 +904,24 @@ class _RecordingBackend implements OasisSystemBackend {
 
   @override
   Future<OasisSystemInfo> systemInfo() async => const OasisSystemInfo();
+}
+
+class _ThrowingBackend extends NoopSystemBackend {
+  const _ThrowingBackend();
+
+  @override
+  Future<OasisBattery> battery() async => throw StateError('no battery');
+
+  @override
+  Future<OasisSystemState> read() async => throw StateError('no state');
+
+  @override
+  Future<List<OasisWifiNetwork>> wifiNetworks() async =>
+      throw StateError('no wifi');
+}
+
+class _FailingLaunchHost extends FakeWaylandHost {
+  @override
+  Future<void> launch(List<String> argv) async =>
+      throw StateError('spawn failed');
 }

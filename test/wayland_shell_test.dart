@@ -1284,7 +1284,7 @@ void main() {
     host.emit({'event': 'size', 'id': 2, 'w': 50, 'h': 30});
     await tester.pump();
     final w = c.windows.single;
-    w.zoomed = true;
+    w.setZoomed(true);
     await pumpOasis(
       tester,
       DesktopShell(controller: c, menusBuilder: () => const []),
@@ -1292,8 +1292,8 @@ void main() {
     );
     host.emit({'event': 'windowMenu', 'id': 1, 'x': 10, 'y': 5});
     await tester.pump();
-    w.zoomed = false;
-    w.fullscreen = true;
+    w.setZoomed(false);
+    w.setFullscreen(true);
     c.notifyListeners();
     await tester.pump();
     host.emit({'event': 'windowMenu', 'id': 1, 'x': 10, 'y': 5});
