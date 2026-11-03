@@ -561,7 +561,7 @@ void main() {
         builder: (_) => const SizedBox(),
       ),
       position: Offset.zero,
-    )..transition = ShellWindowTransition.minimizing;
+    )..markMinimizing();
     await tester.pumpWidget(
       MaterialApp(
         home: GenieWindow(

@@ -89,7 +89,7 @@ class _GenieWindowState extends State<GenieWindow>
     }
     final screen = MediaQuery.sizeOf(context);
     return Rect.fromCenter(
-      center: Offset(screen.width / 2, screen.height - 24),
+      center: Offset(screen.width / 2, screen.height - kWindowBottomMargin),
       width: kDockIconSize,
       height: kDockIconSize,
     );

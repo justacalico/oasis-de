@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:clock/clock.dart';
 
 export 'shell_constants.dart';
+export 'shell_window.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,9 +16,9 @@ import '../services/notifications.dart';
 
 import '../wayland/wayland_service.dart';
 import 'shell_constants.dart';
-
-enum ShellWindowTransition { none, minimizing, restoring }
-
+import 'shell_notifications.dart';
+import 'shell_window.dart';
+import 'system_status.dart';
 
 const _waylandResizeEdges = {
   1: OasisResizeEdge.top,
@@ -29,40 +30,6 @@ const _waylandResizeEdges = {
   9: OasisResizeEdge.topRight,
   10: OasisResizeEdge.bottomRight,
 };
-
-class ShellWindowData {
-  ShellWindowData({
-    required this.id,
-    required this.app,
-    required this.position,
-    this.workspace = 0,
-  });
-
-  final int id;
-  OasisApp app;
-  Offset position;
-  Size? size;
-  Size? adoptedSize;
-  final dockIconKey = GlobalKey();
-  var minimized = false;
-  var zoomed = false;
-  var fullscreen = false;
-  Rect? preSnapRect;
-  var workspace = 0;
-  var transition = ShellWindowTransition.none;
-  var animateGeom = false;
-  WaylandSurface? surface;
-  var launching = false;
-  Timer? launchTimer;
-
-  String get displayTitle =>
-      surface != null && surface!.title.isNotEmpty ? surface!.title : app.name;
-
-  bool get clientDecorated => surface?.clientDecorated ?? false;
-
-  double get titleBarHeight =>
-      clientDecorated ? 0 : kOasisWindowTitleBarHeight;
-}
 
 typedef ShellMenuItem = OasisMenuItem;
 
@@ -79,55 +46,31 @@ class ShellController extends ChangeNotifier {
   ShellController({
     required List<OasisApp> apps,
     this.wayland,
-    this.backend = const NoopSystemBackend(),
+    OasisSystemBackend backend = const NoopSystemBackend(),
     this.mpris,
     this.dock,
     OasisKeybindsService? keybinds,
-    this.batteryPollInterval = const Duration(seconds: 60),
+    Duration? batteryPollInterval = const Duration(seconds: 60),
   })  : apps = List.of(apps),
         keybinds = keybinds ?? OasisKeybindsService() {
+    _status = SystemStatus(
+      backend: backend,
+      onChanged: notifyListeners,
+      onUnlocked: () async {
+        await wayland?.sessionUnlock();
+      },
+      batteryPollInterval: batteryPollInterval,
+    );
+    _notifications = ShellNotifications(
+      onChanged: notifyListeners,
+      isFocusOn: () => _status.focusOn,
+      onAction: (id, action) => notificationActionHandler?.call(id, action),
+      onClosed: (id, reason) => notificationClosedHandler?.call(id, reason),
+    );
     wayland?.addListener(_syncSurfaces);
     wayland?.onIdleSuspend = idleSuspend;
     mpris?.addListener(notifyListeners);
     _requestSub = wayland?.requests.listen(_onWaylandRequest);
-    _refreshSystemState();
-    if (batteryPollInterval != null) {
-      _batteryTimer = Timer.periodic(
-        batteryPollInterval!,
-        (_) => unawaited(pollBattery()),
-      );
-    }
-  }
-
-  Future<void> pollBattery() async {
-    OasisBattery b;
-    try {
-      b = await backend.battery();
-    } catch (_) {
-      return;
-    }
-    if (_disposed) return;
-    if (b.level == batteryLevel && b.charging == batteryCharging) return;
-    batteryLevel = b.level;
-    batteryCharging = b.charging;
-    notifyListeners();
-  }
-
-  Future<void> _refreshSystemState() async {
-    unawaited(pollBattery());
-    OasisSystemState s;
-    try {
-      s = await backend.read();
-    } catch (_) {
-      return;
-    }
-    if (_disposed) return;
-    if (s.wifi != null) wifiOn = s.wifi!;
-    if (s.bluetooth != null) bluetoothOn = s.bluetooth!;
-    if (s.brightness != null) brightness = s.brightness!;
-    if (s.volume != null) volume = s.volume!;
-    if (s.nightLight != null) nightLightOn = s.nightLight!;
-    notifyListeners();
   }
 
   final List<OasisApp> apps;
@@ -137,24 +80,15 @@ class ShellController extends ChangeNotifier {
   final MprisService? mpris;
   final OasisDockSettings? dock;
   final OasisKeybindsService keybinds;
-  final Duration? batteryPollInterval;
+
+  late final SystemStatus _status;
+  late final ShellNotifications _notifications;
 
   String Function() unknownAppName =
       () => lookupOasisLocalizations(const Locale('en')).appUnknown;
 
   String Function(String) launchFailedMessage = (app) =>
       lookupOasisLocalizations(const Locale('en')).launchFailed(app);
-
-  var _localNotificationId = 0;
-
-  double? batteryLevel;
-  bool batteryCharging = false;
-  Timer? _batteryTimer;
-
-  final List<OasisNotification> notifications = [];
-  OasisNotification? bannerNotification;
-  var notificationCenterOpen = false;
-  Timer? _bannerTimer;
 
   void Function(int id, String action)? notificationActionHandler;
   void Function(int id, int reason)? notificationClosedHandler;
@@ -167,7 +101,7 @@ class ShellController extends ChangeNotifier {
     _identifyTimer?.cancel();
     identifyActive = true;
     notifyListeners();
-    _identifyTimer = Timer(const Duration(seconds: 3), () {
+    _identifyTimer = Timer(kIdentifyDuration, () {
       identifyActive = false;
       notifyListeners();
     });
@@ -218,78 +152,29 @@ class ShellController extends ChangeNotifier {
         workspace: activeWorkspace,
         position: _spawnOrigin +
             Offset(
-              56 + _cascadeCount * 28.0,
-              52 + _cascadeCount * 24.0,
+              kWindowSpawnX + _cascadeCount * kWindowCascadeX,
+              kWindowSpawnY + _cascadeCount * kWindowCascadeY,
             ),
       );
 
-  void pushNotification(OasisNotification n) {
-    if (!n.transient) {
-      notifications.removeWhere((o) => o.id == n.id);
-      notifications.insert(0, n);
-      if (notifications.length > 50) notifications.length = 50;
-    }
-    if (!focusOn) {
-      bannerNotification = n;
-      _scheduleBannerDismiss();
-    }
-    notifyListeners();
-  }
+  List<OasisNotification> get notifications => _notifications.items;
+  OasisNotification? get bannerNotification => _notifications.banner;
 
-  Duration? get _bannerTimeout {
-    final n = bannerNotification;
-    if (n == null) return null;
-    if (n.expireTimeout == 0 || n.urgency >= 2) return null;
-    if (n.expireTimeout > 0) {
-      return Duration(milliseconds: n.expireTimeout);
-    }
-    return const Duration(seconds: 5);
-  }
+  void pushNotification(OasisNotification n) => _notifications.push(n);
 
-  void _scheduleBannerDismiss() {
-    _bannerTimer?.cancel();
-    final timeout = _bannerTimeout;
-    if (timeout == null) return;
-    _bannerTimer = Timer(timeout, () {
-      if (_disposed) return;
-      bannerNotification = null;
-      notifyListeners();
-    });
-  }
+  void dismissBanner() => _notifications.dismissBanner();
 
-  void pauseBannerDismiss() => _bannerTimer?.cancel();
+  void dismissNotification(int id, {int reason = 2}) =>
+      _notifications.dismiss(id, reason: reason);
 
-  void resumeBannerDismiss() => _scheduleBannerDismiss();
+  void invokeNotificationAction(OasisNotification n, String action) =>
+      _notifications.invokeAction(n, action);
 
-  void dismissBanner() {
-    bannerNotification = null;
-    _bannerTimer?.cancel();
-    notifyListeners();
-  }
+  void clearNotifications() => _notifications.clear();
 
-  void dismissNotification(int id, {int reason = 2}) {
-    if (bannerNotification?.id == id) bannerNotification = null;
-    notifications.removeWhere((n) => n.id == id);
-    notificationClosedHandler?.call(id, reason);
-    notifyListeners();
-  }
+  void pauseBannerDismiss() => _notifications.pauseDismiss();
 
-  void invokeNotificationAction(OasisNotification n, String action) {
-    notificationActionHandler?.call(n.id, action);
-    dismissNotification(n.id);
-  }
-
-  void clearNotifications() {
-    final closed = notificationClosedHandler;
-    if (closed != null) {
-      for (final n in notifications) {
-        closed(n.id, 2);
-      }
-    }
-    notifications.clear();
-    bannerNotification = null;
-    notifyListeners();
-  }
+  void resumeBannerDismiss() => _notifications.resumeDismiss();
 
   void toggleNotificationCenter() {
     notificationCenterOpen = !notificationCenterOpen;
@@ -315,17 +200,8 @@ class ShellController extends ChangeNotifier {
   var launcherOpen = false;
   var launchPadOpen = false;
   var controlCenterOpen = false;
+  var notificationCenterOpen = false;
   var activeWorkspace = 0;
-  var wifiOn = true;
-  List<OasisWifiNetwork> wifiNetworks = const [];
-  var wifiScanning = false;
-  var bluetoothOn = true;
-  var focusOn = false;
-  var nightLightOn = false;
-  var brightness = 0.8;
-  var volume = 0.6;
-  var _appliedBrightnessPct = -1;
-  var _appliedVolumePct = -1;
 
   int? get focusedId => _focusedId;
   String? get openMenu => _openMenu;
@@ -458,10 +334,7 @@ class ShellController extends ChangeNotifier {
       if (newWindow) break;
       if (w.app.id == app.id) {
         for (final m in [w, ...transientFamily(w)]) {
-          if (m.minimized) {
-            m.minimized = false;
-            m.transition = ShellWindowTransition.restoring;
-          }
+          if (m.minimized) m.markRestoring();
         }
         _focus(w.id);
         closeOverlays();
@@ -478,16 +351,18 @@ class ShellController extends ChangeNotifier {
       window = _spawnWindow(app);
       unawaited(
         service.launch(app.exec!).catchError((Object e) {
+          debugPrint('Oasis: launch of ${app.exec} failed: $e');
           _failLaunch(window!);
         }),
       );
-      window.launchTimer = Timer(const Duration(seconds: 8), () {
-        if (window!.launching) _failLaunch(window);
-      });
+      window.beginLaunch(
+        Timer(kLaunchTimeout, () {
+          if (window!.launching) _failLaunch(window);
+        }),
+      );
     }
     launchCounts[app.id] = (launchCounts[app.id] ?? 0) + 1;
     final w = window ?? _spawnWindow(app);
-    w.launching = app.isExternal;
     windows.add(w);
     _focus(w.id);
     closeOverlays();
@@ -496,7 +371,11 @@ class ShellController extends ChangeNotifier {
   void launchAction(List<String> argv) {
     final service = wayland;
     if (service == null) return;
-    unawaited(service.launch(argv).catchError((Object _) {}));
+    unawaited(
+      service.launch(argv).catchError((Object e) {
+        debugPrint('Oasis: launch action failed: $e');
+      }),
+    );
   }
 
   void closeWindow(int id) {
@@ -569,8 +448,7 @@ class ShellController extends ChangeNotifier {
     if (window == null || window.minimized) return;
     final family = [window, ...transientFamily(window)];
     for (final w in family) {
-      w.minimized = true;
-      w.transition = ShellWindowTransition.minimizing;
+      w.markMinimizing();
     }
     if (family.any((w) => w.id == _focusedId)) {
       _focusedId = null;
@@ -584,8 +462,7 @@ class ShellController extends ChangeNotifier {
     final window = _byId(id);
     if (window == null || !window.minimized) return;
     for (final w in [window, ...transientFamily(window)]) {
-      w.minimized = false;
-      w.transition = ShellWindowTransition.restoring;
+      w.markRestoring();
     }
     _focus(id);
   }
@@ -593,25 +470,21 @@ class ShellController extends ChangeNotifier {
   void finishTransition(int id) {
     final window = _byId(id);
     if (window == null) return;
-    window.transition = ShellWindowTransition.none;
+    window.finishTransition();
     notifyListeners();
   }
 
   void toggleFullscreen(int id) {
     final w = _byId(id);
     if (w == null) return;
-    w.fullscreen = !w.fullscreen;
-    w.adoptedSize = w.surface?.size;
-    w.animateGeom = true;
+    w.setFullscreen(!w.fullscreen);
     notifyListeners();
   }
 
   void toggleZoom(int id) {
     final window = _byId(id);
     if (window == null) return;
-    window.zoomed = !window.zoomed;
-    window.adoptedSize = window.surface?.size;
-    window.animateGeom = true;
+    window.setZoomed(!window.zoomed);
     notifyListeners();
   }
 
@@ -644,25 +517,29 @@ class ShellController extends ChangeNotifier {
     }
     window.animateGeom = false;
     if (window.zoomed) {
-      window.zoomed = false;
-      window.position = Offset(
-        (screen.width - (window.size?.width ?? 480)) / 2,
-        kMenuBarHeight + 4,
+      window.unzoomTo(
+        Offset(
+          (screen.width - (window.size?.width ?? kDefaultWindowWidth)) / 2,
+          kWindowEdgeTop,
+        ),
       );
       _dragWindowId = id;
       notifyListeners();
       return;
     }
-    if (window.preSnapRect != null) {
-      window.size = window.preSnapRect!.size;
-      window.position = window.preSnapRect!.topLeft;
-      window.preSnapRect = null;
+    final preSnap = window.takePreSnap();
+    if (preSnap != null) {
+      window.size = preSnap.size;
+      window.position = preSnap.topLeft;
     }
-    final w = window.size?.width ?? 480;
+    final w = window.size?.width ?? kDefaultWindowWidth;
     window.position = Offset(
-      (window.position.dx + delta.dx).clamp(-w + 64, screen.width - 64),
+      (window.position.dx + delta.dx).clamp(
+        -w + kWindowEdgeMargin,
+        screen.width - kWindowEdgeMargin,
+      ),
       (window.position.dy + delta.dy)
-          .clamp(kMenuBarHeight + 4, screen.height - 24),
+          .clamp(kWindowEdgeTop, screen.height - kWindowBottomMargin),
     );
     _dragWindowId = id;
     notifyListeners();
@@ -720,19 +597,20 @@ class ShellController extends ChangeNotifier {
     _dragWindowId = null;
     final w = wid == null ? null : _byId(wid);
     if (w == null || pointer == null || screen == null) return;
-    if (pointer.dy <= kMenuBarHeight + 4) {
+    if (pointer.dy <= kWindowEdgeTop) {
       if (!w.zoomed) {
-        w.zoomed = true;
-        w.adoptedSize = w.surface?.size;
-        w.animateGeom = true;
+        w.setZoomed(true);
         notifyListeners();
       }
-    } else if (pointer.dx <= 8 || pointer.dx >= screen.width - 8) {
-      final left = pointer.dx <= 8;
-      final cur = w.size ?? w.adoptedSize ?? const Size(480, 360);
+    } else if (pointer.dx <= kSnapEdgeWidth ||
+        pointer.dx >= screen.width - kSnapEdgeWidth) {
+      final left = pointer.dx <= kSnapEdgeWidth;
+      final cur = w.size ??
+          w.adoptedSize ??
+          const Size(kDefaultWindowWidth, kDefaultWindowHeight);
       var x = left ? 0.0 : screen.width / 2;
       var width = screen.width / 2;
-      var height = screen.height - kMenuBarHeight - 8;
+      var height = screen.height - kMenuBarHeight - kSnapBottomMargin;
       final d = dock;
       if (d == null) {
         height -= kDockHeight;
@@ -750,19 +628,16 @@ class ShellController extends ChangeNotifier {
             if (!left) width -= inset;
         }
       }
-      w
-        ..preSnapRect = Rect.fromLTWH(
+      w.snapTo(
+        preSnap: Rect.fromLTWH(
           w.position.dx,
           w.position.dy,
           cur.width,
           cur.height,
-        )
-        ..zoomed = false
-        ..fullscreen = false
-        ..size = Size(width, height)
-        ..position = Offset(x, kMenuBarHeight + 4)
-        ..adoptedSize = w.surface?.size
-        ..animateGeom = true;
+        ),
+        position: Offset(x, kWindowEdgeTop),
+        size: Size(width, height),
+      );
       notifyListeners();
     }
   }
@@ -803,12 +678,12 @@ class ShellController extends ChangeNotifier {
 
   void _failLaunch(ShellWindowData window) {
     if (!window.launching) return;
-    window.launchTimer?.cancel();
+    window.cancelLaunch();
     launchError = window.app.name;
     windows.remove(window);
     pushNotification(
       OasisNotification(
-        id: --_localNotificationId,
+        id: _notifications.nextLocalId(),
         appName: window.app.name,
         summary: window.app.name,
         body: launchFailedMessage(window.app.name),
@@ -860,10 +735,7 @@ class ShellController extends ChangeNotifier {
       } else {
         launching.remove(target);
       }
-      target
-        ..surface = s
-        ..launching = false
-        ..launchTimer?.cancel();
+      target.bindSurface(s);
       bound.add(s.id);
       _focus(target.id);
       changed = true;
@@ -918,14 +790,12 @@ class ShellController extends ChangeNotifier {
         _surfaceDragId = w.id;
       case WaylandRequestType.maximize:
         if (w.zoomed != request.on) {
-          w.zoomed = request.on;
-          w.adoptedSize = w.surface?.size;
+          w.setZoomed(request.on, animate: false);
           notifyListeners();
         }
       case WaylandRequestType.fullscreen:
         if (w.fullscreen != request.on) {
-          w.fullscreen = request.on;
-          w.adoptedSize = w.surface?.size;
+          w.setFullscreen(request.on, animate: false);
           notifyListeners();
         }
       case WaylandRequestType.minimize:
@@ -1059,7 +929,7 @@ class ShellController extends ChangeNotifier {
   void toggleZoomFocused() {
     final w = focusedWindow;
     if (w == null) return;
-    w.zoomed = !w.zoomed;
+    w.setZoomed(!w.zoomed, animate: false);
     notifyListeners();
   }
 
@@ -1210,128 +1080,57 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> refreshWifiNetworks() async {
-    if (!wifiOn) {
-      if (wifiNetworks.isNotEmpty) {
-        wifiNetworks = const [];
-        notifyListeners();
-      }
-      return;
-    }
-    wifiScanning = true;
-    notifyListeners();
-    List<OasisWifiNetwork> found;
-    try {
-      found = await backend.wifiNetworks();
-    } catch (_) {
-      found = const [];
-    }
-    if (_disposed) return;
-    wifiNetworks = wifiOn ? found : const [];
-    wifiScanning = false;
-    notifyListeners();
-  }
+  OasisSystemBackend get backend => _status.backend;
+  double? get batteryLevel => _status.batteryLevel;
+  bool get batteryCharging => _status.batteryCharging;
+  Future<void> pollBattery() => _status.pollBattery();
 
-  Future<void> connectWifiNetwork(String ssid) async {
-    await backend.connectWifi(ssid);
-    if (_disposed) return;
-    unawaited(refreshWifiNetworks());
-  }
+  List<OasisWifiNetwork> get wifiNetworks => _status.wifiNetworks;
+  bool get wifiScanning => _status.wifiScanning;
+  bool get wifiOn => _status.wifiOn;
+  set wifiOn(bool v) => _status.wifiOn = v;
+  bool get bluetoothOn => _status.bluetoothOn;
+  set bluetoothOn(bool v) => _status.bluetoothOn = v;
+  bool get focusOn => _status.focusOn;
+  set focusOn(bool v) => _status.focusOn = v;
+  bool get nightLightOn => _status.nightLightOn;
+  set nightLightOn(bool v) => _status.nightLightOn = v;
+  double get brightness => _status.brightness;
+  set brightness(double v) => _status.brightness = v;
+  double get volume => _status.volume;
+  set volume(double v) => _status.volume = v;
 
-  set wifiOnValue(bool v) => _set(() => wifiOn = v, () => backend.wifi(v));
-  set bluetoothOnValue(bool v) =>
-      _set(() => bluetoothOn = v, () => backend.bluetooth(v));
-  set focusOnValue(bool v) => _set(() => focusOn = v);
-  set nightLightOnValue(bool v) =>
-      _set(() => nightLightOn = v, () => backend.nightLight(v));
+  set wifiOnValue(bool v) => _status.wifiOnValue = v;
+  set bluetoothOnValue(bool v) => _status.bluetoothOnValue = v;
+  set focusOnValue(bool v) => _status.focusOnValue = v;
+  set nightLightOnValue(bool v) => _status.nightLightOnValue = v;
+  set brightnessValue(double v) => _status.brightnessValue = v;
+  set volumeValue(double v) => _status.volumeValue = v;
+  set brightnessPreview(double v) => _status.brightnessPreview = v;
+  set volumePreview(double v) => _status.volumePreview = v;
 
-  int _percent(double v) => (v.clamp(0.0, 1.0) * 100).round();
+  Future<void> refreshWifiNetworks() => _status.refreshWifiNetworks();
 
-  set brightnessValue(double v) {
-    _appliedBrightnessPct = _percent(v);
-    _set(() => brightness = v, () => backend.brightness(v));
-  }
+  Future<void> connectWifiNetwork(String ssid) =>
+      _status.connectWifiNetwork(ssid);
 
-  set volumeValue(double v) {
-    _appliedVolumePct = _percent(v);
-    _set(() => volume = v, () => backend.volume(v));
-  }
+  bool get locked => _status.locked;
 
-  set brightnessPreview(double v) {
-    _set(() => brightness = v);
-    final pct = _percent(v);
-    if (pct == _appliedBrightnessPct) return;
-    _appliedBrightnessPct = pct;
-    unawaited(backend.brightness(v));
-  }
+  void idleSuspend() => _status.idleSuspend();
 
-  set volumePreview(double v) {
-    _set(() => volume = v);
-    final pct = _percent(v);
-    if (pct == _appliedVolumePct) return;
-    _appliedVolumePct = pct;
-    unawaited(backend.volume(v));
-  }
+  void session(OasisSessionAction action) => _status.session(action);
 
-  final OasisSystemBackend backend;
-
-  var locked = false;
-
-  void idleSuspend() => session(OasisSessionAction.suspend);
-
-  void session(OasisSessionAction action) {
-    if (action == OasisSessionAction.lock ||
-        action == OasisSessionAction.suspend) {
-      locked = true;
-      if (action == OasisSessionAction.suspend) {
-        backend.session(OasisSessionAction.lock);
-      }
-    }
-    backend.session(action);
-    notifyListeners();
-  }
-
-  int _failedUnlocks = 0;
-  DateTime? _unlockLockedUntil;
-
-  Future<bool> tryUnlock(String password) async {
-    final until = _unlockLockedUntil;
-    if (until != null) {
-      final wait = until.difference(clock.now());
-      if (wait > Duration.zero) await Future.delayed(wait);
-    }
-    if (await backend.verifyPassword(password)) {
-      locked = false;
-      _failedUnlocks = 0;
-      await wayland?.sessionUnlock();
-      notifyListeners();
-      return true;
-    }
-    _failedUnlocks++;
-    _unlockLockedUntil = clock.now().add(
-      Duration(milliseconds: 500 * _failedUnlocks),
-    );
-    return false;
-  }
-
-  void _set(void Function() apply, [Future<void> Function()? after]) {
-    apply();
-    final done = after?.call();
-    if (done != null) {
-      unawaited(done.then((_) => _refreshSystemState()));
-    }
-    notifyListeners();
-  }
+  Future<bool> tryUnlock(String password) => _status.tryUnlock(password);
 
   var _disposed = false;
 
   @override
   void dispose() {
     _disposed = true;
-    _bannerTimer?.cancel();
-    _batteryTimer?.cancel();
+    _notifications.dispose();
+    _status.dispose();
     for (final w in windows) {
-      w.launchTimer?.cancel();
+      w.cancelLaunch();
     }
     _requestSub?.cancel();
     _identifyTimer?.cancel();

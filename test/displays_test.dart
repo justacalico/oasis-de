@@ -593,7 +593,7 @@ void main() {
       host.calls.any((c) => c.startsWith('surfaceOutputs:')),
       isTrue,
     );
-    w.zoomed = true;
+    w.setZoomed(true);
     controller.notifyListeners();
     await tester.pumpAndSettle();
   });

@@ -121,7 +121,7 @@ class _DesktopShellState extends State<DesktopShell> {
     final sy = buf.height > 0 ? s.size.height / buf.height : 1.0;
     final head = _windowHeadRect(w, MediaQuery.sizeOf(context));
     final base = w.zoomed
-        ? head.topLeft + const Offset(0, kMenuBarHeight + 4)
+        ? head.topLeft + const Offset(0, kWindowEdgeTop)
         : w.fullscreen
         ? head.topLeft
         : w.position;
@@ -641,7 +641,7 @@ class _DesktopShellState extends State<DesktopShell> {
     }
     return Rect.fromLTWH(
       left,
-      head.top + kMenuBarHeight + 4 + insets.top,
+      head.top + kWindowEdgeTop + insets.top,
       math.max(0, width),
       math.max(0, height),
     );
@@ -688,7 +688,7 @@ class _DesktopShellState extends State<DesktopShell> {
     final base = w.fullscreen
         ? head.topLeft
         : w.zoomed
-        ? head.topLeft + const Offset(0, kMenuBarHeight + 4)
+        ? head.topLeft + const Offset(0, kWindowEdgeTop)
         : w.position;
     var pos =
         base +
