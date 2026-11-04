@@ -2,7 +2,7 @@ name: oasis_landing
 description: The Oasis landing page.
 publish_to: none
 resolution: workspace
-version: 0.12.4
+version: 0.12.5
 
 environment:
   sdk: ^3.9.0

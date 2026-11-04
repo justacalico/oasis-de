@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.12.5 - 2026-11-04
+#### Bug Fixes
+- 修复窗口缩放时的尺寸回弹抖动 - (2faf9fb) - HttpAnimations
+- 触发后释放 acquire 等待器避免 eventfd 泄漏 - (d528e21) - HttpAnimations
+- 用 V1 格式编译键位图消除 Xwayland 修饰键警告 - (0a36123) - HttpAnimations
+- 修正 acquire 等待传给 syncobj eventfd 的标志 - (bd3fd4c) - HttpAnimations
+
+- - -
+
 ## v0.12.4 - 2026-11-04
 #### Bug Fixes
 - 修复显式同步客户端无缓冲区提交导致的合成器崩溃 - (8a0cb1e) - HttpAnimations
