@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.12.4 - 2026-11-04
+#### Bug Fixes
+- 修复显式同步客户端无缓冲区提交导致的合成器崩溃 - (8a0cb1e) - HttpAnimations
+#### Refactoring
+- 移除自动强调色并默认使用蓝色 - (c03e8a5) - HttpAnimations
+- 拆分 ShellController 并封装窗口状态 - (212568e) - HttpAnimations
+
+- - -
+
 ## v0.12.3 - 2026-11-02
 #### Bug Fixes
 - 修复带几何偏移窗口的指针坐标错位 - (1fbd78f) - HttpAnimations
