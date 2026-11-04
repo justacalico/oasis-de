@@ -196,7 +196,7 @@ class ShellController extends ChangeNotifier {
   /// position the dropdown under the correct output.
   Rect? menuAnchor;
   int? _surfaceDragId;
-  ({int id, OasisResizeEdge edge})? _surfaceResize;
+  ({int id, OasisResizeEdge edge})? _resizeGesture;
   var launcherOpen = false;
   var launchPadOpen = false;
   var controlCenterOpen = false;
@@ -206,7 +206,10 @@ class ShellController extends ChangeNotifier {
   int? get focusedId => _focusedId;
   String? get openMenu => _openMenu;
   int? get surfaceDragWindowId => _surfaceDragId;
-  ({int id, OasisResizeEdge edge})? get surfaceResize => _surfaceResize;
+
+  /// Active interactive resize grab, whether started by a client's
+  /// xdg resize request or by a shell resize grabber.
+  ({int id, OasisResizeEdge edge})? get resizeGesture => _resizeGesture;
 
   var _pinsLoaded = false;
   final List<String> _pendingPinIds = [];
@@ -545,6 +548,15 @@ class ShellController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void beginResize(int id, OasisResizeEdge edge) {
+    if (_byId(id) == null ||
+        _resizeGesture == (id: id, edge: edge)) {
+      return;
+    }
+    _resizeGesture = (id: id, edge: edge);
+    notifyListeners();
+  }
+
   void resizeWindow(int id, Offset delta, OasisResizeEdge edge, Size fallback) {
     final window = _byId(id);
     if (window == null ||
@@ -591,8 +603,10 @@ class ShellController extends ChangeNotifier {
   }
 
   void endSurfaceGesture([Offset? pointer, Size? screen]) {
+    final wasResizing = _resizeGesture != null;
     _surfaceDragId = null;
-    _surfaceResize = null;
+    _resizeGesture = null;
+    if (wasResizing) notifyListeners();
     final wid = _dragWindowId;
     _dragWindowId = null;
     final w = wid == null ? null : _byId(wid);
@@ -701,6 +715,9 @@ class ShellController extends ChangeNotifier {
       final s = w.surface;
       if (s != null && !service.surfaces.containsKey(s.id)) {
         windows.removeAt(i);
+        if (_resizeGesture?.id == w.id) _resizeGesture = null;
+        if (_surfaceDragId == w.id) _surfaceDragId = null;
+        if (_dragWindowId == w.id) _dragWindowId = null;
         if (_focusedId == w.id) {
           _focusedId = null;
           _promoteFocus();
@@ -750,6 +767,7 @@ class ShellController extends ChangeNotifier {
     for (final w in windows) {
       final s = w.surface;
       if (s == null || w.zoomed || s.size.isEmpty) continue;
+      if (_resizeGesture?.id == w.id) continue;
       if (s.size == w.adoptedSize) continue;
       w.adoptedSize = s.size;
       final fit = Size(
@@ -806,7 +824,7 @@ class ShellController extends ChangeNotifier {
       case WaylandRequestType.resize:
         final edge = _waylandResizeEdges[request.edges];
         if (edge != null) {
-          _surfaceResize = (id: w.id, edge: edge);
+          beginResize(w.id, edge);
         }
       case WaylandRequestType.windowMenu:
     }
