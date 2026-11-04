@@ -24,6 +24,9 @@ class OasisHostDbusLink implements OasisHostLink {
   Stream<Map<String, Object?>> get events => const Stream.empty();
 
   @override
+  Future<void> get eventsReady => Future.value();
+
+  @override
   Future<void> close() async {}
 }
 

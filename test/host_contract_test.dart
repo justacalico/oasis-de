@@ -80,6 +80,38 @@ class _ProbeLink implements OasisHostLink {
   Stream<Map<String, Object?>> get events => eventsCtrl.stream;
 
   @override
+  Future<void> get eventsReady => Future.value();
+
+  @override
+  Future<void> close() => eventsCtrl.close();
+}
+
+class _GatedLink implements OasisHostLink {
+  _GatedLink(this.state);
+
+  final Map<String, Object?> state;
+  final eventsCtrl = StreamController<Map<String, Object?>>.broadcast();
+  final _ready = Completer<void>();
+  var getStateCalls = 0;
+
+  void release() => _ready.complete();
+
+  @override
+  Future<Map<String, Object?>> request(
+    String method, [
+    Map<String, Object?> params = const {},
+  ]) {
+    if (method == 'getState') getStateCalls++;
+    return Future.value(Map.of(state));
+  }
+
+  @override
+  Stream<Map<String, Object?>> get events => eventsCtrl.stream;
+
+  @override
+  Future<void> get eventsReady => _ready.future;
+
+  @override
   Future<void> close() => eventsCtrl.close();
 }
 
@@ -95,6 +127,9 @@ class _FailLink implements OasisHostLink {
 
   @override
   Stream<Map<String, Object?>> get events => _events.stream;
+
+  @override
+  Future<void> get eventsReady => Future.value();
 
   @override
   Future<void> close() => _events.close();
@@ -342,6 +377,25 @@ void main() {
       await r.client.link.request('setThemeMode', {'mode': 'plaid'});
       expect(r.server.appearance.themeMode, OasisThemeMode.light);
       await r.close();
+    });
+
+    test('connect snapshots only once events are live', () async {
+      final link = _GatedLink({
+        'themeMode': 'dark',
+        'accent': null,
+        'locale': 'en',
+        'openUrl': false,
+        'updates': null,
+      });
+      final connecting = OasisHostConnection.connect(link);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(link.getStateCalls, 0);
+      link.state['themeMode'] = 'oled';
+      link.release();
+      final conn = await connecting;
+      expect(link.getStateCalls, 1);
+      expect(conn.appearance.themeMode, OasisThemeMode.oled);
+      await conn.close();
     });
 
     test('malformed events are ignored safely', () async {
