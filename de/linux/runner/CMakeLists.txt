@@ -50,11 +50,24 @@ add_custom_target(wlr_protocols_gen DEPENDS ${PROTOCOL_HEADERS})
 
 set(COMPOSITOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../compositor")
 
+set(APPMENU_XML "${COMPOSITOR_DIR}/protocols/appmenu.xml")
+add_custom_command(
+  OUTPUT "${PROTOCOL_GEN_DIR}/appmenu-protocol.h"
+         "${PROTOCOL_GEN_DIR}/appmenu-protocol.c"
+  COMMAND "${WAYLAND_SCANNER}" server-header "${APPMENU_XML}"
+          "${PROTOCOL_GEN_DIR}/appmenu-protocol.h"
+  COMMAND "${WAYLAND_SCANNER}" private-code "${APPMENU_XML}"
+          "${PROTOCOL_GEN_DIR}/appmenu-protocol.c"
+  DEPENDS "${APPMENU_XML}"
+  VERBATIM)
+
 add_executable(${BINARY_NAME}
   "main.cc"
   "my_application.cc"
   "oasis_compositor.cc"
   "oasis_textures.cc"
+  "${PROTOCOL_GEN_DIR}/appmenu-protocol.c"
+  "${COMPOSITOR_DIR}/oasis_appmenu.cc"
   "${COMPOSITOR_DIR}/oasis_capture.cc"
   "${COMPOSITOR_DIR}/oasis_clipboard.cc"
   "${COMPOSITOR_DIR}/oasis_core.cc"

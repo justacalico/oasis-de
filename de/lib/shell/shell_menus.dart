@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
+import '../services/app_menu.dart';
 import 'context_menu.dart';
 import 'shell_controller.dart';
 
@@ -12,38 +16,53 @@ List<ShellMenu> buildShellMenus(
   final focused = controller.focusedWindow;
   final about = apps['about'];
   final settings = apps['settings'];
+  final appEntry = ShellMenu(
+    label: appName,
+    items: (context) => [
+      ShellMenuItem(
+        label: l10n.menuAbout,
+        separatorAfter: true,
+        enabled: about != null,
+        action: (_) {
+          if (about != null) controller.openApp(about);
+        },
+      ),
+      ShellMenuItem(
+        label: l10n.menuSettings,
+        separatorAfter: true,
+        enabled: settings != null,
+        action: (_) {
+          if (settings != null) controller.openApp(settings);
+        },
+      ),
+      ShellMenuItem(
+        label: l10n.menuQuit,
+        action: (ctx) => confirmShellAction(
+          ctx,
+          message: l10n.sessionConfirmLogOut,
+          cancelLabel: l10n.dialogCancel,
+          confirmLabel: l10n.sessionLogOut,
+          onConfirm: () => controller.session(OasisSessionAction.logout),
+        ),
+      ),
+    ],
+  );
+  final appMenu = controller.appMenu;
+  final nodes = appMenu?.menus ?? const <AppMenuNode>[];
+  if (nodes.isNotEmpty && appMenu != null) {
+    return [
+      appEntry,
+      for (final n in nodes)
+        ShellMenu(
+          label: n.label,
+          onOpen: () => unawaited(appMenu.openMenu(n)),
+          onClose: () => unawaited(appMenu.closeMenu(n)),
+          items: (_) => _dbusItems(appMenu, n),
+        ),
+    ];
+  }
   return [
-    ShellMenu(
-      label: appName,
-      items: (context) => [
-        ShellMenuItem(
-          label: l10n.menuAbout,
-          separatorAfter: true,
-          enabled: about != null,
-          action: (_) {
-            if (about != null) controller.openApp(about);
-          },
-        ),
-        ShellMenuItem(
-          label: l10n.menuSettings,
-          separatorAfter: true,
-          enabled: settings != null,
-          action: (_) {
-            if (settings != null) controller.openApp(settings);
-          },
-        ),
-        ShellMenuItem(
-          label: l10n.menuQuit,
-          action: (ctx) => confirmShellAction(
-            ctx,
-            message: l10n.sessionConfirmLogOut,
-            cancelLabel: l10n.dialogCancel,
-            confirmLabel: l10n.sessionLogOut,
-            onConfirm: () => controller.session(OasisSessionAction.logout),
-          ),
-        ),
-      ],
-    ),
+    appEntry,
     ShellMenu(
       label: l10n.menuFile,
       items: (context) => [
@@ -126,4 +145,46 @@ List<ShellMenu> buildShellMenus(
       ],
     ),
   ];
+}
+
+List<ShellMenuItem> _dbusItems(AppMenuService service, AppMenuNode parent) {
+  final out = <ShellMenuItem>[];
+  for (final n in parent.children) {
+    if (n.separator) {
+      if (out.isNotEmpty) {
+        final last = out.removeLast();
+        out.add(
+          ShellMenuItem(
+            label: last.label,
+            enabled: last.enabled,
+            separatorAfter: true,
+            checked: last.checked,
+            trailing: last.trailing,
+            action: last.action,
+            children: last.children,
+            onOpen: last.onOpen,
+            onClose: last.onClose,
+            onHover: last.onHover,
+          ),
+        );
+      }
+      continue;
+    }
+    if (n.label.isEmpty) continue;
+    final sub = n.children.isNotEmpty;
+    out.add(
+      ShellMenuItem(
+        label: n.label,
+        enabled: n.enabled,
+        checked: n.checked,
+        trailing: n.shortcut.isNotEmpty ? Text(n.shortcut) : null,
+        children: sub ? () => _dbusItems(service, n) : null,
+        onOpen: sub ? () => unawaited(service.openMenu(n)) : null,
+        onClose: sub ? () => unawaited(service.closeMenu(n)) : null,
+        onHover: () => unawaited(service.hoverItem(n)),
+        action: sub ? null : (_) => unawaited(service.activate(n)),
+      ),
+    );
+  }
+  return out;
 }

@@ -51,6 +51,17 @@ class WaylandSurface {
   bool get clientDecorated =>
       decorationMode != 2 || _selfDecoratedAppIds.contains(appId);
 
+  /// Client process id behind the surface, -1 when unknown.
+  int pid = -1;
+
+  /// X11 window id for XWayland clients, 0 otherwise.
+  int xid = 0;
+
+  /// com.canonical.dbusmenu location exported through
+  /// org_kde_kwin_appmenu, empty when the client has none.
+  String appMenuService = '';
+  String appMenuPath = '';
+
   bool isLayer = false;
   bool isLock = false;
   int layerIndex = 0;
@@ -353,12 +364,18 @@ class WaylandService extends ChangeNotifier {
     switch (e['event']) {
       case 'toplevel':
         final parentId = (e['parent'] as num?)?.toInt() ?? -1;
-        surfaces[id] = WaylandSurface(
-          id: id,
-          textureId: (e['textureId'] as num?)?.toInt() ?? -1,
-          title: e['title'] as String? ?? '',
-          appId: e['appId'] as String? ?? '',
-        )..transientParentId = parentId >= 0 ? parentId : null;
+        surfaces[id] =
+            WaylandSurface(
+                id: id,
+                textureId: (e['textureId'] as num?)?.toInt() ?? -1,
+                title: e['title'] as String? ?? '',
+                appId: e['appId'] as String? ?? '',
+              )
+              ..transientParentId = parentId >= 0 ? parentId : null
+              ..pid = (e['pid'] as num?)?.toInt() ?? -1
+              ..xid = (e['xid'] as num?)?.toInt() ?? 0
+              ..appMenuService = e['menuService'] as String? ?? ''
+              ..appMenuPath = e['menuPath'] as String? ?? '';
         final adoptees = _pendingSubs.remove(id);
         if (adoptees != null) surfaces[id]!.children.addAll(adoptees);
       case 'toplevelParent':
@@ -370,6 +387,12 @@ class WaylandService extends ChangeNotifier {
         surfaces[id]?.title = e['title'] as String? ?? '';
       case 'appId':
         surfaces[id]?.appId = e['appId'] as String? ?? '';
+      case 'appMenu':
+        final s = surfaces[id];
+        if (s != null) {
+          s.appMenuService = e['service'] as String? ?? '';
+          s.appMenuPath = e['path'] as String? ?? '';
+        }
       case 'size':
         final s = surfaces[id];
         if (s != null) {

@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import 'apps/shell_apps.dart';
+import 'services/app_menu.dart';
 import 'services/mpris.dart';
 import 'services/notifications.dart';
 import 'services/screenshot.dart';
@@ -37,6 +38,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.externalAppsLoader = loadExternalApps,
     this.notificationDaemon,
     this.mpris,
+    this.appMenu,
     this.appDirWatcher,
     this.store,
     this.backend,
@@ -58,6 +60,7 @@ class OasisDesktopApp extends StatefulWidget {
   final Future<List<OasisApp>> Function() externalAppsLoader;
   final NotificationDaemon? notificationDaemon;
   final MprisService? mpris;
+  final AppMenuService? appMenu;
   final Stream<void> Function()? appDirWatcher;
   final OasisStore? store;
   final OasisSystemBackend? backend;
@@ -68,7 +71,7 @@ class OasisDesktopApp extends StatefulWidget {
   final ScreenshotService? screenshots;
   final bool exportHostService;
   final OasisHostDbusServer Function(OasisHostEndpoint endpoint)?
-      hostServerFactory;
+  hostServerFactory;
 
   @override
   State<OasisDesktopApp> createState() => _OasisDesktopAppState();
@@ -86,6 +89,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final WaylandDisplayBackend _displayBackend;
   late final DisplaysDaemon _displaysDaemon;
   late final MprisService _mpris;
+  late final AppMenuService _appMenu;
   late final OasisKeybindsService _keybinds;
   late final OasisMouseSettings _mouse;
   late final OasisTrackpadSettings _trackpad;
@@ -114,6 +118,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _wayland = widget.wayland ?? WaylandService();
     _powerBackend = WaylandPowerBackend(_wayland, store: widget.store);
     _mpris = widget.mpris ?? MprisService();
+    _appMenu = widget.appMenu ?? AppMenuService();
     _backend = widget.backend ?? const CliSystemBackend();
     _keybinds = widget.keybinds ?? OasisKeybindsService(store: widget.store);
     _mouse = widget.mouse ?? OasisMouseSettings(store: widget.store);
@@ -126,6 +131,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       wayland: _wayland,
       backend: _backend,
       mpris: _mpris,
+      appMenu: _appMenu,
       dash: _dash,
       keybinds: _keybinds,
       screenshots: widget.screenshots,
@@ -288,6 +294,8 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     );
     unawaited(_displaysDaemon.start());
     unawaited(_mpris.start());
+    unawaited(_appMenu.start());
+    _appMenu.onItemActivation = (node) => _controller.selectMenu(node.label);
     if (!mounted) return;
     Future<void> reload() async {
       final apps = await widget.externalAppsLoader();
@@ -314,6 +322,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _controller.dispose();
     _wayland.dispose();
     _mpris.dispose();
+    unawaited(_appMenu.stop());
     _keybinds.dispose();
     _updates.dispose();
     unawaited(_hostServer?.close() ?? Future.value());
@@ -427,5 +436,3 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     return focused?.displayTitle ?? l10n.appName;
   }
 }
-
-

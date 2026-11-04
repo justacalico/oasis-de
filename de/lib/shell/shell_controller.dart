@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oasis_ui/oasis_ui.dart';
 
+import '../services/app_menu.dart';
 import '../services/mpris.dart';
 import '../services/notifications.dart';
 import '../services/screenshot.dart';
@@ -38,10 +39,17 @@ typedef ShellMenuItem = OasisMenuItem;
 typedef ShellMenuAction = void Function(BuildContext context);
 
 class ShellMenu {
-  const ShellMenu({required this.label, required this.items});
+  const ShellMenu({
+    required this.label,
+    required this.items,
+    this.onOpen,
+    this.onClose,
+  });
 
   final String label;
   final List<ShellMenuItem> Function(BuildContext context) items;
+  final void Function()? onOpen;
+  final void Function()? onClose;
 }
 
 class ShellController extends ChangeNotifier {
@@ -50,6 +58,7 @@ class ShellController extends ChangeNotifier {
     this.wayland,
     OasisSystemBackend backend = const NoopSystemBackend(),
     this.mpris,
+    this.appMenu,
     this.dash,
     OasisKeybindsService? keybinds,
     ScreenshotService? screenshots,
@@ -74,6 +83,7 @@ class ShellController extends ChangeNotifier {
     wayland?.addListener(_syncSurfaces);
     wayland?.onIdleSuspend = idleSuspend;
     mpris?.addListener(notifyListeners);
+    appMenu?.addListener(notifyListeners);
     _requestSub = wayland?.requests.listen(_onWaylandRequest);
   }
 
@@ -82,6 +92,7 @@ class ShellController extends ChangeNotifier {
   final List<ShellWindowData> windows = [];
   final WaylandService? wayland;
   final MprisService? mpris;
+  final AppMenuService? appMenu;
   final OasisDashSettings? dash;
   final OasisKeybindsService keybinds;
   final ScreenshotService screenshots;
@@ -126,6 +137,7 @@ class ShellController extends ChangeNotifier {
   @override
   void notifyListeners() {
     _syncSurfaceOutputs();
+    appMenu?.track(focusedWindow?.surface);
     super.notifyListeners();
   }
 
@@ -1235,6 +1247,7 @@ class ShellController extends ChangeNotifier {
     wayland?.onIdleSuspend = null;
     wayland?.removeListener(_syncSurfaces);
     mpris?.removeListener(notifyListeners);
+    appMenu?.removeListener(notifyListeners);
     super.dispose();
   }
 }
