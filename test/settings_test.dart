@@ -124,9 +124,9 @@ void main() {
     await tester.tap(find.text('Light'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('A'));
+    await tester.tap(find.byKey(const ValueKey(Color(0xFFBF5AF2))));
     await tester.pumpAndSettle();
-    expect(appearance.accent, isNull);
+    expect(appearance.accent, const Color(0xFFBF5AF2));
   });
 
   testWidgets('language picker updates host locale', (tester) async {
