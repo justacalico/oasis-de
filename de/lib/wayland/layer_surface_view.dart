@@ -79,7 +79,7 @@ class _ClientSurfaceGestureState extends State<_ClientSurfaceGesture> {
         final box = constraints.biggest;
         return SurfaceHitRegion(
           region: widget.surface.inputRegion,
-          surfaceSize: logicalSurfaceSize(widget.surface),
+          surfaceSize: widget.surface.size,
           child: MouseRegion(
             onExit: (_) => widget.service.pointerExit(widget.surface.id),
             cursor: waylandMouseCursor(widget.service),

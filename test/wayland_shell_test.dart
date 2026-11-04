@@ -365,7 +365,7 @@ void main() {
     service.dispose();
   });
 
-  testWidgets('popup position scales with parent buffer', (tester) async {
+  testWidgets('popup position scales with parent viewport', (tester) async {
     final host = FakeWaylandHost();
     final service = await _service(host);
     final c = ShellController(apps: [_external('x')], wayland: service);
@@ -378,6 +378,8 @@ void main() {
       'h': 240,
       'bw': 640,
       'bh': 480,
+      'vsw': 640,
+      'vsh': 480,
     });
     host.emit({
       'event': 'popup',
@@ -405,7 +407,7 @@ void main() {
     service.dispose();
   });
 
-  testWidgets('subsurface layers scale with parent buffer', (tester) async {
+  testWidgets('subsurface layers scale with parent viewport', (tester) async {
     final host = FakeWaylandHost();
     final service = await _service(host);
     _emitToplevel(host);
@@ -416,6 +418,8 @@ void main() {
       'h': 100,
       'bw': 400,
       'bh': 200,
+      'vsw': 400,
+      'vsh': 200,
       'textureId': 50,
     });
     host.emit({'event': 'subsurface', 'id': 2, 'parent': 1, 'x': 40, 'y': 20});
@@ -438,6 +442,42 @@ void main() {
     expect(textures, hasLength(2));
     expect(tester.getTopLeft(find.byWidget(textures[1])), const Offset(20, 10));
     expect(tester.getSize(find.byWidget(textures[1])), const Size(40, 20));
+    service.dispose();
+  });
+
+  testWidgets('geometry inset texture still covers the view', (tester) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    _emitToplevel(host);
+    host.emit({
+      'event': 'size',
+      'id': 1,
+      'w': 800,
+      'h': 647,
+      'bw': 852,
+      'bh': 693,
+      'gx': 26,
+      'gy': 23,
+      'textureId': 50,
+    });
+    await tester.pump();
+    final surface = service.surfaces[1]!;
+
+    await pumpOasis(
+      tester,
+      SizedBox(
+        width: 800,
+        height: 647,
+        child: WaylandLayerTree(service: service, surface: surface),
+      ),
+      size: const Size(800, 647),
+    );
+
+    final rect = tester.getRect(find.byType(Texture));
+    expect(rect.left, lessThanOrEqualTo(0));
+    expect(rect.top, lessThanOrEqualTo(0));
+    expect(rect.right, greaterThanOrEqualTo(800));
+    expect(rect.bottom, greaterThanOrEqualTo(647));
     service.dispose();
   });
 
@@ -747,7 +787,7 @@ void main() {
       TestPointer(1, PointerDeviceKind.mouse).hover(const Offset(200, 150)),
     );
     await tester.pump();
-    expect(host.calls, contains('motion:1:200.0:150.0'));
+    expect(host.calls, contains('motion:1:100.0:50.0'));
     service.dispose();
   });
 
@@ -1357,7 +1397,14 @@ void main() {
     );
     await tester.pumpAndSettle();
     _emitToplevel(host, id: 1, appId: 'x');
-    host.emit({'event': 'size', 'id': 1, 'w': 400, 'h': 300});
+    host.emit({
+      'event': 'size',
+      'id': 1,
+      'w': 400,
+      'h': 300,
+      'vsw': 800,
+      'vsh': 600,
+    });
     await tester.pumpAndSettle();
     host.emit({'event': 'windowMenu', 'id': 999, 'x': 0, 'y': 0});
     await tester.pump();

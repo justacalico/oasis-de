@@ -117,9 +117,11 @@ class _DesktopShellState extends State<DesktopShell> {
     final w = controller.windowForSurface(request.id);
     final s = w?.surface;
     if (w == null || s == null) return;
-    final buf = logicalSurfaceSize(s);
-    final sx = buf.width > 0 ? s.size.width / buf.width : 1.0;
-    final sy = buf.height > 0 ? s.size.height / buf.height : 1.0;
+    final src = s.vpSrc;
+    final sx = src != null && src.width > 0 ? s.size.width / src.width : 1.0;
+    final sy = src != null && src.height > 0
+        ? s.size.height / src.height
+        : 1.0;
     final head = _windowHeadRect(w, MediaQuery.sizeOf(context));
     final base = w.zoomed
         ? head.topLeft + const Offset(0, kWindowEdgeTop)
@@ -129,7 +131,10 @@ class _DesktopShellState extends State<DesktopShell> {
     final pos =
         base +
         Offset(0, w.titleBarHeight) +
-        Offset(request.x * sx, request.y * sy);
+        Offset(
+          (request.x - s.geoOffset.dx) * sx,
+          (request.y - s.geoOffset.dy) * sy,
+        );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _windowMenu(context, pos, w);
     });
@@ -670,9 +675,13 @@ class _DesktopShellState extends State<DesktopShell> {
     if (w.minimized || w.workspace != controller.activeWorkspace) {
       return null;
     }
-    final buf = logicalSurfaceSize(parent);
-    final sx = buf.width > 0 ? parent.size.width / buf.width : 1.0;
-    final sy = buf.height > 0 ? parent.size.height / buf.height : 1.0;
+    final src = parent.vpSrc;
+    final sx = src != null && src.width > 0
+        ? parent.size.width / src.width
+        : 1.0;
+    final sy = src != null && src.height > 0
+        ? parent.size.height / src.height
+        : 1.0;
     final head = _windowHeadRect(w, MediaQuery.sizeOf(context));
     final base = w.fullscreen
         ? head.topLeft
@@ -682,7 +691,10 @@ class _DesktopShellState extends State<DesktopShell> {
     var pos =
         base +
         (w.fullscreen ? Offset.zero : Offset(0, w.titleBarHeight)) +
-        Offset(offset.dx * sx, offset.dy * sy);
+        Offset(
+          (offset.dx - parent.geoOffset.dx) * sx,
+          (offset.dy - parent.geoOffset.dy) * sy,
+        );
     final screen = MediaQuery.sizeOf(context);
     pos = Offset(
       pos.dx.clamp(0, math.max(0, screen.width - popup.size.width)),
