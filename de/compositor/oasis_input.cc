@@ -4,7 +4,10 @@
 
 #include <wayland-server.h>
 
+#include <linux/input-event-codes.h>
+#include <math.h>
 #include <pthread.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "oasis_wlr.h"
@@ -173,8 +176,20 @@ void OasisCore::pointerExit() {
   comp_flush(p);
 }
 
+void OasisCore::setPointerConfig(const char* device,
+                                 const OasisPointerPrefs& prefs) {
+  auto& slot = device != nullptr && strcmp(device, "trackpad") == 0
+                   ? p->trackpad_prefs
+                   : p->mouse_prefs;
+  slot = prefs;
+}
+
 void OasisCore::pointerButton(uint32_t button, bool pressed) {
   if (idle_wake(p)) return;
+  if (p->mouse_prefs.leftHanded) {
+    if (button == BTN_LEFT) button = BTN_RIGHT;
+    else if (button == BTN_RIGHT) button = BTN_LEFT;
+  }
   uint32_t serial = wlr_seat_pointer_notify_button(
       p->seat, now_ms(), button,
       pressed ? WL_POINTER_BUTTON_STATE_PRESSED
@@ -187,6 +202,16 @@ void OasisCore::pointerButton(uint32_t button, bool pressed) {
 void OasisCore::pointerAxis(double dx, double dy, uint32_t source,
                                   int32_t discrete) {
   if (idle_wake(p)) return;
+  const auto& prefs = source == WL_POINTER_AXIS_SOURCE_FINGER
+                          ? p->trackpad_prefs
+                          : p->mouse_prefs;
+  double factor = pow(2.0, (prefs.scrollSpeed - 0.5) * 4.0);
+  dx *= factor;
+  dy *= factor;
+  if (prefs.naturalScrolling) {
+    dx = -dx;
+    dy = -dy;
+  }
   auto src = static_cast<wl_pointer_axis_source>(source);
   if (dx != 0) {
     wlr_seat_pointer_notify_axis(

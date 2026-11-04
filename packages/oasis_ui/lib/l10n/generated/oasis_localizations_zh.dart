@@ -748,4 +748,37 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get keybindRemove => '移除';
+
+  @override
+  String get settingsMouse => '鼠标';
+
+  @override
+  String get settingsTrackpad => '触控板';
+
+  @override
+  String get pointerSpeed => '指针速度';
+
+  @override
+  String get pointerPrimaryButton => '主按钮';
+
+  @override
+  String get pointerButtonLeft => '左';
+
+  @override
+  String get pointerButtonRight => '右';
+
+  @override
+  String get pointerScrolling => '滚动';
+
+  @override
+  String get pointerScrollSpeed => '滚动速度';
+
+  @override
+  String get pointerNaturalScrolling => '自然滚动';
+
+  @override
+  String get trackpadTapToClick => '轻点来点按';
+
+  @override
+  String get trackpadTwoFingerScroll => '双指滚动';
 }

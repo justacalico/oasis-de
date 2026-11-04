@@ -44,6 +44,7 @@ abstract class WaylandHost {
     int discrete = 0,
   });
   Future<void> pointerAxisStop();
+  Future<void> inputConfig(Map<String, Object?> config);
   Future<void> touchDown(int id, int tid, double x, double y);
   Future<void> touchMotion(int tid, double x, double y);
   Future<void> touchUp(int tid);
@@ -180,6 +181,10 @@ class ChannelWaylandHost extends WaylandHost {
   @override
   Future<void> pointerAxisStop() =>
       _methods.invokeMethod('pointerAxisStop');
+
+  @override
+  Future<void> inputConfig(Map<String, Object?> config) =>
+      _methods.invokeMethod('inputConfig', config);
 
   @override
   Future<void> touchDown(int id, int tid, double x, double y) =>

@@ -4,6 +4,7 @@ export 'src/services/display_backend_cli_stub.dart'
     if (dart.library.io) 'src/services/display_backend_cli_io.dart';
 export 'src/services/dock_settings.dart';
 export 'src/services/oasis_store.dart';
+export 'src/services/pointer_settings.dart';
 export 'src/services/power_backend.dart';
 export 'src/services/system_backend.dart';
 export 'src/services/system_backend_cli_stub.dart'

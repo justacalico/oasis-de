@@ -306,5 +306,16 @@
   "keybindAdd": "Add shortcut",
   "keybindReset": "Reset to defaults",
   "keybindCommandHint": "Command to run",
-  "keybindRemove": "Remove"
+  "keybindRemove": "Remove",
+  "settingsMouse": "Mouse",
+  "settingsTrackpad": "Trackpad",
+  "pointerSpeed": "Pointer speed",
+  "pointerPrimaryButton": "Primary button",
+  "pointerButtonLeft": "Left",
+  "pointerButtonRight": "Right",
+  "pointerScrolling": "Scrolling",
+  "pointerScrollSpeed": "Scroll speed",
+  "pointerNaturalScrolling": "Natural scrolling",
+  "trackpadTapToClick": "Tap to click",
+  "trackpadTwoFingerScroll": "Two-finger scrolling"
 }

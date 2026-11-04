@@ -292,6 +292,7 @@ struct OasisPrivate {
   double lock_sx = 0, lock_sy = 0;
   double ptr_in_x = 0, ptr_in_y = 0;
   int64_t ptr_in_id = -1;
+  OasisPointerPrefs mouse_prefs, trackpad_prefs;
 
   wlr_keyboard* vkb = nullptr;
   xkb_context* xkb_ctx = nullptr;

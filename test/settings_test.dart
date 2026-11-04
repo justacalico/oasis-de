@@ -81,7 +81,7 @@ void main() {
     await pumpOasis(
       tester,
       _host(child: const SettingsHome(version: '9.9.9')),
-      size: const Size(900, 620),
+      size: const Size(900, 760),
     );
     expect(find.text('Appearance'), findsWidgets);
     expect(find.text('System'), findsNothing);
@@ -165,7 +165,7 @@ void main() {
           ),
         ),
       ),
-      size: const Size(900, 620),
+      size: const Size(900, 760),
     );
     await tester.tap(find.text('About').first);
     await tester.pumpAndSettle();
@@ -183,7 +183,7 @@ void main() {
         child: const SettingsHome(),
         checker: _FakeChecker(const AppUpdate(latestVersion: '1.0.0')),
       ),
-      size: const Size(900, 620),
+      size: const Size(900, 760),
     );
     await tester.tap(find.text('About').first);
     await tester.pumpAndSettle();
@@ -197,7 +197,7 @@ void main() {
         child: const SettingsHome(),
         checker: _FakeChecker(const AppUpdate(), error: 'no network'),
       ),
-      size: const Size(900, 620),
+      size: const Size(900, 760),
     );
     await tester.tap(find.text('About').first);
     await tester.pumpAndSettle();
@@ -697,7 +697,7 @@ void main() {
     await pumpOasis(
       tester,
       _host(child: const SettingsHome()),
-      size: const Size(900, 620),
+      size: const Size(900, 760),
     );
     expect(find.text('Displays'), findsOneWidget);
     await tester.enterText(find.byType(TextField).first, 'dis');
@@ -706,7 +706,7 @@ void main() {
     expect(find.byType(OasisNavRow), findsNWidgets(1));
     await tester.enterText(find.byType(TextField).first, '');
     await tester.pumpAndSettle();
-    expect(find.byType(OasisNavRow), findsNWidgets(13));
+    expect(find.byType(OasisNavRow), findsNWidgets(15));
   });
 
   testWidgets('new panes drive backend and render', (tester) async {
@@ -722,7 +722,7 @@ void main() {
     await pumpOasis(
       tester,
       _host(child: SettingsHome(state: s)),
-      size: const Size(900, 620),
+      size: const Size(900, 760),
     );
 
     await tester.tap(find.text('Displays'));
@@ -820,6 +820,153 @@ void main() {
     expect(restored.sleepDelay, Duration.zero);
     s.dispose();
     restored.dispose();
+  });
+
+  test('pointer settings persist per device', () {
+    final store = MemorySettingsStore();
+    final s = SettingsState(store: store);
+    expect(s.mouse.naturalScrolling, isFalse);
+    expect(s.trackpad.naturalScrolling, isFalse);
+
+    s.mouse.pointerSpeed = 0.2;
+    s.mouse.pointerSpeed = 0.2;
+    s.mouse.scrollSpeed = 1.4;
+    s.mouse.primaryButton = OasisPrimaryButton.right;
+    s.mouse.primaryButton = OasisPrimaryButton.right;
+    s.mouse.naturalScrolling = true;
+    s.mouse.naturalScrolling = true;
+    s.trackpad.pointerSpeed = -0.5;
+    s.trackpad.scrollSpeed = 0.9;
+    s.trackpad.tapToClick = true;
+    s.trackpad.twoFingerScrolling = false;
+
+    expect(s.mouse.scrollSpeed, 1.0);
+    expect(s.trackpad.pointerSpeed, 0.0);
+    expect(s.trackpad.naturalScrolling, isFalse);
+    expect(store.read('shell.mouse.naturalScrolling'), '1');
+    expect(store.read('shell.mouse.primaryButton'), 'right');
+    expect(store.read('shell.trackpad.scrollSpeed'), '0.9');
+    expect(store.read('shell.trackpad.tapToClick'), '1');
+    expect(store.read('shell.trackpad.twoFingerScrolling'), '0');
+    expect(store.read('shell.trackpad.naturalScrolling'), isNull);
+
+    final s2 = SettingsState(store: store);
+    expect(s2.mouse.pointerSpeed, 0.2);
+    expect(s2.mouse.naturalScrolling, isTrue);
+    expect(s2.mouse.primaryButton, OasisPrimaryButton.right);
+    expect(s2.trackpad.scrollSpeed, 0.9);
+    expect(s2.trackpad.tapToClick, isTrue);
+    expect(s2.trackpad.twoFingerScrolling, isFalse);
+    expect(s2.trackpad.naturalScrolling, isFalse);
+    s.dispose();
+    s2.dispose();
+  });
+
+  test('pointer settings tolerate missing store and bad values', () {
+    final bare = OasisPointerSettings(store: null, prefix: 'shell.pointer');
+    bare.naturalScrolling = true;
+    expect(bare.naturalScrolling, isTrue);
+    bare.pointerSpeed = 0.9;
+    bare.scrollSpeed = 0.1;
+    expect(bare.pointerSpeed, 0.9);
+    expect(bare.scrollSpeed, 0.1);
+
+    final bareMouse = OasisMouseSettings();
+    bareMouse.primaryButton = OasisPrimaryButton.right;
+    expect(bareMouse.primaryButton, OasisPrimaryButton.right);
+
+    final bareTrackpad = OasisTrackpadSettings();
+    bareTrackpad.tapToClick = true;
+    bareTrackpad.twoFingerScrolling = false;
+    expect(bareTrackpad.tapToClick, isTrue);
+    expect(bareTrackpad.twoFingerScrolling, isFalse);
+
+    final store = MemorySettingsStore();
+    store.write('shell.mouse.primaryButton', 'middle');
+    store.write('shell.mouse.pointerSpeed', 'junk');
+    store.write('shell.mouse.scrollSpeed', 'junk');
+    store.write('shell.mouse.naturalScrolling', 'yes');
+    store.write('shell.trackpad.pointerSpeed', 'junk');
+    store.write('shell.trackpad.scrollSpeed', 'junk');
+    store.write('shell.trackpad.naturalScrolling', 'yes');
+    store.write('shell.trackpad.tapToClick', 'yes');
+    store.write('shell.trackpad.twoFingerScrolling', 'yes');
+    final s = SettingsState(store: store);
+    expect(s.mouse.primaryButton, OasisPrimaryButton.left);
+    expect(s.mouse.pointerSpeed, 0.5);
+    expect(s.mouse.scrollSpeed, 0.5);
+    expect(s.mouse.naturalScrolling, isFalse);
+    expect(s.trackpad.pointerSpeed, 0.5);
+    expect(s.trackpad.scrollSpeed, 0.5);
+    expect(s.trackpad.naturalScrolling, isFalse);
+    expect(s.trackpad.tapToClick, isFalse);
+    expect(s.trackpad.twoFingerScrolling, isTrue);
+    s.dispose();
+  });
+
+  testWidgets('mouse and trackpad panes stay unlinked', (tester) async {
+    final store = MemorySettingsStore();
+    final s = SettingsState(store: store);
+    await pumpOasis(
+      tester,
+      _host(child: SettingsHome(state: s)),
+      size: const Size(900, 620),
+    );
+
+    await tester.tap(find.text('Mouse'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pointer speed'), findsOneWidget);
+    expect(find.text('Primary button'), findsOneWidget);
+    expect(find.text('Scroll speed'), findsOneWidget);
+    expect(find.text('Natural scrolling'), findsOneWidget);
+    expect(find.byType(OasisSlider), findsNWidgets(2));
+    expect(find.byType(OasisToggle), findsOneWidget);
+
+    await tester.drag(find.byType(OasisSlider).first, const Offset(60, 0));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(OasisSlider).at(1), const Offset(-60, 0));
+    await tester.pumpAndSettle();
+    expect(s.mouse.pointerSpeed, greaterThan(0.5));
+    expect(s.mouse.scrollSpeed, lessThan(0.5));
+
+    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Right').last);
+    await tester.pumpAndSettle();
+    expect(s.mouse.primaryButton, OasisPrimaryButton.right);
+
+    await tester.tap(find.byType(OasisToggle));
+    await tester.pumpAndSettle();
+    expect(s.mouse.naturalScrolling, isTrue);
+    expect(store.read('shell.mouse.naturalScrolling'), '1');
+
+    await tester.tap(find.text('Trackpad'));
+    await tester.pumpAndSettle();
+    expect(s.trackpad.naturalScrolling, isFalse);
+    expect(find.text('Tap to click'), findsOneWidget);
+    expect(find.text('Two-finger scrolling'), findsOneWidget);
+    expect(find.byType(OasisSlider), findsNWidgets(2));
+    expect(find.byType(OasisToggle), findsNWidgets(3));
+
+    await tester.drag(find.byType(OasisSlider).first, const Offset(60, 0));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(OasisSlider).at(1), const Offset(-60, 0));
+    await tester.pumpAndSettle();
+    expect(s.trackpad.pointerSpeed, greaterThan(0.5));
+    expect(s.trackpad.scrollSpeed, lessThan(0.5));
+
+    await tester.tap(find.byType(OasisToggle).at(0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(OasisToggle).at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(OasisToggle).at(2));
+    await tester.pumpAndSettle();
+    expect(s.trackpad.tapToClick, isTrue);
+    expect(s.trackpad.naturalScrolling, isTrue);
+    expect(s.trackpad.twoFingerScrolling, isFalse);
+    expect(s.mouse.naturalScrolling, isTrue);
+    expect(store.read('shell.trackpad.naturalScrolling'), '1');
+    s.dispose();
   });
 }
 

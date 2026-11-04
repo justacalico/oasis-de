@@ -2,6 +2,7 @@ export 'state/settings_state.dart';
 export 'views/displays_pane.dart';
 export 'views/dock_pane.dart';
 export 'views/keyboard_pane.dart';
+export 'views/pointer_pane.dart';
 export 'views/settings_home.dart';
 export 'views/panes.dart';
 export 'views/sound_pane.dart';

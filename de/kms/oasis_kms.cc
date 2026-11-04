@@ -261,6 +261,31 @@ static double cv_dbl(const Cv& v, const char* key) {
   return 0;
 }
 
+static std::string cv_str(const Cv& v, const char* key) {
+  auto* m = std::get_if<std::map<std::string, Cv>>(&v.v);
+  if (!m) return {};
+  auto it = m->find(key);
+  if (it == m->end()) return {};
+  if (auto s = std::get_if<std::string>(&it->second.v)) return *s;
+  return {};
+}
+
+static bool cv_bool(const Cv& v, const char* key, bool dflt = false) {
+  auto* m = std::get_if<std::map<std::string, Cv>>(&v.v);
+  if (!m) return dflt;
+  auto it = m->find(key);
+  if (it == m->end()) return dflt;
+  if (auto b = std::get_if<bool>(&it->second.v)) return *b;
+  if (auto i = std::get_if<int64_t>(&it->second.v)) return *i != 0;
+  return dflt;
+}
+
+// Live input devices and per-class pointer prefs, kept here so the method
+// handler (which sits earlier in this file) can re-apply them.
+static std::vector<libinput_device*> g_devices;
+static OasisPointerPrefs g_mouse_prefs, g_tp_prefs;
+static void apply_pointer_prefs_all();
+
 static Cv oval_to_cv(const Oval& o) {
   Cv c;
   if (std::holds_alternative<int64_t>(o.v)) {
@@ -1370,6 +1395,18 @@ static void handle_method(const Mc& mc,
   } else if (n == "pointerAxisStop") {
     g_core->pointerAxisStop();
     platform_reply(h, Cv{std::monostate{}});
+  } else if (n == "inputConfig") {
+    auto& prefs = cv_str(mc.args, "device") == "trackpad" ? g_tp_prefs
+                                                        : g_mouse_prefs;
+    prefs.pointerSpeed = cv_dbl(mc.args, "pointerSpeed");
+    prefs.scrollSpeed = cv_dbl(mc.args, "scrollSpeed");
+    prefs.naturalScrolling = cv_bool(mc.args, "naturalScrolling");
+    prefs.leftHanded = cv_bool(mc.args, "leftHanded");
+    prefs.tapToClick = cv_bool(mc.args, "tapToClick");
+    prefs.twoFingerScrolling =
+        cv_bool(mc.args, "twoFingerScrolling", true);
+    apply_pointer_prefs_all();
+    platform_reply(h, Cv{std::monostate{}});
   } else if (n == "touchDown") {
     g_core->touchDown(cv_int(mc.args, "id"), (int32_t)cv_int(mc.args, "tid"),
                       cv_dbl(mc.args, "x"), cv_dbl(mc.args, "y"));
@@ -1468,6 +1505,50 @@ static void send_pointer(double x, double y, int64_t phase, int64_t buttons) {
 
 static double g_px = 0, g_py = 0;
 static int64_t g_buttons = 0;
+
+// Touchpads are the devices that expose tap-to-click; every other pointer
+// device is treated as a mouse for settings purposes.
+static bool dev_touchpad(libinput_device* dev) {
+  return libinput_device_config_tap_get_finger_count(dev) > 0;
+}
+
+static void apply_pointer_prefs(libinput_device* dev) {
+  const bool tp = dev_touchpad(dev);
+  const auto& prefs = tp ? g_tp_prefs : g_mouse_prefs;
+  if (libinput_device_config_accel_is_available(dev)) {
+    libinput_device_config_accel_set_speed(dev,
+                                           prefs.pointerSpeed * 2.0 - 1.0);
+  }
+  if (libinput_device_config_scroll_has_natural_scroll(dev)) {
+    libinput_device_config_scroll_set_natural_scroll_enabled(
+        dev, prefs.naturalScrolling ? 1 : 0);
+  }
+  if (tp) {
+    if (libinput_device_config_tap_get_finger_count(dev) > 0) {
+      libinput_device_config_tap_set_enabled(
+          dev, prefs.tapToClick ? LIBINPUT_CONFIG_TAP_ENABLED
+                                : LIBINPUT_CONFIG_TAP_DISABLED);
+    }
+    uint32_t methods = libinput_device_config_scroll_get_methods(dev);
+    libinput_config_scroll_method want =
+        prefs.twoFingerScrolling ? LIBINPUT_CONFIG_SCROLL_2FG
+                                 : LIBINPUT_CONFIG_SCROLL_EDGE;
+    if (!(methods & want)) want = LIBINPUT_CONFIG_SCROLL_NO_SCROLL;
+    if (methods & want) libinput_device_config_scroll_set_method(dev, want);
+  } else if (libinput_device_config_left_handed_is_available(dev)) {
+    libinput_device_config_left_handed_set(dev, prefs.leftHanded ? 1 : 0);
+  }
+}
+
+static void apply_pointer_prefs_all() {
+  for (auto* dev : g_devices) apply_pointer_prefs(dev);
+}
+
+// The settings slider is 0..1; map it onto a 0.25x-4x multiplier so the
+// midpoint is a no-op.
+static double scroll_factor(const OasisPointerPrefs& prefs) {
+  return pow(2.0, (prefs.scrollSpeed - 0.5) * 4.0);
+}
 
 // evdev -> USB HID usage. Keyboard-page entries produce a physical of
 // 0x00070000|usage, consumer-page entries 0x000c0000|usage. Keys missing from
@@ -1648,7 +1729,20 @@ static void input_dispatch() {
   libinput_event* ev;
   while ((ev = libinput_get_event(g_input.li)) != nullptr) {
     auto type = libinput_event_get_type(ev);
-    if (type == LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE) {
+    if (type == LIBINPUT_EVENT_DEVICE_ADDED) {
+      auto* dev = libinput_event_get_device(ev);
+      g_devices.push_back(libinput_device_ref(dev));
+      apply_pointer_prefs(dev);
+    } else if (type == LIBINPUT_EVENT_DEVICE_REMOVED) {
+      auto* dev = libinput_event_get_device(ev);
+      for (auto it = g_devices.begin(); it != g_devices.end(); ++it) {
+        if (*it == dev) {
+          libinput_device_unref(*it);
+          g_devices.erase(it);
+          break;
+        }
+      }
+    } else if (type == LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE) {
       auto* pe = libinput_event_get_pointer_event(ev);
       g_px = libinput_event_pointer_get_absolute_x_transformed(pe, g_drm.width);
       g_py = libinput_event_pointer_get_absolute_y_transformed(pe,
@@ -1694,10 +1788,15 @@ static void input_dispatch() {
       sev.device = 0;
       sev.signal_kind = kFlutterPointerSignalKindScroll;
       sev.device_kind = kFlutterPointerDeviceKindMouse;
+      const double factor = scroll_factor(
+          dev_touchpad(libinput_event_get_device(ev)) ? g_tp_prefs
+                                                    : g_mouse_prefs);
       sev.scroll_delta_x = libinput_event_pointer_get_scroll_value(
-          pe, LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL);
+                             pe, LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL) *
+                           factor;
       sev.scroll_delta_y = -libinput_event_pointer_get_scroll_value(
-          pe, LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL);
+                              pe, LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL) *
+                           factor;
       sev.buttons = g_buttons;
       pSendPointer(engine, &sev, 1);
     } else if (type == LIBINPUT_EVENT_KEYBOARD_KEY) {

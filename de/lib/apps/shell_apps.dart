@@ -22,6 +22,8 @@ List<OasisApp> buildShellApps(
   OasisPowerBackend? powerBackend,
   OasisKeybindsService? keybinds,
   OasisDockSettings? dock,
+  OasisMouseSettings? mouse,
+  OasisTrackpadSettings? trackpad,
 }) {
   SettingsState? settingsState;
   return [
@@ -45,6 +47,8 @@ List<OasisApp> buildShellApps(
             powerBackend: powerBackend,
             keybinds: keybinds,
             dock: dock,
+            mouse: mouse,
+            trackpad: trackpad,
           ),
         ),
       ),

@@ -57,6 +57,18 @@ struct HostOutputMode {
   bool preferred = false;
 };
 
+// Per-device-class pointer preferences. Settings are pushed from the shell
+// and applied wherever the backend owns input: libinput in the kms backend,
+// the compositor boundary everywhere else.
+struct OasisPointerPrefs {
+  double pointerSpeed = 0.5;
+  double scrollSpeed = 0.5;
+  bool naturalScrolling = false;
+  bool leftHanded = false;
+  bool tapToClick = false;
+  bool twoFingerScrolling = true;
+};
+
 struct HostOutput {
   std::string name;
   std::string description;
@@ -136,6 +148,7 @@ class OasisCore {
   void activity();
   void setIdleTimeouts(int64_t displayOffMs, int64_t suspendMs);
   void focus(int64_t id);
+  void setPointerConfig(const char* device, const OasisPointerPrefs& prefs);
   void pointerMotion(int64_t id, double x, double y);
   void pointerExit();
   void pointerButton(uint32_t button, bool pressed);

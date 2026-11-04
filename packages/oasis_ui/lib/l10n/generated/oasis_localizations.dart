@@ -1523,6 +1523,72 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Remove'**
   String get keybindRemove;
+
+  /// No description provided for @settingsMouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Mouse'**
+  String get settingsMouse;
+
+  /// No description provided for @settingsTrackpad.
+  ///
+  /// In en, this message translates to:
+  /// **'Trackpad'**
+  String get settingsTrackpad;
+
+  /// No description provided for @pointerSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Pointer speed'**
+  String get pointerSpeed;
+
+  /// No description provided for @pointerPrimaryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary button'**
+  String get pointerPrimaryButton;
+
+  /// No description provided for @pointerButtonLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get pointerButtonLeft;
+
+  /// No description provided for @pointerButtonRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Right'**
+  String get pointerButtonRight;
+
+  /// No description provided for @pointerScrolling.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrolling'**
+  String get pointerScrolling;
+
+  /// No description provided for @pointerScrollSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll speed'**
+  String get pointerScrollSpeed;
+
+  /// No description provided for @pointerNaturalScrolling.
+  ///
+  /// In en, this message translates to:
+  /// **'Natural scrolling'**
+  String get pointerNaturalScrolling;
+
+  /// No description provided for @trackpadTapToClick.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to click'**
+  String get trackpadTapToClick;
+
+  /// No description provided for @trackpadTwoFingerScroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-finger scrolling'**
+  String get trackpadTwoFingerScroll;
 }
 
 class _OasisLocalizationsDelegate

@@ -292,5 +292,16 @@
   "keybindAdd": "Cuir aicearra leis",
   "keybindReset": "Athshocraigh",
   "keybindCommandHint": "Ordú le rith",
-  "keybindRemove": "Bain"
+  "keybindRemove": "Bain",
+  "settingsMouse": "Luch",
+  "settingsTrackpad": "Ceap tadhaill",
+  "pointerSpeed": "Luas an phointeálaí",
+  "pointerPrimaryButton": "Príomhchnaipe",
+  "pointerButtonLeft": "Ar chlé",
+  "pointerButtonRight": "Ar dheis",
+  "pointerScrolling": "Scrollú",
+  "pointerScrollSpeed": "Luas scrollú",
+  "pointerNaturalScrolling": "Scrollú nádúrtha",
+  "trackpadTapToClick": "Tapáil chun cliceáil",
+  "trackpadTwoFingerScroll": "Scrollú dá mhéar"
 }
