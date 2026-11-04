@@ -186,4 +186,35 @@ void session_lock_new(OasisPrivate* c, wlr_session_lock_v1* lock) {
   comp_flush(c);
 }
 
+void lock_init(OasisPrivate* c) {
+  c->new_lock.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, new_lock);
+    session_lock_new(c, static_cast<wlr_session_lock_v1*>(data));
+  };
+  wl_signal_add(&c->lock_mgr->events.new_lock, &c->new_lock);
+}
+
+void power_mode_set(OasisPrivate* c, wlr_output* output, uint32_t mode) {
+  OasisOutput* o = output_of(c, output);
+  if (o == nullptr) return;
+  bool on = mode == ZWLR_OUTPUT_POWER_V1_MODE_ON;
+  if (o->powered == on) return;
+  o->powered = on;
+  bool any = false;
+  for (OasisOutput* x : c->outputs) {
+    if (x->powered) any = true;
+  }
+  output_power_set(c, any);
+}
+
+void power_init(OasisPrivate* c) {
+  c->power_set_mode.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, power_set_mode);
+    auto* ev =
+        static_cast<wlr_output_power_v1_set_mode_event*>(data);
+    power_mode_set(c, ev->output, (uint32_t)ev->mode);
+  };
+  wl_signal_add(&c->power_mgr->events.set_mode, &c->power_set_mode);
+}
+
 }  // namespace oasis

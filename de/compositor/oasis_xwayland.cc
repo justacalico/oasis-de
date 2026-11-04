@@ -199,4 +199,35 @@ void xwayland_new_surface(OasisPrivate* c, wlr_xwayland_surface* xs) {
   wl_signal_add(&xs->events.set_decorations, &s->xs_decorations);
 }
 
+void xwayland_init(OasisPrivate* c) {
+  c->xwayland = wlr_xwayland_create(c->display, c->compositor, false);
+  if (c->xwayland == nullptr) return;
+  c->xwayland_ready.notify = [](wl_listener* listener, void*) {
+    OasisPrivate* c = wl_container_of(listener, c, xwayland_ready);
+    if (c->xwayland != nullptr && c->xwayland->display_name != nullptr) {
+      c->xwayland_display = c->xwayland->display_name;
+    }
+    wlr_xwayland_set_seat(c->xwayland, c->seat);
+  };
+  wl_signal_add(&c->xwayland->events.ready, &c->xwayland_ready);
+  c->xwayland_new_surface.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, xwayland_new_surface);
+    xwayland_new_surface(c, static_cast<wlr_xwayland_surface*>(data));
+  };
+  wl_signal_add(&c->xwayland->events.new_surface,
+                &c->xwayland_new_surface);
+  c->xwayland_destroy.notify = [](wl_listener* listener, void*) {
+    OasisPrivate* c = wl_container_of(listener, c, xwayland_destroy);
+    c->xwayland = nullptr;
+    c->xwayland_display.clear();
+    wl_list_remove(&listener->link);
+    wl_list_init(&listener->link);
+    wl_list_remove(&c->xwayland_ready.link);
+    wl_list_init(&c->xwayland_ready.link);
+    wl_list_remove(&c->xwayland_new_surface.link);
+    wl_list_init(&c->xwayland_new_surface.link);
+  };
+  wl_signal_add(&c->xwayland->events.destroy, &c->xwayland_destroy);
+}
+
 }  // namespace oasis

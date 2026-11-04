@@ -74,17 +74,4 @@ void capture_check(OasisOutput* o) {
   wlr_buffer_drop(&buf->base);
 }
 
-void power_mode_set(OasisPrivate* c, wlr_output* output, uint32_t mode) {
-  OasisOutput* o = output_of(c, output);
-  if (o == nullptr) return;
-  bool on = mode == ZWLR_OUTPUT_POWER_V1_MODE_ON;
-  if (o->powered == on) return;
-  o->powered = on;
-  bool any = false;
-  for (OasisOutput* x : c->outputs) {
-    if (x->powered) any = true;
-  }
-  output_power_set(c, any);
-}
-
 }  // namespace oasis

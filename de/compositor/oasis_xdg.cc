@@ -31,17 +31,6 @@ void popup_position(Surface* s, int* x, int* y) {
   *y = (int)py;
 }
 
-void apply_decoration(Surface* s) {
-  if (s->deco == nullptr || s->xdg == nullptr || !s->xdg->initialized) {
-    return;
-  }
-  auto mode = s->deco->requested_mode;
-  if (mode == WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_NONE) {
-    mode = WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE;
-  }
-  wlr_xdg_toplevel_decoration_v1_set_mode(s->deco, mode);
-}
-
 void send_initial_configure(Surface* s) {
   if (s->cfg_sent || s->xdg == nullptr ||
       s->xdg->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL ||
@@ -340,6 +329,30 @@ void popup_new(OasisPrivate* c, wlr_xdg_popup* popup) {
   m["y"] = (int64_t)y;
   emit_id(s, "popup", std::move(m));
   comp_flush(c);
+}
+
+static void handle_request_activate(wl_listener* listener, void* data) {
+  OasisPrivate* c = wl_container_of(listener, c, request_activate);
+  auto* ev = static_cast<wlr_xdg_activation_v1_request_activate_event*>(data);
+  Surface* s = surface_of(c, ev->surface);
+  if (s == nullptr || !s->announced || s->role != ROLE_TOPLEVEL) return;
+  emit_id(s, "activate");
+}
+
+void xdg_init(OasisPrivate* c) {
+  c->new_toplevel.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, new_toplevel);
+    toplevel_new(c, static_cast<wlr_xdg_toplevel*>(data));
+  };
+  wl_signal_add(&c->xdg_shell->events.new_toplevel, &c->new_toplevel);
+  c->new_popup.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, new_popup);
+    popup_new(c, static_cast<wlr_xdg_popup*>(data));
+  };
+  wl_signal_add(&c->xdg_shell->events.new_popup, &c->new_popup);
+  c->request_activate.notify = handle_request_activate;
+  wl_signal_add(&c->activation->events.request_activate,
+                &c->request_activate);
 }
 
 }  // namespace oasis

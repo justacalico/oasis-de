@@ -108,6 +108,20 @@ void seat_focus(OasisPrivate* c, Surface* s) {
   sync_text_input_focus(c);
 }
 
+static void handle_new_constraint(wl_listener* listener, void* data) {
+  OasisPrivate* c = wl_container_of(listener, c, new_constraint);
+  auto* con = static_cast<wlr_pointer_constraint_v1*>(data);
+  if (c->ptr_focus != nullptr && c->ptr_focus->wlr == con->surface) {
+    constraint_activate(c, c->ptr_focus, c->ptr_in_x, c->ptr_in_y);
+  }
+}
+
+void constraints_init(OasisPrivate* c) {
+  c->new_constraint.notify = handle_new_constraint;
+  wl_signal_add(&c->constraints_mgr->events.new_constraint,
+                &c->new_constraint);
+}
+
 }  // namespace oasis
 
 using namespace oasis;
