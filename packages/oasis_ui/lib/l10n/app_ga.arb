@@ -185,6 +185,7 @@
   "wallpaperEmber": "Smóidí",
   "appCalculator": "Áireamhán",
   "appFiles": "Comhaid",
+  "appScreenshot": "Gabháil Scáileáin",
   "filesBookmarkHome": "Baile",
   "filesBookmarkDocuments": "Doiciméid",
   "filesBookmarkDownloads": "Íoslódálacha",
@@ -303,5 +304,16 @@
   "pointerScrollSpeed": "Luas scrollú",
   "pointerNaturalScrolling": "Scrollú nádúrtha",
   "trackpadTapToClick": "Tapáil chun cliceáil",
-  "trackpadTwoFingerScroll": "Scrollú dá mhéar"
+  "trackpadTwoFingerScroll": "Scrollú dá mhéar",
+  "keybindScreenshot": "Glac gabháil scáileáin",
+  "screenshotModeRegion": "Réigiún",
+  "screenshotModeFullscreen": "Iomlán",
+  "screenshotDelay": "Moill",
+  "screenshotDelayNone": "Dada",
+  "screenshotDelaySeconds": "{count} s",
+  "screenshotTake": "Glac gabháil",
+  "screenshotHint": "Tarraing chun réigiún a roghnú — cealaíonn Esc nó deaschliceáil",
+  "screenshotSavedTitle": "Gabháil scáileáin sábháilte",
+  "screenshotFailed": "Níorbh fhéidir an gabháil a shábháil",
+  "screenshotNoCapture": "Níl gabháil ar bith fós"
 }

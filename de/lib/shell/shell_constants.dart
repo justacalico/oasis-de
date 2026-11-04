@@ -24,6 +24,10 @@ const kDefaultVolume = 0.6;
 
 const kLaunchTimeout = Duration(seconds: 8);
 const kIdentifyDuration = Duration(seconds: 3);
+
+/// Time the snip overlay stays hidden before the framebuffer is read,
+/// so the overlay itself never lands in the capture.
+const kScreenshotSettle = Duration(milliseconds: 150);
 const kBannerTimeout = Duration(seconds: 5);
 const kUnlockBackoffStep = Duration(milliseconds: 500);
 const kMaxNotifications = 50;

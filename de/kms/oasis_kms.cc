@@ -65,7 +65,8 @@ static void die(const char* msg) {
 
 struct Cv {
   std::variant<std::monostate, bool, int64_t, double, std::string,
-               std::vector<Cv>, std::map<std::string, Cv>>
+               std::vector<uint8_t>, std::vector<Cv>,
+               std::map<std::string, Cv>>
       v;
 };
 
@@ -100,6 +101,22 @@ static void cv_write(std::vector<uint8_t>& out, const Cv& v) {
       out.insert(out.end(), (uint8_t*)&n, (uint8_t*)&n + 4);
     }
     out.insert(out.end(), s->begin(), s->end());
+  } else if (auto b = std::get_if<std::vector<uint8_t>>(&v.v)) {
+    out.push_back(8);
+    uint32_t n = (uint32_t)b->size();
+    if (n < 254) {
+      out.push_back((uint8_t)n);
+    } else if (n <= 0xffff) {
+      out.push_back(254);
+      out.push_back(n & 0xff);
+      out.push_back((n >> 8) & 0xff);
+    } else {
+      out.push_back(255);
+      out.insert(out.end(), (uint8_t*)&n, (uint8_t*)&n + 4);
+    }
+    // The standard codec 8-byte aligns byte-list payloads.
+    while (out.size() % 8 != 0) out.push_back(0);
+    out.insert(out.end(), b->begin(), b->end());
   } else if (auto l = std::get_if<std::vector<Cv>>(&v.v)) {
     out.push_back(12);
     uint32_t n = (uint32_t)l->size();
@@ -1202,26 +1219,27 @@ class KmsHost : public OasisHost {
     done(nullptr, 0);
   }
   void hostClipboardWriteText(const std::string&) override {}
-  bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int w,
-                     int h) override {
-    if (w <= 0 || h <= 0) return false;
+  bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int* w,
+                     int* h) override {
+    if (*w <= 0 || *h <= 0) return false;
     const int px = (int)lround(x * g_drm.ratio);
     const int py = (int)lround(y * g_drm.ratio);
+    const int cw = *w, ch = *h;
     std::vector<uint8_t> out;
-    bool ok = run_on_raster([px, py, w, h, &out] {
+    bool ok = run_on_raster([px, py, cw, ch, &out] {
       eng_make_current(nullptr);
-      out.resize((size_t)w * h * 4);
+      out.resize((size_t)cw * ch * 4);
       GLint prev_pack = 0;
       glGetIntegerv(GL_PACK_ALIGNMENT, &prev_pack);
       glPixelStorei(GL_PACK_ALIGNMENT, 4);
-      glReadPixels(px, g_drm.height - py - h, w, h, GL_RGBA,
+      glReadPixels(px, g_drm.height - py - ch, cw, ch, GL_RGBA,
                    GL_UNSIGNED_BYTE, out.data());
       glPixelStorei(GL_PACK_ALIGNMENT, prev_pack);
-      size_t row_bytes = (size_t)w * 4;
+      size_t row_bytes = (size_t)cw * 4;
       std::vector<uint8_t> row(row_bytes);
-      for (int yy = 0; yy < h / 2; yy++) {
+      for (int yy = 0; yy < ch / 2; yy++) {
         uint8_t* top = out.data() + (size_t)yy * row_bytes;
-        uint8_t* bottom = out.data() + (size_t)(h - 1 - yy) * row_bytes;
+        uint8_t* bottom = out.data() + (size_t)(ch - 1 - yy) * row_bytes;
         memcpy(row.data(), top, row_bytes);
         memcpy(top, bottom, row_bytes);
         memcpy(bottom, row.data(), row_bytes);
@@ -1395,6 +1413,18 @@ static void handle_method(const Mc& mc,
   } else if (n == "pointerAxisStop") {
     g_core->pointerAxisStop();
     platform_reply(h, Cv{std::monostate{}});
+  } else if (n == "capture") {
+    std::vector<uint8_t> rgba;
+    int cw = (int)cv_int(mc.args, "w"), ch = (int)cv_int(mc.args, "h");
+    std::map<std::string, Cv> m;
+    if (cw > 0 && ch > 0 &&
+        g_core->capture(rgba, (int)cv_int(mc.args, "x"),
+                        (int)cv_int(mc.args, "y"), &cw, &ch)) {
+      m["w"] = Cv{(int64_t)cw};
+      m["h"] = Cv{(int64_t)ch};
+      m["rgba"] = Cv{std::move(rgba)};
+    }
+    platform_reply(h, Cv{std::move(m)});
   } else if (n == "inputConfig") {
     auto& prefs = cv_str(mc.args, "device") == "trackpad" ? g_tp_prefs
                                                         : g_mouse_prefs;

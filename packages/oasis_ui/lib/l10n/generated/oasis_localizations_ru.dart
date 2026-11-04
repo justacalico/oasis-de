@@ -516,6 +516,9 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get appFiles => 'Файлы';
 
   @override
+  String get appScreenshot => 'Снимок экрана';
+
+  @override
   String get filesBookmarkHome => 'Домашняя папка';
 
   @override
@@ -795,4 +798,40 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get trackpadTwoFingerScroll => 'Прокрутка двумя пальцами';
+
+  @override
+  String get keybindScreenshot => 'Сделать снимок экрана';
+
+  @override
+  String get screenshotModeRegion => 'Область';
+
+  @override
+  String get screenshotModeFullscreen => 'Весь экран';
+
+  @override
+  String get screenshotDelay => 'Задержка';
+
+  @override
+  String get screenshotDelayNone => 'Нет';
+
+  @override
+  String screenshotDelaySeconds(int count) {
+    return '$count с';
+  }
+
+  @override
+  String get screenshotTake => 'Сделать снимок';
+
+  @override
+  String get screenshotHint =>
+      'Перетащите, чтобы выбрать область — Esc или правый клик отменяет';
+
+  @override
+  String get screenshotSavedTitle => 'Снимок экрана сохранён';
+
+  @override
+  String get screenshotFailed => 'Не удалось сохранить снимок экрана';
+
+  @override
+  String get screenshotNoCapture => 'Снимков пока нет';
 }

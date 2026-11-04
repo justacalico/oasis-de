@@ -511,6 +511,9 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get appFiles => 'Files';
 
   @override
+  String get appScreenshot => 'Screenshot';
+
+  @override
   String get filesBookmarkHome => 'Home';
 
   @override
@@ -790,4 +793,40 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get trackpadTwoFingerScroll => 'Two-finger scrolling';
+
+  @override
+  String get keybindScreenshot => 'Take a screenshot';
+
+  @override
+  String get screenshotModeRegion => 'Region';
+
+  @override
+  String get screenshotModeFullscreen => 'Full screen';
+
+  @override
+  String get screenshotDelay => 'Delay';
+
+  @override
+  String get screenshotDelayNone => 'None';
+
+  @override
+  String screenshotDelaySeconds(int count) {
+    return '$count s';
+  }
+
+  @override
+  String get screenshotTake => 'Take screenshot';
+
+  @override
+  String get screenshotHint =>
+      'Drag to select a region — Esc or right-click cancels';
+
+  @override
+  String get screenshotSavedTitle => 'Screenshot saved';
+
+  @override
+  String get screenshotFailed => 'Couldn\'t save the screenshot';
+
+  @override
+  String get screenshotNoCapture => 'No captures yet';
 }

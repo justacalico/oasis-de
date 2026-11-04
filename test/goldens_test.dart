@@ -38,40 +38,40 @@ class _AudioBackend extends _InfoBackend {
 
   @override
   Future<List<OasisAudioDevice>> audioOutputs() async => const [
-        OasisAudioDevice(
-          name: 'spk',
-          description: 'Built-in Speakers',
-          isDefault: true,
-        ),
-        OasisAudioDevice(name: 'hdmi', description: 'HDMI Audio'),
-      ];
+    OasisAudioDevice(
+      name: 'spk',
+      description: 'Built-in Speakers',
+      isDefault: true,
+    ),
+    OasisAudioDevice(name: 'hdmi', description: 'HDMI Audio'),
+  ];
 
   @override
   Future<List<OasisAudioDevice>> audioInputs() async => const [
-        OasisAudioDevice(
-          name: 'mic',
-          description: 'Internal Microphone',
-          isDefault: true,
-        ),
-        OasisAudioDevice(name: 'usbmic', description: 'USB Microphone'),
-      ];
+    OasisAudioDevice(
+      name: 'mic',
+      description: 'Internal Microphone',
+      isDefault: true,
+    ),
+    OasisAudioDevice(name: 'usbmic', description: 'USB Microphone'),
+  ];
 
   @override
   Future<List<OasisAudioCard>> audioCards() async => const [
-        OasisAudioCard(
-          name: 'card0',
-          description: 'Built-in Audio',
-          activeProfile: 'analog-stereo',
-          profiles: [
-            OasisAudioProfile(
-              name: 'analog-stereo',
-              description: 'Analog Stereo Duplex',
-            ),
-            OasisAudioProfile(name: 'pro', description: 'Pro Audio'),
-            OasisAudioProfile(name: 'off', description: 'Off'),
-          ],
+    OasisAudioCard(
+      name: 'card0',
+      description: 'Built-in Audio',
+      activeProfile: 'analog-stereo',
+      profiles: [
+        OasisAudioProfile(
+          name: 'analog-stereo',
+          description: 'Analog Stereo Duplex',
         ),
-      ];
+        OasisAudioProfile(name: 'pro', description: 'Pro Audio'),
+        OasisAudioProfile(name: 'off', description: 'Off'),
+      ],
+    ),
+  ];
 }
 
 class _WifiBackend extends NoopSystemBackend {
@@ -547,8 +547,7 @@ void main() {
   ]) {
     testWidgets('settings ${pane.name}', (tester) async {
       await _size(tester, const Size(1000, 700));
-      final s = SettingsState(backend: const _InfoBackend())
-        ..selectPane(pane);
+      final s = SettingsState(backend: const _InfoBackend())..selectPane(pane);
       await tester.pumpWidget(
         OasisSettingsApp(
           state: s,
@@ -600,11 +599,7 @@ void main() {
     );
   });
 
-  for (final locale in const [
-    Locale('zh'),
-    Locale('ru'),
-    Locale('ga'),
-  ]) {
+  for (final locale in const [Locale('zh'), Locale('ru'), Locale('ga')]) {
     testWidgets('settings about ${locale.languageCode}', (tester) async {
       await _size(tester, const Size(1000, 700));
       final s = SettingsState(backend: const _InfoBackend())
@@ -620,9 +615,7 @@ void main() {
       await tester.pumpAndSettle();
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile(
-          'goldens/settings_about_${locale.languageCode}.png',
-        ),
+        matchesGoldenFile('goldens/settings_about_${locale.languageCode}.png'),
       );
     });
   }
@@ -733,6 +726,57 @@ void main() {
       matchesGoldenFile('goldens/files_light.png'),
     );
   });
+
+  testWidgets('screenshot app', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        OasisDesktopApp(
+          backend: const NoopSystemBackend(),
+          version: '1.0.0',
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.crop).first);
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/screenshot_app.png'),
+      );
+    });
+  });
+
+  testWidgets('snip overlay', (tester) async {
+    await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
+      await _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        OasisDesktopApp(
+          backend: const NoopSystemBackend(),
+          version: '1.0.0',
+          appearance: OasisAppearance(themeMode: OasisThemeMode.light),
+          updateChecker: _FakeChecker(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.crop).first);
+      await tester.pumpAndSettle();
+      final l10n = lookupOasisLocalizations(const Locale('en'));
+      await tester.tap(find.text(l10n.screenshotTake));
+      await tester.pumpAndSettle();
+      final gesture = await tester.startGesture(const Offset(400, 300));
+      await gesture.moveBy(const Offset(300, 200));
+      await tester.pump();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/snip_overlay.png'),
+      );
+      await gesture.up();
+      await tester.pump(kScreenshotSettle * 2);
+      await tester.pump(kBannerTimeout);
+    });
+  });
 }
 
 class _FilesBackend extends FilesBackend {
@@ -749,17 +793,16 @@ class _FilesBackend extends FilesBackend {
     String root,
     String query, {
     int limit = 200,
-  }) async =>
-      [];
+  }) async => [];
 
   @override
   Future<List<FileBookmark>> bookmarks() async => const [
-        FileBookmark(kind: BookmarkKind.home, path: '/home/u'),
-        FileBookmark(kind: BookmarkKind.documents, path: '/home/u/docs'),
-        FileBookmark(kind: BookmarkKind.downloads, path: '/home/u/dl'),
-        FileBookmark(kind: BookmarkKind.trash, path: '/trash'),
-        FileBookmark(kind: BookmarkKind.root, path: '/'),
-      ];
+    FileBookmark(kind: BookmarkKind.home, path: '/home/u'),
+    FileBookmark(kind: BookmarkKind.documents, path: '/home/u/docs'),
+    FileBookmark(kind: BookmarkKind.downloads, path: '/home/u/dl'),
+    FileBookmark(kind: BookmarkKind.trash, path: '/trash'),
+    FileBookmark(kind: BookmarkKind.root, path: '/'),
+  ];
 
   @override
   Future<void> mkdir(String parent, String name) async {}

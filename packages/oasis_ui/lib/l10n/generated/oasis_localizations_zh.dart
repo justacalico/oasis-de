@@ -502,6 +502,9 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get appFiles => '文件';
 
   @override
+  String get appScreenshot => '截图';
+
+  @override
   String get filesBookmarkHome => '主目录';
 
   @override
@@ -781,4 +784,39 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get trackpadTwoFingerScroll => '双指滚动';
+
+  @override
+  String get keybindScreenshot => '截图';
+
+  @override
+  String get screenshotModeRegion => '区域';
+
+  @override
+  String get screenshotModeFullscreen => '全屏';
+
+  @override
+  String get screenshotDelay => '延迟';
+
+  @override
+  String get screenshotDelayNone => '无';
+
+  @override
+  String screenshotDelaySeconds(int count) {
+    return '$count 秒';
+  }
+
+  @override
+  String get screenshotTake => '截图';
+
+  @override
+  String get screenshotHint => '拖动以选择区域，按 Esc 或右键取消';
+
+  @override
+  String get screenshotSavedTitle => '截图已保存';
+
+  @override
+  String get screenshotFailed => '无法保存截图';
+
+  @override
+  String get screenshotNoCapture => '还没有截图';
 }

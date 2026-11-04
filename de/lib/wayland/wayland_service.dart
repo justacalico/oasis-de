@@ -89,6 +89,18 @@ class WaylandRequest {
   final double y;
 }
 
+class OasisCapture {
+  const OasisCapture({
+    required this.rgba,
+    required this.width,
+    required this.height,
+  });
+
+  final Uint8List rgba;
+  final int width;
+  final int height;
+}
+
 class WaylandCursor {
   const WaylandCursor({
     required this.textureId,
@@ -157,10 +169,11 @@ class OasisOutput {
   /// Layout rect in logical pixels: the mode size divided by the output
   /// scale, matching what wlroots reports in output-layout coordinates.
   Rect get rect => Rect.fromLTWH(
-      x.toDouble(),
-      y.toDouble(),
-      scale > 0 ? width / scale : width.toDouble(),
-      scale > 0 ? height / scale : height.toDouble());
+    x.toDouble(),
+    y.toDouble(),
+    scale > 0 ? width / scale : width.toDouble(),
+    scale > 0 ? height / scale : height.toDouble(),
+  );
 
   bool contains(Offset point) => rect.contains(point);
 }
@@ -183,6 +196,7 @@ class WaylandService extends ChangeNotifier {
       if (!_disposed) notifyListeners();
     });
   }
+
   final _requests = StreamController<WaylandRequest>.broadcast();
   StreamSubscription<Map<String, Object?>>? _sub;
   WaylandCursor? cursor;
@@ -224,9 +238,7 @@ class WaylandService extends ChangeNotifier {
           _sub = _host.events.listen(_onEvent);
           final off = _idleOffMs;
           if (off != null) {
-            unawaited(
-              _host.setIdleTimeouts(off, _idleSuspendMs ?? 0),
-            );
+            unawaited(_host.setIdleTimeouts(off, _idleSuspendMs ?? 0));
           }
           notifyListeners();
           return;
@@ -265,9 +277,8 @@ class WaylandService extends ChangeNotifier {
       .where((s) => s.isLayer && s.layerIndex == layer)
       .toList(growable: false);
 
-  List<WaylandSurface> get lockSurfaces => surfaces.values
-      .where((s) => s.isLock)
-      .toList(growable: false);
+  List<WaylandSurface> get lockSurfaces =>
+      surfaces.values.where((s) => s.isLock).toList(growable: false);
 
   bool sessionLocked = false;
   bool displayOff = false;
@@ -299,9 +310,9 @@ class WaylandService extends ChangeNotifier {
   }
 
   List<OasisOutput> outputsFor(Rect rect) => [
-        for (final o in outputs)
-          if (o.enabled && o.rect.overlaps(rect)) o,
-      ];
+    for (final o in outputs)
+      if (o.enabled && o.rect.overlaps(rect)) o,
+  ];
 
   EdgeInsets get exclusiveInsets => exclusiveInsetsFor(-1);
 
@@ -436,8 +447,7 @@ class WaylandService extends ChangeNotifier {
           );
         }
       case 'decoration':
-        surfaces[id]?.decorationMode =
-            (e['mode'] as num?)?.toInt() ?? 2;
+        surfaces[id]?.decorationMode = (e['mode'] as num?)?.toInt() ?? 2;
       case 'popup':
         surfaces[id] = WaylandSurface(
           id: id,
@@ -583,22 +593,19 @@ class WaylandService extends ChangeNotifier {
                 physWidthMm: (raw['physW'] as num?)?.toInt() ?? 0,
                 physHeightMm: (raw['physH'] as num?)?.toInt() ?? 0,
                 modes: [
-                  for (final m
-                      in (raw['modes'] as List<Object?>? ?? const []))
+                  for (final m in (raw['modes'] as List<Object?>? ?? const []))
                     if (m is Map)
                       OasisOutputMode(
                         width: (m['w'] as num?)?.toInt() ?? 0,
                         height: (m['h'] as num?)?.toInt() ?? 0,
-                        refreshMhz:
-                            (m['refresh'] as num?)?.toInt() ?? 0,
+                        refreshMhz: (m['refresh'] as num?)?.toInt() ?? 0,
                         preferred: m['preferred'] == true,
                       ),
                 ],
               ),
         ];
       case 'configureAcked':
-        surfaces[id]?.ackedSerial =
-            (e['serial'] as num?)?.toInt() ?? 0;
+        surfaces[id]?.ackedSerial = (e['serial'] as num?)?.toInt() ?? 0;
       case 'activate':
         _requests.add(WaylandRequest(WaylandRequestType.activate, id));
       case 'windowMenu':
@@ -635,13 +642,11 @@ class WaylandService extends ChangeNotifier {
         )
       : Future.value();
 
-  Future<void> configureLayer(int id, int width, int height) => available
-      ? _host.configureLayer(id, width, height)
-      : Future.value();
+  Future<void> configureLayer(int id, int width, int height) =>
+      available ? _host.configureLayer(id, width, height) : Future.value();
 
-  Future<void> surfaceOutputs(int id, List<int> outputs) => available
-      ? _host.surfaceOutputs(id, outputs)
-      : Future.value();
+  Future<void> surfaceOutputs(int id, List<int> outputs) =>
+      available ? _host.surfaceOutputs(id, outputs) : Future.value();
 
   Future<void> configureOutput(
     String name, {
@@ -653,28 +658,26 @@ class WaylandService extends ChangeNotifier {
     double? scale,
     int? transform,
     bool? enabled,
-  }) =>
-        available
-            ? _host.configureOutput(
-                name,
-                x: x,
-                y: y,
-                width: width,
-                height: height,
-                refreshMhz: refreshMhz,
-                scale: scale,
-                transform: transform,
-                enabled: enabled,
-              )
-            : Future.value();
+  }) => available
+      ? _host.configureOutput(
+          name,
+          x: x,
+          y: y,
+          width: width,
+          height: height,
+          refreshMhz: refreshMhz,
+          scale: scale,
+          transform: transform,
+          enabled: enabled,
+        )
+      : Future.value();
 
   Future<void> close(int id) => available ? _host.close(id) : Future.value();
 
   Future<void> sessionUnlock() =>
       available ? _host.sessionUnlock() : Future.value();
 
-  Future<void> activity() =>
-      available ? _host.activity() : Future.value();
+  Future<void> activity() => available ? _host.activity() : Future.value();
 
   Future<void> setIdleTimeouts(int displayOffMs, int suspendMs) {
     _idleOffMs = displayOffMs;
@@ -725,6 +728,29 @@ class WaylandService extends ChangeNotifier {
 
   Future<void> key(int code, bool pressed) =>
       available ? _host.key(code, pressed) : Future.value();
+
+  /// Reads back composited pixels covering [rect], which is given in
+  /// logical output-layout coordinates — the same space
+  /// [OasisOutput.rect] uses. The rect is clipped to the output under
+  /// its centre and the returned frame is at that output's physical
+  /// pixel size.
+  Future<OasisCapture?> capture(Rect rect) async {
+    if (!available) return null;
+    final output = outputAt(rect.center);
+    if (output == null) return null;
+    final r = rect.intersect(output.rect);
+    final w = (r.width * output.scale).round();
+    final h = (r.height * output.scale).round();
+    if (w <= 0 || h <= 0) return null;
+    final result = await _host.capture(r.left.round(), r.top.round(), w, h);
+    final rgba = result?['rgba'];
+    if (rgba is! Uint8List) return null;
+    return OasisCapture(
+      rgba: rgba,
+      width: (result!['w'] as num?)?.toInt() ?? w,
+      height: (result['h'] as num?)?.toInt() ?? h,
+    );
+  }
 
   @override
   void dispose() {

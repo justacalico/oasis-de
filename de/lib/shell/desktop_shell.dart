@@ -18,6 +18,7 @@ import 'lock_screen.dart';
 import 'menu_bar.dart';
 import 'notification_center.dart';
 import 'shell_controller.dart';
+import 'snip_overlay.dart';
 import 'window_switcher.dart';
 
 class DesktopShell extends StatefulWidget {
@@ -218,8 +219,7 @@ class _DesktopShellState extends State<DesktopShell> {
                               child: GenieWindow(
                                 window: w,
                                 rect: _windowRect(w, context),
-                                onEnd: () =>
-                                    controller.finishTransition(w.id),
+                                onEnd: () => controller.finishTransition(w.id),
                                 child: Listener(
                                   onPointerDown: (_) =>
                                       controller.focusWindow(w.id),
@@ -237,11 +237,7 @@ class _DesktopShellState extends State<DesktopShell> {
                                     child: SizedBox(
                                       width: r.width,
                                       height: r.height,
-                                      child: _windowContent(
-                                        w,
-                                        context,
-                                        r.size,
-                                      ),
+                                      child: _windowContent(w, context, r.size),
                                     ),
                                   ),
                                 ),
@@ -281,18 +277,14 @@ class _DesktopShellState extends State<DesktopShell> {
                   for (var i = 0; i < (heads.isEmpty ? 1 : heads.length); i++)
                     Positioned.fromRect(
                       rect: heads.isEmpty
-                          ? Rect.fromLTWH(
-                              0, 0, screen.width, kMenuBarHeight)
+                          ? Rect.fromLTWH(0, 0, screen.width, kMenuBarHeight)
                           : Rect.fromLTWH(
                               heads[i].rect.left,
                               heads[i].rect.top,
                               heads[i].rect.width,
                               kMenuBarHeight,
                             ),
-                      child: ShellMenuBar(
-                        controller: controller,
-                        menus: menus,
-                      ),
+                      child: ShellMenuBar(controller: controller, menus: menus),
                     ),
                 if (controller.openMenu != null)
                   Positioned(
@@ -366,12 +358,9 @@ class _DesktopShellState extends State<DesktopShell> {
                       child: AnimatedSlide(
                         offset: _dockConcealed
                             ? switch (_dock.position) {
-                                OasisDockPosition.left =>
-                                    const Offset(-1, 0),
-                                OasisDockPosition.right =>
-                                    const Offset(1, 0),
-                                OasisDockPosition.bottom =>
-                                    const Offset(0, 1),
+                                OasisDockPosition.left => const Offset(-1, 0),
+                                OasisDockPosition.right => const Offset(1, 0),
+                                OasisDockPosition.bottom => const Offset(0, 1),
                               }
                             : Offset.zero,
                         duration: const Duration(milliseconds: 180),
@@ -397,8 +386,7 @@ class _DesktopShellState extends State<DesktopShell> {
                     transitionBuilder: (child, animation) => FadeTransition(
                       opacity: animation,
                       child: ScaleTransition(
-                        scale: Tween(begin: 1.06, end: 1.0)
-                            .animate(animation),
+                        scale: Tween(begin: 1.06, end: 1.0).animate(animation),
                         child: child,
                       ),
                     ),
@@ -441,6 +429,8 @@ class _DesktopShellState extends State<DesktopShell> {
                       ),
                     ),
                 for (final s in _layerItems(3)) s,
+                if (controller.snipActive)
+                  Positioned.fill(child: SnipOverlay(controller: controller)),
                 if (controller.wayland?.sessionLocked ?? false)
                   const Positioned.fill(
                     child: ColoredBox(color: Color(0xFF000000)),
@@ -606,8 +596,7 @@ class _DesktopShellState extends State<DesktopShell> {
             var rect = layerSurfaceRect(s, screen);
             for (final o in service.outputs) {
               if (o.id == s.outputId) {
-                rect = layerSurfaceRect(s, o.rect.size)
-                    .shift(o.rect.topLeft);
+                rect = layerSurfaceRect(s, o.rect.size).shift(o.rect.topLeft);
                 break;
               }
             }
@@ -669,18 +658,11 @@ class _DesktopShellState extends State<DesktopShell> {
       final lbuf = logicalSurfaceSize(parent);
       final lsx = lbuf.width > 0 ? base.width / lbuf.width : 1.0;
       final lsy = lbuf.height > 0 ? base.height / lbuf.height : 1.0;
-      final lpos =
-          base.topLeft + Offset(offset.dx * lsx, offset.dy * lsy);
+      final lpos = base.topLeft + Offset(offset.dx * lsx, offset.dy * lsy);
       final lscreen = MediaQuery.sizeOf(context);
       return Offset(
-        lpos.dx.clamp(
-          0,
-          math.max(0, lscreen.width - popup.size.width),
-        ),
-        lpos.dy.clamp(
-          0,
-          math.max(0, lscreen.height - popup.size.height),
-        ),
+        lpos.dx.clamp(0, math.max(0, lscreen.width - popup.size.width)),
+        lpos.dy.clamp(0, math.max(0, lscreen.height - popup.size.height)),
       );
     }
     final w = controller.windowForSurface(parent.id);

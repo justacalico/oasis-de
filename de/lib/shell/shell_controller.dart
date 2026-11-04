@@ -13,6 +13,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 
 import '../services/mpris.dart';
 import '../services/notifications.dart';
+import '../services/screenshot.dart';
 
 import '../wayland/wayland_service.dart';
 import 'shell_constants.dart';
@@ -50,9 +51,11 @@ class ShellController extends ChangeNotifier {
     this.mpris,
     this.dock,
     OasisKeybindsService? keybinds,
+    ScreenshotService? screenshots,
     Duration? batteryPollInterval = const Duration(seconds: 60),
-  })  : apps = List.of(apps),
-        keybinds = keybinds ?? OasisKeybindsService() {
+  }) : apps = List.of(apps),
+       keybinds = keybinds ?? OasisKeybindsService(),
+       screenshots = screenshots ?? ScreenshotService(wayland: wayland) {
     _status = SystemStatus(
       backend: backend,
       onChanged: notifyListeners,
@@ -80,15 +83,25 @@ class ShellController extends ChangeNotifier {
   final MprisService? mpris;
   final OasisDockSettings? dock;
   final OasisKeybindsService keybinds;
+  final ScreenshotService screenshots;
 
   late final SystemStatus _status;
   late final ShellNotifications _notifications;
 
-  String Function() unknownAppName =
-      () => lookupOasisLocalizations(const Locale('en')).appUnknown;
+  String Function() unknownAppName = () =>
+      lookupOasisLocalizations(const Locale('en')).appUnknown;
 
   String Function(String) launchFailedMessage = (app) =>
       lookupOasisLocalizations(const Locale('en')).launchFailed(app);
+
+  String Function() screenshotAppName = () =>
+      lookupOasisLocalizations(const Locale('en')).appScreenshot;
+
+  String Function() screenshotSavedTitle = () =>
+      lookupOasisLocalizations(const Locale('en')).screenshotSavedTitle;
+
+  String Function() screenshotFailedMessage = () =>
+      lookupOasisLocalizations(const Locale('en')).screenshotFailed;
 
   void Function(int id, String action)? notificationActionHandler;
   void Function(int id, int reason)? notificationClosedHandler;
@@ -126,11 +139,7 @@ class ShellController extends ChangeNotifier {
         final head = wl.outputAt(rect.center) ?? wl.primaryOutput;
         if (head != null) rect = head.rect;
       }
-      final ids = wl
-          .outputsFor(rect)
-          .map((o) => o.id)
-          .toList()
-        ..sort();
+      final ids = wl.outputsFor(rect).map((o) => o.id).toList()..sort();
       if (!listEquals(ids, _reportedOutputs[s.id])) {
         _reportedOutputs[s.id] = ids;
         unawaited(wl.surfaceOutputs(s.id, ids));
@@ -147,15 +156,16 @@ class ShellController extends ChangeNotifier {
   }
 
   ShellWindowData _spawnWindow(OasisApp app) => ShellWindowData(
-        id: _nextId++,
-        app: app,
-        workspace: activeWorkspace,
-        position: _spawnOrigin +
-            Offset(
-              kWindowSpawnX + _cascadeCount * kWindowCascadeX,
-              kWindowSpawnY + _cascadeCount * kWindowCascadeY,
-            ),
-      );
+    id: _nextId++,
+    app: app,
+    workspace: activeWorkspace,
+    position:
+        _spawnOrigin +
+        Offset(
+          kWindowSpawnX + _cascadeCount * kWindowCascadeX,
+          kWindowSpawnY + _cascadeCount * kWindowCascadeY,
+        ),
+  );
 
   List<OasisNotification> get notifications => _notifications.items;
   OasisNotification? get bannerNotification => _notifications.banner;
@@ -268,11 +278,8 @@ class ShellController extends ChangeNotifier {
   /// workspace, in which case chrome (menu bar, dock, banner)
   /// stays hidden.
   bool get fullscreenOnActiveWorkspace => windows.any(
-        (w) =>
-            w.fullscreen &&
-            !w.minimized &&
-            w.workspace == activeWorkspace,
-      );
+    (w) => w.fullscreen && !w.minimized && w.workspace == activeWorkspace,
+  );
 
   final Map<String, int> launchCounts = {};
   String? launchError;
@@ -281,9 +288,11 @@ class ShellController extends ChangeNotifier {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) {
       final order = {for (var i = 0; i < apps.length; i++) apps[i].id: i};
-      final sorted = [...apps]..sort((a, b) {
-          final byCount = (launchCounts[b.id] ?? 0)
-              .compareTo(launchCounts[a.id] ?? 0);
+      final sorted = [...apps]
+        ..sort((a, b) {
+          final byCount = (launchCounts[b.id] ?? 0).compareTo(
+            launchCounts[a.id] ?? 0,
+          );
           return byCount != 0 ? byCount : order[a.id]! - order[b.id]!;
         });
       return sorted;
@@ -541,16 +550,17 @@ class ShellController extends ChangeNotifier {
         -w + kWindowEdgeMargin,
         screen.width - kWindowEdgeMargin,
       ),
-      (window.position.dy + delta.dy)
-          .clamp(kWindowEdgeTop, screen.height - kWindowBottomMargin),
+      (window.position.dy + delta.dy).clamp(
+        kWindowEdgeTop,
+        screen.height - kWindowBottomMargin,
+      ),
     );
     _dragWindowId = id;
     notifyListeners();
   }
 
   void beginResize(int id, OasisResizeEdge edge) {
-    if (_byId(id) == null ||
-        _resizeGesture == (id: id, edge: edge)) {
+    if (_byId(id) == null || _resizeGesture == (id: id, edge: edge)) {
       return;
     }
     _resizeGesture = (id: id, edge: edge);
@@ -619,7 +629,8 @@ class ShellController extends ChangeNotifier {
     } else if (pointer.dx <= kSnapEdgeWidth ||
         pointer.dx >= screen.width - kSnapEdgeWidth) {
       final left = pointer.dx <= kSnapEdgeWidth;
-      final cur = w.size ??
+      final cur =
+          w.size ??
           w.adoptedSize ??
           const Size(kDefaultWindowWidth, kDefaultWindowHeight);
       var x = left ? 0.0 : screen.width / 2;
@@ -770,10 +781,7 @@ class ShellController extends ChangeNotifier {
       if (_resizeGesture?.id == w.id) continue;
       if (s.size == w.adoptedSize) continue;
       w.adoptedSize = s.size;
-      final fit = Size(
-        s.size.width,
-        s.size.height + w.titleBarHeight,
-      );
+      final fit = Size(s.size.width, s.size.height + w.titleBarHeight);
       if (w.size == fit) continue;
       w.size = fit;
       changed = true;
@@ -918,8 +926,7 @@ class ShellController extends ChangeNotifier {
     } else {
       idx += backwards ? -1 : 1;
     }
-    _switcherIndex =
-        ((idx % visible.length) + visible.length) % visible.length;
+    _switcherIndex = ((idx % visible.length) + visible.length) % visible.length;
     notifyListeners();
   }
 
@@ -966,6 +973,114 @@ class ShellController extends ChangeNotifier {
     }
   }
 
+  /// Whether the snip overlay is up waiting for a region drag.
+  var snipActive = false;
+  Timer? _snipDelay;
+  var _snipInFlight = false;
+
+  /// Entry point for the Screenshot window: parks the app's own
+  /// windows so they don't land in the frame, then starts the chosen
+  /// capture flow.
+  void requestScreenshot(ScreenshotMode mode, {int delaySeconds = 0}) {
+    for (final w in windows) {
+      if (w.app.id == kScreenshotAppId && !w.minimized) {
+        minimizeWindow(w.id);
+      }
+    }
+    if (mode == ScreenshotMode.fullscreen) {
+      captureFullscreen(delaySeconds: delaySeconds);
+    } else {
+      beginSnip(delaySeconds: delaySeconds);
+    }
+  }
+
+  void beginSnip({int delaySeconds = 0}) {
+    _snipDelay?.cancel();
+    if (delaySeconds > 0) {
+      _snipDelay = Timer(Duration(seconds: delaySeconds), () {
+        _snipDelay = null;
+        _armSnip();
+      });
+      return;
+    }
+    _armSnip();
+  }
+
+  void _armSnip() {
+    closeOverlays();
+    snipActive = true;
+    notifyListeners();
+  }
+
+  void cancelSnip() {
+    _snipDelay?.cancel();
+    _snipDelay = null;
+    if (!snipActive) return;
+    snipActive = false;
+    _restoreScreenshotWindows();
+    notifyListeners();
+  }
+
+  /// Called by the snip overlay once the user lets go of a selection.
+  void completeSnip(Rect region) => unawaited(_capture(region));
+
+  void captureFullscreen({int delaySeconds = 0}) {
+    _snipDelay?.cancel();
+    _snipDelay = Timer(Duration(seconds: delaySeconds), () {
+      _snipDelay = null;
+      unawaited(_capture(_fullRegion()));
+    });
+  }
+
+  Rect? _fullRegion() {
+    Rect? bounds;
+    for (final o in wayland?.outputs ?? const <OasisOutput>[]) {
+      if (!o.enabled) continue;
+      bounds = bounds?.expandToInclude(o.rect) ?? o.rect;
+    }
+    return bounds;
+  }
+
+  Future<void> _capture(Rect? region) async {
+    if (_snipInFlight) return;
+    _snipInFlight = true;
+    snipActive = false;
+    notifyListeners();
+    // The overlay is drawn by the shell itself, so it has to be gone
+    // from the framebuffer before pixels are read back.
+    await Future<void>.delayed(kScreenshotSettle);
+    String? path;
+    if (region != null) path = await screenshots.captureRegion(region);
+    _snipInFlight = false;
+    // Restoring the app's windows animates them through the dock, which
+    // trips over a notification banner appearing in the same layout
+    // pass — let it land a frame later instead.
+    WidgetsBinding.instance
+      ..scheduleFrame()
+      ..addPostFrameCallback((_) {
+        if (!_disposed) _restoreScreenshotWindows();
+      });
+    pushNotification(
+      OasisNotification(
+        id: _notifications.nextLocalId(),
+        appName: screenshotAppName(),
+        summary: path == null
+            ? screenshotFailedMessage()
+            : screenshotSavedTitle(),
+        body: path ?? '',
+        timestamp: clock.now(),
+      ),
+    );
+  }
+
+  void _restoreScreenshotWindows() {
+    for (final w in windows) {
+      if (w.app.id == kScreenshotAppId && w.minimized) {
+        restoreWindow(w.id);
+      }
+    }
+  }
+
   void runKeybindAction(String action) {
     switch (action) {
       case OasisKeybindsService.actionLauncher:
@@ -985,6 +1100,8 @@ class ShellController extends ChangeNotifier {
         toggleZoomFocused();
       case OasisKeybindsService.actionQuit:
         quitFocusedApp();
+      case OasisKeybindsService.actionScreenshot:
+        beginSnip();
       default:
         final command = keybinds.customById(action)?.command;
         if (command != null) {
@@ -1090,6 +1207,7 @@ class ShellController extends ChangeNotifier {
   }
 
   void closeOverlays() {
+    cancelSnip();
     launcherOpen = false;
     launchPadOpen = false;
     controlCenterOpen = false;
@@ -1152,6 +1270,8 @@ class ShellController extends ChangeNotifier {
     }
     _requestSub?.cancel();
     _identifyTimer?.cancel();
+    _snipDelay?.cancel();
+    screenshots.dispose();
     wayland?.onIdleSuspend = null;
     wayland?.removeListener(_syncSurfaces);
     mpris?.removeListener(notifyListeners);

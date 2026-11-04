@@ -243,27 +243,33 @@ class GtkHost : public OasisHost {
     gtk_clipboard_set_text(cb, text.c_str(), -1);
   }
 
-  bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int w,
-                     int h) override {
+  bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int* w,
+                     int* h) override {
     if (c_->view == nullptr) return false;
     GdkWindow* win = gtk_widget_get_window(c_->view);
     if (win == nullptr) return false;
-    int aw = w, ah = h;
+    // The GDK source rect is in window (logical) coordinates, so the
+    // physical pixel size has to be divided back down by the scale.
+    int scale = gtk_widget_get_scale_factor(c_->view);
+    if (scale <= 0) scale = 1;
+    int aw = *w / scale, ah = *h / scale;
     if (aw <= 0 || ah <= 0) return false;
     G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     GdkPixbuf* pb = gdk_pixbuf_get_from_window(win, x, y, aw, ah);
     G_GNUC_END_IGNORE_DEPRECATIONS
     if (pb == nullptr) return false;
-    w = gdk_pixbuf_get_width(pb);
-    h = gdk_pixbuf_get_height(pb);
+    int pw = gdk_pixbuf_get_width(pb);
+    int ph = gdk_pixbuf_get_height(pb);
+    *w = pw;
+    *h = ph;
     int channels = gdk_pixbuf_get_n_channels(pb);
     int stride = gdk_pixbuf_get_rowstride(pb);
     const guint8* src = gdk_pixbuf_get_pixels(pb);
-    rgba.resize((size_t)w * h * 4);
-    for (int y = 0; y < h; y++) {
+    rgba.resize((size_t)pw * ph * 4);
+    for (int y = 0; y < ph; y++) {
       const guint8* srow = src + (size_t)y * stride;
-      uint8_t* drow = rgba.data() + (size_t)y * w * 4;
-      for (int x = 0; x < w; x++) {
+      uint8_t* drow = rgba.data() + (size_t)y * pw * 4;
+      for (int x = 0; x < pw; x++) {
         drow[x * 4 + 0] = srow[x * channels + 0];
         drow[x * 4 + 1] = srow[x * channels + 1];
         drow[x * 4 + 2] = srow[x * channels + 2];
@@ -519,6 +525,20 @@ static void method_call_cb(FlMethodChannel*, FlMethodCall* call,
   } else if (g_strcmp0(name, "pointerAxisStop") == 0) {
     c->core->pointerAxisStop();
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(name, "capture") == 0) {
+    std::vector<uint8_t> rgba;
+    int w = (int)arg_int(args, "w"), h = (int)arg_int(args, "h");
+    FlValue* m = fl_value_new_map();
+    if (w > 0 && h > 0 &&
+        c->core->capture(rgba, (int)arg_int(args, "x"),
+                         (int)arg_int(args, "y"), &w, &h)) {
+      fl_value_set_string_take(m, "w", fl_value_new_int(w));
+      fl_value_set_string_take(m, "h", fl_value_new_int(h));
+      fl_value_set_string_take(
+          m, "rgba",
+          fl_value_new_uint8_list(rgba.data(), rgba.size()));
+    }
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(m));
   } else if (g_strcmp0(name, "inputConfig") == 0) {
     const gchar* device = "mouse";
     FlValue* dev = fl_value_lookup_string(args, "device");

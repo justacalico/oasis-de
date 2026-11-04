@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/apps/shell_apps.dart';
+import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_files/oasis_files.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
@@ -24,9 +25,7 @@ class _FakeBackend extends FilesBackend {
   Future<List<FileItem>> list(String dir, {bool showHidden = false}) async {
     if (failList) throw StateError('no dir');
     final items = tree[dir] ?? [];
-    return items
-        .where((e) => showHidden || !e.name.startsWith('.'))
-        .toList();
+    return items.where((e) => showHidden || !e.name.startsWith('.')).toList();
   }
 
   @override
@@ -50,15 +49,15 @@ class _FakeBackend extends FilesBackend {
 
   @override
   Future<List<FileBookmark>> bookmarks() async => [
-        const FileBookmark(kind: BookmarkKind.home, path: '/home/u'),
-        const FileBookmark(kind: BookmarkKind.downloads, path: '/dl'),
-        const FileBookmark(
-          kind: BookmarkKind.mount,
-          path: '/media/usb',
-          label: 'usb',
-        ),
-        const FileBookmark(kind: BookmarkKind.root, path: '/'),
-      ];
+    const FileBookmark(kind: BookmarkKind.home, path: '/home/u'),
+    const FileBookmark(kind: BookmarkKind.downloads, path: '/dl'),
+    const FileBookmark(
+      kind: BookmarkKind.mount,
+      path: '/media/usb',
+      label: 'usb',
+    ),
+    const FileBookmark(kind: BookmarkKind.root, path: '/'),
+  ];
 
   @override
   Future<void> mkdir(String parent, String name) async =>
@@ -73,8 +72,7 @@ class _FakeBackend extends FilesBackend {
     List<String> paths,
     String destDir, {
     required bool move,
-  }) async =>
-      pasted.add('${paths.join(",")}>$destDir:${move ? "mv" : "cp"}');
+  }) async => pasted.add('${paths.join(",")}>$destDir:${move ? "mv" : "cp"}');
 
   var failTrash = false;
 
@@ -97,28 +95,26 @@ class _FailImage extends ImageProvider<_FailImage> {
       OneFrameImageStreamCompleter(Future.error('bad image'));
 }
 
-FileItem _file(String path, {int size = 10, DateTime? modified}) =>
-    FileItem(
-      path: path,
-      name: path.split('/').last,
-      isDir: false,
-      size: size,
-      modified: modified ?? DateTime(2024, 5, 4, 10),
-    );
+FileItem _file(String path, {int size = 10, DateTime? modified}) => FileItem(
+  path: path,
+  name: path.split('/').last,
+  isDir: false,
+  size: size,
+  modified: modified ?? DateTime(2024, 5, 4, 10),
+);
 
 FileItem _dir(String path) =>
     FileItem(path: path, name: path.split('/').last, isDir: true);
 
 _FakeBackend _backend() => _FakeBackend({
-      '/home/u': [
-        _dir('/home/u/docs'),
-        _file('/home/u/a.txt', size: 100),
-        _file('/home/u/b.png', size: 3000,
-            modified: DateTime(2024, 6, 1)),
-        _file('/home/u/.hidden'),
-      ],
-      '/home/u/docs': [_file('/home/u/docs/report.pdf', size: 9)],
-    });
+  '/home/u': [
+    _dir('/home/u/docs'),
+    _file('/home/u/a.txt', size: 100),
+    _file('/home/u/b.png', size: 3000, modified: DateTime(2024, 6, 1)),
+    _file('/home/u/.hidden'),
+  ],
+  '/home/u/docs': [_file('/home/u/docs/report.pdf', size: 9)],
+});
 
 FilesState _state(_FakeBackend b) => FilesState(backend: b);
 
@@ -150,8 +146,7 @@ void main() {
     await s.init('/home/u');
     expect(s.dir, '/home/u');
     expect(s.bookmarks.length, 4);
-    expect(s.entries.map((e) => e.name),
-        ['docs', 'a.txt', 'b.png']);
+    expect(s.entries.map((e) => e.name), ['docs', 'a.txt', 'b.png']);
 
     s.toggleHidden();
     await Future<void>.delayed(Duration.zero);
@@ -287,10 +282,7 @@ void main() {
     await b.paste(['${root.path}/b.txt'], '${root.path}/sub2', move: false);
     expect(File('${root.path}/sub2/b.txt').existsSync(), isTrue);
     await b.paste(['${root.path}/sub2'], '${root.path}/made', move: false);
-    expect(
-      File('${root.path}/made/sub2/deep.txt').existsSync(),
-      isTrue,
-    );
+    expect(File('${root.path}/made/sub2/deep.txt').existsSync(), isTrue);
     await b.paste(['${root.path}/b.txt'], '${root.path}/made', move: true);
     expect(File('${root.path}/made/b.txt').existsSync(), isTrue);
     await b.paste(['${root.path}/made'], root.path, move: true);
@@ -347,8 +339,9 @@ void main() {
   });
 
   test('failed operations surface an error and keep selection', () async {
-    final b = _FakeBackend({'/x': [_file('/x/a.txt')]})
-      ..failTrash = true;
+    final b = _FakeBackend({
+      '/x': [_file('/x/a.txt')],
+    })..failTrash = true;
     final s = _state(b);
     s.selection.add('/x/a.txt');
     await s.trashSelection();
@@ -358,11 +351,11 @@ void main() {
   });
 
   Widget host(FilesState s) => OasisHost(
-        appearance: OasisAppearance(),
-        updates: UpdateService(currentVersion: () async => '1'),
-        setLocale: (_) {},
-        child: FilesHome(state: s, startDir: '/home/u'),
-      );
+    appearance: OasisAppearance(),
+    updates: UpdateService(currentVersion: () async => '1'),
+    setLocale: (_) {},
+    child: FilesHome(state: s, startDir: '/home/u'),
+  );
 
   testWidgets('search field clears when navigating', (tester) async {
     final s = _state(_backend());
@@ -405,8 +398,9 @@ void main() {
     s.dispose();
   });
 
-  testWidgets('files home ops: dialogs, search, grid, hidden, menu',
-      (tester) async {
+  testWidgets('files home ops: dialogs, search, grid, hidden, menu', (
+    tester,
+  ) async {
     final b = _backend();
     final s = _state(b);
     await pumpOasis(tester, host(s), size: const Size(900, 600));
@@ -444,10 +438,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('.hidden'), findsOneWidget);
 
-    await tester.enterText(
-      find.byType(EditableText).at(1),
-      'report',
-    );
+    await tester.enterText(find.byType(EditableText).at(1), 'report');
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     expect(find.text('report.pdf'), findsOneWidget);
@@ -467,8 +458,7 @@ void main() {
     s.dispose();
   });
 
-  testWidgets('files context menu actions and keyboard paths',
-      (tester) async {
+  testWidgets('files context menu actions and keyboard paths', (tester) async {
     final b = _backend();
     final s = _state(b);
     await pumpOasis(tester, host(s), size: const Size(900, 600));
@@ -553,8 +543,14 @@ void main() {
   });
 
   testWidgets('shell files app builder produces a window', (tester) async {
+    final controller = ShellController(
+      batteryPollInterval: null,
+      apps: const [],
+    );
+    addTearDown(controller.dispose);
     final apps = buildShellApps(
       lookupOasisLocalizations(const Locale('en')),
+      controller: controller,
       version: '1.0.0',
       appearance: OasisAppearance(),
       wallpaper: OasisWallpaperService(),
@@ -563,10 +559,7 @@ void main() {
     );
     final files = apps.firstWhere((a) => a.id == 'files');
     await tester.pumpWidget(
-      wrapOasis(
-        Builder(builder: files.builder),
-        size: const Size(900, 600),
-      ),
+      wrapOasis(Builder(builder: files.builder), size: const Size(900, 600)),
     );
     await tester.pump();
     expect(find.byType(FilesHome), findsOneWidget);
@@ -594,10 +587,7 @@ void main() {
     b.tree['/gone'] = [_file('/gone/x.txt')];
     await s.cd('/gone');
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(EditableText).first,
-      '/home/u',
-    );
+    await tester.enterText(find.byType(EditableText).first, '/home/u');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(s.dir, '/home/u');

@@ -5,10 +5,14 @@ import 'package:oasis_files/oasis_files.dart';
 import 'package:oasis_settings/oasis_settings.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
+import '../services/screenshot.dart';
+import '../shell/shell_controller.dart';
 import 'about_window.dart';
+import 'screenshot_window.dart';
 
 List<OasisApp> buildShellApps(
   OasisLocalizations l10n, {
+  required ShellController controller,
   required String version,
   required OasisAppearance appearance,
   required OasisWallpaperService wallpaper,
@@ -87,6 +91,13 @@ List<OasisApp> buildShellApps(
       icon: Icons.calculate,
       iconColors: const [Color(0xFF34C759), Color(0xFF1E7D3E)],
       builder: (context) => const CalculatorWindow(),
+    ),
+    OasisApp(
+      id: kScreenshotAppId,
+      name: l10n.appScreenshot,
+      icon: Icons.crop,
+      iconColors: const [Color(0xFFBF5AF2), Color(0xFF7B2FA6)],
+      builder: (context) => ScreenshotWindow(controller: controller),
     ),
   ];
 }

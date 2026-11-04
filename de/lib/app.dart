@@ -8,6 +8,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 import 'apps/shell_apps.dart';
 import 'services/mpris.dart';
 import 'services/notifications.dart';
+import 'services/screenshot.dart';
 import 'services/power.dart';
 import 'shell/desktop_shell.dart';
 import 'services/displays.dart';
@@ -43,6 +44,7 @@ class OasisDesktopApp extends StatefulWidget {
     this.keybinds,
     this.mouse,
     this.trackpad,
+    this.screenshots,
   });
 
   final String version;
@@ -61,6 +63,7 @@ class OasisDesktopApp extends StatefulWidget {
   final OasisKeybindsService? keybinds;
   final OasisMouseSettings? mouse;
   final OasisTrackpadSettings? trackpad;
+  final ScreenshotService? screenshots;
 
   @override
   State<OasisDesktopApp> createState() => _OasisDesktopAppState();
@@ -104,11 +107,9 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _powerBackend = WaylandPowerBackend(_wayland, store: widget.store);
     _mpris = widget.mpris ?? MprisService();
     _backend = widget.backend ?? const CliSystemBackend();
-    _keybinds =
-        widget.keybinds ?? OasisKeybindsService(store: widget.store);
+    _keybinds = widget.keybinds ?? OasisKeybindsService(store: widget.store);
     _mouse = widget.mouse ?? OasisMouseSettings(store: widget.store);
-    _trackpad =
-        widget.trackpad ?? OasisTrackpadSettings(store: widget.store);
+    _trackpad = widget.trackpad ?? OasisTrackpadSettings(store: widget.store);
     _mouse.addListener(_pushPointerConfig);
     _trackpad.addListener(_pushPointerConfig);
     _wayland.addListener(_onWaylandChanged);
@@ -119,12 +120,21 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       mpris: _mpris,
       dock: _dock,
       keybinds: _keybinds,
+      screenshots: widget.screenshots,
     );
     _controller.unknownAppName = () =>
         lookupOasisLocalizations(_locale ?? const Locale('en')).appUnknown;
-    _controller.launchFailedMessage = (app) =>
-        lookupOasisLocalizations(_locale ?? const Locale('en'))
-            .launchFailed(app);
+    _controller.launchFailedMessage = (app) => lookupOasisLocalizations(
+      _locale ?? const Locale('en'),
+    ).launchFailed(app);
+    _controller.screenshotAppName = () =>
+        lookupOasisLocalizations(_locale ?? const Locale('en')).appScreenshot;
+    _controller.screenshotSavedTitle = () => lookupOasisLocalizations(
+      _locale ?? const Locale('en'),
+    ).screenshotSavedTitle;
+    _controller.screenshotFailedMessage = () => lookupOasisLocalizations(
+      _locale ?? const Locale('en'),
+    ).screenshotFailed;
     _locale = widget.locale;
     _restoreState();
     _appearance.addListener(_persistState);
@@ -193,21 +203,25 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
 
   void _pushPointerConfig() {
     if (!_wayland.available) return;
-    unawaited(_wayland.inputConfig({
-      'device': 'mouse',
-      'pointerSpeed': _mouse.pointerSpeed,
-      'scrollSpeed': _mouse.scrollSpeed,
-      'naturalScrolling': _mouse.naturalScrolling,
-      'leftHanded': _mouse.primaryButton == OasisPrimaryButton.right,
-    }));
-    unawaited(_wayland.inputConfig({
-      'device': 'trackpad',
-      'pointerSpeed': _trackpad.pointerSpeed,
-      'scrollSpeed': _trackpad.scrollSpeed,
-      'naturalScrolling': _trackpad.naturalScrolling,
-      'tapToClick': _trackpad.tapToClick,
-      'twoFingerScrolling': _trackpad.twoFingerScrolling,
-    }));
+    unawaited(
+      _wayland.inputConfig({
+        'device': 'mouse',
+        'pointerSpeed': _mouse.pointerSpeed,
+        'scrollSpeed': _mouse.scrollSpeed,
+        'naturalScrolling': _mouse.naturalScrolling,
+        'leftHanded': _mouse.primaryButton == OasisPrimaryButton.right,
+      }),
+    );
+    unawaited(
+      _wayland.inputConfig({
+        'device': 'trackpad',
+        'pointerSpeed': _trackpad.pointerSpeed,
+        'scrollSpeed': _trackpad.scrollSpeed,
+        'naturalScrolling': _trackpad.naturalScrolling,
+        'tapToClick': _trackpad.tapToClick,
+        'twoFingerScrolling': _trackpad.twoFingerScrolling,
+      }),
+    );
   }
 
   final Map<String, String> _persisted = {};
@@ -241,13 +255,11 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
 
   Future<void> _init() async {
     _controller.notificationActionHandler = (id, action) => unawaited(
-          widget.notificationDaemon?.invokeAction(id, action) ??
-              Future.value(),
-        );
+      widget.notificationDaemon?.invokeAction(id, action) ?? Future.value(),
+    );
     _controller.notificationClosedHandler = (id, reason) => unawaited(
-          widget.notificationDaemon?.notifyClosed(id, reason) ??
-              Future.value(),
-        );
+      widget.notificationDaemon?.notifyClosed(id, reason) ?? Future.value(),
+    );
     unawaited(
       widget.notificationDaemon?.start(
             onNotify: _controller.pushNotification,
@@ -325,6 +337,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
               final l10n = OasisLocalizations.of(context);
               final builtins = buildShellApps(
                 l10n,
+                controller: _controller,
                 version: widget.version,
                 appearance: _appearance,
                 wallpaper: _wallpaper,
@@ -408,5 +421,8 @@ Locale _localeFromTag(String tag) {
     }
   }
   return Locale.fromSubtags(
-      languageCode: parts[0], scriptCode: script, countryCode: country);
+    languageCode: parts[0],
+    scriptCode: script,
+    countryCode: country,
+  );
 }

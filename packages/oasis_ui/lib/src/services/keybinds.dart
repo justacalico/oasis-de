@@ -23,9 +23,9 @@ final _modifierKeys = {
 // than metaLeft/metaRight, so HardwareKeyboard.isMetaPressed and Flutter's
 // meta synonyms both miss it on Linux. Every meta check in the shell has to
 // go through this set instead.
-final metaModifierKeys =
-    LogicalKeyboardKey.expandSynonyms({LogicalKeyboardKey.meta})
-      ..add(LogicalKeyboardKey.superKey);
+final metaModifierKeys = LogicalKeyboardKey.expandSynonyms({
+  LogicalKeyboardKey.meta,
+})..add(LogicalKeyboardKey.superKey);
 
 /// Whether a meta modifier is held, counting the Super key that Linux
 /// reports as [LogicalKeyboardKey.superKey].
@@ -43,6 +43,7 @@ final _keyLabels = {
   LogicalKeyboardKey.arrowRight: 'Right',
   LogicalKeyboardKey.backspace: 'Backspace',
   LogicalKeyboardKey.delete: 'Delete',
+  LogicalKeyboardKey.printScreen: 'Print',
 };
 
 /// A non-modifier key plus the modifiers held down with it.
@@ -205,6 +206,7 @@ class OasisKeybindsService extends ChangeNotifier {
   static const actionShowDesktop = 'shell.showDesktop';
   static const actionZoom = 'shell.zoom';
   static const actionQuit = 'shell.quit';
+  static const actionScreenshot = 'shell.screenshot';
 
   static const builtinActions = [
     actionLauncher,
@@ -215,6 +217,7 @@ class OasisKeybindsService extends ChangeNotifier {
     actionShowDesktop,
     actionZoom,
     actionQuit,
+    actionScreenshot,
   ];
 
   static const defaults = <String, OasisKeyCombo>{
@@ -233,6 +236,7 @@ class OasisKeybindsService extends ChangeNotifier {
     actionShowDesktop: OasisKeyCombo(key: LogicalKeyboardKey.keyD, meta: true),
     actionZoom: OasisKeyCombo(key: LogicalKeyboardKey.arrowUp, meta: true),
     actionQuit: OasisKeyCombo(key: LogicalKeyboardKey.keyQ, meta: true),
+    actionScreenshot: OasisKeyCombo(key: LogicalKeyboardKey.printScreen),
   };
 
   final OasisStore? _store;

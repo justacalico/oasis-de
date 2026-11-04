@@ -152,6 +152,19 @@ class FakeWaylandHost extends WaylandHost {
   Future<void> key(int code, bool pressed) async {
     calls.add('key:$code:$pressed');
   }
+
+  /// Frame handed back by [capture]; null reports capture failure.
+  Uint8List? captureRgba;
+  int captureWidth = 0;
+  int captureHeight = 0;
+
+  @override
+  Future<Map<String, Object?>?> capture(int x, int y, int w, int h) async {
+    calls.add('capture:$x:$y:${w}x$h');
+    final rgba = captureRgba;
+    if (rgba == null) return null;
+    return {'w': captureWidth, 'h': captureHeight, 'rgba': rgba};
+  }
 }
 
 void main() {
@@ -338,13 +351,7 @@ void main() {
     host.emit({'event': 'subsurface', 'id': 7, 'parent': 9, 'x': 0, 'y': 0});
     host.emit({'event': 'subsurface', 'id': 5, 'parent': 1, 'x': 0, 'y': 0});
     host.emit({'event': 'toplevel', 'id': 1});
-    host.emit({
-      'event': 'popup',
-      'id': 9,
-      'parent': 1,
-      'x': 0,
-      'y': 0,
-    });
+    host.emit({'event': 'popup', 'id': 9, 'parent': 1, 'x': 0, 'y': 0});
     host.emit({
       'event': 'childrenReordered',
       'id': 1,
@@ -752,10 +759,7 @@ Exec=t
     expect(app.exec!.last, 't');
 
     expect(
-      desktopAppToOasis(
-        term,
-        environment: const {'TERMINAL': 'foot'},
-      ).exec,
+      desktopAppToOasis(term, environment: const {'TERMINAL': 'foot'}).exec,
       ['foot', '-e', 't'],
     );
     expect(
@@ -765,10 +769,11 @@ Exec=t
       ).exec,
       ['alacritty', '-e', 't'],
     );
-    expect(
-      desktopAppToOasis(term, which: (_) => null).exec,
-      ['x-terminal-emulator', '-e', 't'],
-    );
+    expect(desktopAppToOasis(term, which: (_) => null).exec, [
+      'x-terminal-emulator',
+      '-e',
+      't',
+    ]);
   });
 
   test('parseExecLine unescapes sequences', () {
@@ -864,11 +869,7 @@ TryExec=/bin/sh
       ..createSync(recursive: true)
       ..writeAsBytesSync(const [0x89]);
     expect(
-      findIconPath(
-        'x',
-        roots: [dir.path],
-        environment: {'HOME': home.path},
-      ),
+      findIconPath('x', roots: [dir.path], environment: {'HOME': home.path}),
       themed.path,
     );
   });
@@ -1025,8 +1026,9 @@ NoDisplay=true
 }
 
 void surfaceViewCoverage() {
-  testWidgets('surface view releases pressed keys on focus loss',
-      (tester) async {
+  testWidgets('surface view releases pressed keys on focus loss', (
+    tester,
+  ) async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
     addTearDown(service.dispose);
@@ -1108,8 +1110,9 @@ void surfaceViewCoverage() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
   });
 
-  testWidgets('surface view handles cancel and trackpad gestures',
-      (tester) async {
+  testWidgets('surface view handles cancel and trackpad gestures', (
+    tester,
+  ) async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
     addTearDown(service.dispose);
@@ -1149,9 +1152,7 @@ void surfaceViewCoverage() {
     await mouse.cancel();
     await tester.pump();
 
-    final pad = await tester.createGesture(
-      kind: PointerDeviceKind.trackpad,
-    );
+    final pad = await tester.createGesture(kind: PointerDeviceKind.trackpad);
     await pad.panZoomStart(center);
     await pad.panZoomUpdate(center, pan: const Offset(4, 5));
     await pad.panZoomEnd();
@@ -1159,8 +1160,7 @@ void surfaceViewCoverage() {
     expect(host.calls, contains('axis:4.0:5.0'));
   });
 
-  testWidgets('popup view hits subsurfaces and handles cancel',
-      (tester) async {
+  testWidgets('popup view hits subsurfaces and handles cancel', (tester) async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
     addTearDown(service.dispose);
@@ -1282,10 +1282,7 @@ void layerViewCoverage() {
     expect(service.lockSurfaces.single.id, 6);
     expect(service.sessionLocked, isTrue);
     expect(service.displayOff, isTrue);
-    expect(
-      service.exclusiveInsets,
-      const EdgeInsets.fromLTRB(30, 20, 15, 10),
-    );
+    expect(service.exclusiveInsets, const EdgeInsets.fromLTRB(30, 20, 15, 10));
     await service.configureLayer(5, 400, 40);
     await service.sessionUnlock();
     expect(host.calls, contains('configureLayer:5:400x40'));
@@ -1390,8 +1387,9 @@ void layerViewCoverage() {
     );
   });
 
-  testWidgets('layer surface view configures and forwards input',
-      (tester) async {
+  testWidgets('layer surface view configures and forwards input', (
+    tester,
+  ) async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
     addTearDown(service.dispose);
@@ -1476,8 +1474,9 @@ void layerViewCoverage() {
     expect(host.calls, contains('button:272:false'));
   });
 
-  testWidgets('layer surface view without interactivity skips focus',
-      (tester) async {
+  testWidgets('layer surface view without interactivity skips focus', (
+    tester,
+  ) async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
     addTearDown(service.dispose);
@@ -1500,8 +1499,9 @@ void layerViewCoverage() {
     expect(host.calls, isNot(contains('focus:5')));
   });
 
-  testWidgets('lock surface view grabs focus and forwards keys',
-      (tester) async {
+  testWidgets('lock surface view grabs focus and forwards keys', (
+    tester,
+  ) async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
     addTearDown(service.dispose);
@@ -1514,7 +1514,9 @@ void layerViewCoverage() {
       tester,
       Row(
         children: [
-          Expanded(child: LockSurfaceView(surface: s, service: service)),
+          Expanded(
+            child: LockSurfaceView(surface: s, service: service),
+          ),
           Focus(focusNode: other, child: const SizedBox(width: 10)),
         ],
       ),
