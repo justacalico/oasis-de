@@ -503,9 +503,12 @@ static bool export_buffer(Surface* s) {
   }
 
   // A commit that re-attaches the displayed buffer without damage carries
-  // no new pixels; skip the whole export.
+  // no new pixels; skip the whole export. Damage is read from
+  // surface->buffer_damage rather than current.buffer_damage: wlroots
+  // already folds wl_surface.damage() (surface coords) into the former,
+  // while the latter only carries wl_surface.damage_buffer() calls.
   if (buf == s->exported && !s->need_full &&
-      pixman_region32_empty(&wlr->current.buffer_damage)) {
+      pixman_region32_empty(&wlr->buffer_damage)) {
     return false;
   }
   if (s->iw != buf->width || s->ih != buf->height) {
@@ -514,7 +517,7 @@ static bool export_buffer(Surface* s) {
   pixman_region32_t full_region;
   pixman_region32_init_rect(&full_region, 0, 0, buf->width, buf->height);
   const pixman_region32_t* damage =
-      s->need_full ? &full_region : &wlr->current.buffer_damage;
+      s->need_full ? &full_region : &wlr->buffer_damage;
   int nrects = 0;
   pixman_box32_t* rects = pixman_region32_rectangles(
       const_cast<pixman_region32_t*>(damage), &nrects);
