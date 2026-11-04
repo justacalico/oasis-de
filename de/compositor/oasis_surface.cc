@@ -662,6 +662,9 @@ void frame_pending_add(Surface* s) {
 // the timeline waiter run it once the fence fires.
 static void acquire_ready_cb(wlr_drm_syncobj_timeline_waiter* waiter) {
   Surface* s = wl_container_of(waiter, s, acquire_waiter);
+  // The waiter stays registered after firing; finish it here or every
+  // deferred commit leaks an eventfd until the fd table fills up.
+  wlr_drm_syncobj_timeline_waiter_finish(&s->acquire_waiter);
   s->acquire_waiting = false;
   if (export_buffer(s) && s->texture_id >= 0 &&
       (s->announced || s == s->comp->cursor_surface)) {
@@ -682,10 +685,12 @@ static bool acquire_ready(Surface* s) {
       ready) {
     return true;
   }
+  // DRM_IOCTL_SYNCOBJ_EVENTFD accepts only 0 or WAIT_AVAILABLE;
+  // wait-before-submit is built into the ioctl, so 0 still fires once an
+  // unsubmitted point materializes and is then signalled.
   if (wlr_drm_syncobj_timeline_waiter_init(
-          &s->acquire_waiter, st->acquire_timeline, st->acquire_point,
-          DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT, s->comp->loop,
-          acquire_ready_cb)) {
+          &s->acquire_waiter, st->acquire_timeline, st->acquire_point, 0,
+          s->comp->loop, acquire_ready_cb)) {
     s->acquire_waiting = true;
     return false;
   }

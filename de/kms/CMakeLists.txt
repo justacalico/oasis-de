@@ -16,6 +16,9 @@ pkg_check_modules(KMS REQUIRED IMPORTED_TARGET
 )
 pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET wlroots-0.20)
 
+# xkb_keymap_new_from_names2 appeared in libxkbcommon 1.11.
+pkg_check_modules(XKB_NAMES2 QUIET xkbcommon>=1.11)
+
 # wlroots does not install generated protocol headers; compositors must
 # produce them from the wlr-protocols XML definitions (wlr-protocols-devel).
 find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
@@ -59,5 +62,8 @@ target_compile_features(oasis_kms PRIVATE cxx_std_17)
 target_include_directories(oasis_kms PRIVATE "${COMPOSITOR_DIR}")
 target_include_directories(oasis_kms PRIVATE "${PROTOCOL_GEN_DIR}")
 target_compile_definitions(oasis_kms PRIVATE WLR_USE_UNSTABLE)
+if(XKB_NAMES2_FOUND)
+  target_compile_definitions(oasis_kms PRIVATE OASIS_XKB_NAMES2)
+endif()
 add_dependencies(oasis_kms wlr_protocols_gen)
 target_link_libraries(oasis_kms PRIVATE PkgConfig::KMS PkgConfig::WLROOTS dl)

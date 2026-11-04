@@ -196,16 +196,29 @@ void mirror_selection_to_host(OasisPrivate* c, wlr_data_source* source) {
 
 // ---- keymap ------------------------------------------------------------------
 
+static xkb_keymap* compile_keymap(xkb_context* ctx,
+                                  const xkb_rule_names* names) {
+#ifdef OASIS_XKB_NAMES2
+  // libxkbcommon 1.11+ compiles to the extended v2 text format by default;
+  // its serialization marks some virtual modifiers with explicit bindings
+  // ("Hyper=0x4000,ScrollLock=0x8000") that Xwayland's xkbcomp rejects as
+  // multiply defined. Compiling in v1 keeps the keymap served to Wayland
+  // clients and Xwayland in the classic format.
+  return xkb_keymap_new_from_names2(ctx, names, XKB_KEYMAP_FORMAT_TEXT_V1,
+                                    XKB_KEYMAP_COMPILE_NO_FLAGS);
+#else
+  return xkb_keymap_new_from_names(ctx, names, XKB_KEYMAP_COMPILE_NO_FLAGS);
+#endif
+}
+
 void build_keymap(OasisPrivate* c) {
   c->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
   if (c->xkb_ctx == nullptr) return;
   xkb_rule_names names = {};
-  c->kmap = xkb_keymap_new_from_names(c->xkb_ctx, &names,
-                                            XKB_KEYMAP_COMPILE_NO_FLAGS);
+  c->kmap = compile_keymap(c->xkb_ctx, &names);
   if (c->kmap == nullptr) {
     xkb_rule_names fallback = {"evdev", "pc105", "us", "", ""};
-    c->kmap = xkb_keymap_new_from_names(c->xkb_ctx, &fallback,
-                                              XKB_KEYMAP_COMPILE_NO_FLAGS);
+    c->kmap = compile_keymap(c->xkb_ctx, &fallback);
   }
 }
 
