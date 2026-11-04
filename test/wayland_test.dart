@@ -135,6 +135,11 @@ class FakeWaylandHost extends WaylandHost {
   Future<void> pointerAxisStop() async {}
 
   @override
+  Future<void> inputConfig(Map<String, Object?> config) async {
+    calls.add('inputConfig:${config['device']}');
+  }
+
+  @override
   Future<void> touchDown(int id, int tid, double x, double y) async {}
 
   @override
@@ -152,6 +157,16 @@ class FakeWaylandHost extends WaylandHost {
 void main() {
   surfaceViewCoverage();
   layerViewCoverage();
+  test('service forwards input config when available', () async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    await service.inputConfig({'device': 'mouse'});
+    expect(host.calls, isNot(contains('inputConfig:mouse')));
+    await service.start();
+    await service.inputConfig({'device': 'mouse'});
+    expect(host.calls, contains('inputConfig:mouse'));
+  });
+
   test('service starts and handles surface events', () async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
@@ -438,6 +453,7 @@ void main() {
     await host.pointerButton(272, false);
     await host.pointerAxis(0, 1);
     await host.pointerAxisStop();
+    await host.inputConfig({'device': 'mouse'});
     await host.touchDown(1, 2, 3, 4);
     await host.touchMotion(2, 5, 6);
     await host.touchUp(2);
@@ -460,6 +476,7 @@ void main() {
       'pointerButton',
       'pointerAxis',
       'pointerAxisStop',
+      'inputConfig',
       'touchDown',
       'touchMotion',
       'touchUp',

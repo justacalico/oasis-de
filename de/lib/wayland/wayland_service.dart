@@ -711,6 +711,9 @@ class WaylandService extends ChangeNotifier {
   Future<void> pointerAxisStop() =>
       available ? _host.pointerAxisStop() : Future.value();
 
+  Future<void> inputConfig(Map<String, Object?> config) =>
+      available ? _host.inputConfig(config) : Future.value();
+
   Future<void> touchDown(int id, int tid, double x, double y) =>
       available ? _host.touchDown(id, tid, x, y) : Future.value();
 

@@ -776,9 +776,6 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get pointerSpeed => 'Luas an phointeálaí';
 
   @override
-  String get pointerDoubleClickSpeed => 'Luas déchliceála';
-
-  @override
   String get pointerPrimaryButton => 'Príomhchnaipe';
 
   @override

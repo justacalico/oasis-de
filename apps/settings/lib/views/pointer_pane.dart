@@ -30,11 +30,6 @@ class MousePane extends StatelessWidget {
                   value: mouse.pointerSpeed,
                   onChanged: (v) => mouse.pointerSpeed = v,
                 ),
-                _SpeedSliderRow(
-                  title: l10n.pointerDoubleClickSpeed,
-                  value: mouse.doubleClickSpeed,
-                  onChanged: (v) => mouse.doubleClickSpeed = v,
-                ),
                 SettingsDropdownRow(
                   title: l10n.pointerPrimaryButton,
                   value: mouse.primaryButton.name,

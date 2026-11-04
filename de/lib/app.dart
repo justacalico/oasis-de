@@ -41,6 +41,8 @@ class OasisDesktopApp extends StatefulWidget {
     this.backend,
     this.locale,
     this.keybinds,
+    this.mouse,
+    this.trackpad,
   });
 
   final String version;
@@ -57,6 +59,8 @@ class OasisDesktopApp extends StatefulWidget {
   final OasisSystemBackend? backend;
   final Locale? locale;
   final OasisKeybindsService? keybinds;
+  final OasisMouseSettings? mouse;
+  final OasisTrackpadSettings? trackpad;
 
   @override
   State<OasisDesktopApp> createState() => _OasisDesktopAppState();
@@ -75,6 +79,9 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final DisplaysDaemon _displaysDaemon;
   late final MprisService _mpris;
   late final OasisKeybindsService _keybinds;
+  late final OasisMouseSettings _mouse;
+  late final OasisTrackpadSettings _trackpad;
+  var _waylandWasUp = false;
   List<OasisApp> _externalApps = const [];
   late final String? _savedPins = widget.store?.read('shell.pinned');
   Locale? _locale;
@@ -99,6 +106,12 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _backend = widget.backend ?? const CliSystemBackend();
     _keybinds =
         widget.keybinds ?? OasisKeybindsService(store: widget.store);
+    _mouse = widget.mouse ?? OasisMouseSettings(store: widget.store);
+    _trackpad =
+        widget.trackpad ?? OasisTrackpadSettings(store: widget.store);
+    _mouse.addListener(_pushPointerConfig);
+    _trackpad.addListener(_pushPointerConfig);
+    _wayland.addListener(_onWaylandChanged);
     _controller = ShellController(
       apps: const [],
       wayland: _wayland,
@@ -168,6 +181,33 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       }
     }
     _powerBackend.restore();
+  }
+
+  void _onWaylandChanged() {
+    final up = _wayland.available;
+    if (up != _waylandWasUp) {
+      _waylandWasUp = up;
+      _pushPointerConfig();
+    }
+  }
+
+  void _pushPointerConfig() {
+    if (!_wayland.available) return;
+    unawaited(_wayland.inputConfig({
+      'device': 'mouse',
+      'pointerSpeed': _mouse.pointerSpeed,
+      'scrollSpeed': _mouse.scrollSpeed,
+      'naturalScrolling': _mouse.naturalScrolling,
+      'leftHanded': _mouse.primaryButton == OasisPrimaryButton.right,
+    }));
+    unawaited(_wayland.inputConfig({
+      'device': 'trackpad',
+      'pointerSpeed': _trackpad.pointerSpeed,
+      'scrollSpeed': _trackpad.scrollSpeed,
+      'naturalScrolling': _trackpad.naturalScrolling,
+      'tapToClick': _trackpad.tapToClick,
+      'twoFingerScrolling': _trackpad.twoFingerScrolling,
+    }));
   }
 
   final Map<String, String> _persisted = {};
@@ -248,6 +288,9 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _appDirWatch?.cancel();
     _appearance.removeListener(_persistState);
     _controller.removeListener(_persistState);
+    _mouse.removeListener(_pushPointerConfig);
+    _trackpad.removeListener(_pushPointerConfig);
+    _wayland.removeListener(_onWaylandChanged);
     _controller.dispose();
     _wayland.dispose();
     _mpris.dispose();
@@ -295,6 +338,8 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 powerBackend: _powerBackend,
                 keybinds: _keybinds,
                 dock: _dock,
+                mouse: _mouse,
+                trackpad: _trackpad,
               );
               final apps = [...builtins, ..._externalApps];
               final appsById = {for (final a in apps) a.id: a};

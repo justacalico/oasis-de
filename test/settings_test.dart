@@ -831,7 +831,6 @@ void main() {
     s.mouse.pointerSpeed = 0.2;
     s.mouse.pointerSpeed = 0.2;
     s.mouse.scrollSpeed = 1.4;
-    s.mouse.doubleClickSpeed = 0.8;
     s.mouse.primaryButton = OasisPrimaryButton.right;
     s.mouse.primaryButton = OasisPrimaryButton.right;
     s.mouse.naturalScrolling = true;
@@ -846,7 +845,6 @@ void main() {
     expect(s.trackpad.naturalScrolling, isFalse);
     expect(store.read('shell.mouse.naturalScrolling'), '1');
     expect(store.read('shell.mouse.primaryButton'), 'right');
-    expect(store.read('shell.mouse.doubleClickSpeed'), '0.8');
     expect(store.read('shell.trackpad.scrollSpeed'), '0.9');
     expect(store.read('shell.trackpad.tapToClick'), '1');
     expect(store.read('shell.trackpad.twoFingerScrolling'), '0');
@@ -875,9 +873,7 @@ void main() {
 
     final bareMouse = OasisMouseSettings();
     bareMouse.primaryButton = OasisPrimaryButton.right;
-    bareMouse.doubleClickSpeed = 0.7;
     expect(bareMouse.primaryButton, OasisPrimaryButton.right);
-    expect(bareMouse.doubleClickSpeed, 0.7);
 
     final bareTrackpad = OasisTrackpadSettings();
     bareTrackpad.tapToClick = true;
@@ -887,7 +883,6 @@ void main() {
 
     final store = MemorySettingsStore();
     store.write('shell.mouse.primaryButton', 'middle');
-    store.write('shell.mouse.doubleClickSpeed', 'junk');
     store.write('shell.mouse.pointerSpeed', 'junk');
     store.write('shell.mouse.scrollSpeed', 'junk');
     store.write('shell.mouse.naturalScrolling', 'yes');
@@ -898,7 +893,6 @@ void main() {
     store.write('shell.trackpad.twoFingerScrolling', 'yes');
     final s = SettingsState(store: store);
     expect(s.mouse.primaryButton, OasisPrimaryButton.left);
-    expect(s.mouse.doubleClickSpeed, 0.5);
     expect(s.mouse.pointerSpeed, 0.5);
     expect(s.mouse.scrollSpeed, 0.5);
     expect(s.mouse.naturalScrolling, isFalse);
@@ -922,22 +916,18 @@ void main() {
     await tester.tap(find.text('Mouse'));
     await tester.pumpAndSettle();
     expect(find.text('Pointer speed'), findsOneWidget);
-    expect(find.text('Double-click speed'), findsOneWidget);
     expect(find.text('Primary button'), findsOneWidget);
     expect(find.text('Scroll speed'), findsOneWidget);
     expect(find.text('Natural scrolling'), findsOneWidget);
-    expect(find.byType(OasisSlider), findsNWidgets(3));
+    expect(find.byType(OasisSlider), findsNWidgets(2));
     expect(find.byType(OasisToggle), findsOneWidget);
 
     await tester.drag(find.byType(OasisSlider).first, const Offset(60, 0));
     await tester.pumpAndSettle();
     await tester.drag(find.byType(OasisSlider).at(1), const Offset(-60, 0));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(OasisSlider).at(2), const Offset(60, 0));
-    await tester.pumpAndSettle();
     expect(s.mouse.pointerSpeed, greaterThan(0.5));
-    expect(s.mouse.doubleClickSpeed, lessThan(0.5));
-    expect(s.mouse.scrollSpeed, greaterThan(0.5));
+    expect(s.mouse.scrollSpeed, lessThan(0.5));
 
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();

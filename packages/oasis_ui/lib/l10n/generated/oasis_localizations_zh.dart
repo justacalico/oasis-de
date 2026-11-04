@@ -759,9 +759,6 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get pointerSpeed => '指针速度';
 
   @override
-  String get pointerDoubleClickSpeed => '双击速度';
-
-  @override
   String get pointerPrimaryButton => '主按钮';
 
   @override

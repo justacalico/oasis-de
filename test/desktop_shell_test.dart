@@ -39,6 +39,8 @@ Future<void> pumpDesktop(
   NotificationDaemon? notificationDaemon,
   WaylandService? wayland,
   OasisStore? store,
+  OasisMouseSettings? mouse,
+  OasisTrackpadSettings? trackpad,
 }) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
@@ -47,6 +49,8 @@ Future<void> pumpDesktop(
     OasisDesktopApp(
       wayland: wayland,
       store: store,
+      mouse: mouse,
+      trackpad: trackpad,
       backend: backend ?? const NoopSystemBackend(),
       notificationDaemon: notificationDaemon,
       version: '1.0.0',
@@ -59,6 +63,36 @@ Future<void> pumpDesktop(
 }
 
 void main() {
+  testWidgets('pointer settings push input config to host', (tester) async {
+    final host = FakeWaylandHost();
+    final wayland = WaylandService(host: host);
+    final store = MemoryOasisStore();
+    final mouse = OasisMouseSettings(store: store);
+    final trackpad = OasisTrackpadSettings(store: store);
+    await pumpDesktop(
+      tester,
+      wayland: wayland,
+      store: store,
+      mouse: mouse,
+      trackpad: trackpad,
+    );
+    expect(host.calls, contains('inputConfig:mouse'));
+    expect(host.calls, contains('inputConfig:trackpad'));
+
+    mouse.naturalScrolling = true;
+    await tester.pump();
+    expect(
+      host.calls.where((c) => c == 'inputConfig:mouse').length,
+      greaterThan(1),
+    );
+    trackpad.tapToClick = true;
+    await tester.pump();
+    expect(
+      host.calls.where((c) => c == 'inputConfig:trackpad').length,
+      greaterThan(1),
+    );
+  });
+
   testWidgets('desktop renders bar, dock and wallpaper', (tester) async {
     await pumpDesktop(tester);
     expect(find.text('File'), findsOneWidget);

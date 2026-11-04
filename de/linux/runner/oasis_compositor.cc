@@ -409,6 +409,13 @@ static double arg_double(FlValue* args, const char* key) {
   return v != nullptr ? fl_value_get_float(v) : 0;
 }
 
+static bool arg_bool(FlValue* args, const char* key, bool dflt = false) {
+  FlValue* v = fl_value_lookup_string(args, key);
+  return v != nullptr && fl_value_get_type(v) == FL_VALUE_TYPE_BOOL
+             ? fl_value_get_bool(v)
+             : dflt;
+}
+
 static void method_call_cb(FlMethodChannel*, FlMethodCall* call,
                            gpointer data) {
   auto* c = static_cast<_OasisCompositor*>(data);
@@ -511,6 +518,21 @@ static void method_call_cb(FlMethodChannel*, FlMethodCall* call,
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (g_strcmp0(name, "pointerAxisStop") == 0) {
     c->core->pointerAxisStop();
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(name, "inputConfig") == 0) {
+    const gchar* device = "mouse";
+    FlValue* dev = fl_value_lookup_string(args, "device");
+    if (dev != nullptr && fl_value_get_type(dev) == FL_VALUE_TYPE_STRING) {
+      device = fl_value_get_string(dev);
+    }
+    OasisPointerPrefs prefs;
+    prefs.pointerSpeed = arg_double(args, "pointerSpeed");
+    prefs.scrollSpeed = arg_double(args, "scrollSpeed");
+    prefs.naturalScrolling = arg_bool(args, "naturalScrolling");
+    prefs.leftHanded = arg_bool(args, "leftHanded");
+    prefs.tapToClick = arg_bool(args, "tapToClick");
+    prefs.twoFingerScrolling = arg_bool(args, "twoFingerScrolling", true);
+    c->core->setPointerConfig(device, prefs);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (g_strcmp0(name, "touchDown") == 0) {
     c->core->touchDown(arg_int(args, "id"), (int32_t)arg_int(args, "tid"),

@@ -773,9 +773,6 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get pointerSpeed => 'Скорость указателя';
 
   @override
-  String get pointerDoubleClickSpeed => 'Скорость двойного щелчка';
-
-  @override
   String get pointerPrimaryButton => 'Основная кнопка';
 
   @override

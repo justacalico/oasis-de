@@ -89,20 +89,14 @@ class OasisMouseSettings extends OasisPointerSettings {
     _primaryButton = OasisPrimaryButton.values
             .asNameMap()[s.read('shell.mouse.primaryButton')] ??
         _primaryButton;
-    final dbl = double.tryParse(s.read('shell.mouse.doubleClickSpeed') ?? '');
-    if (dbl != null) _doubleClickSpeed = _clamp(dbl);
   }
 
   var _primaryButton = OasisPrimaryButton.left;
-  var _doubleClickSpeed = 0.5;
 
   OasisPrimaryButton get primaryButton => _primaryButton;
-  double get doubleClickSpeed => _doubleClickSpeed;
 
   set primaryButton(OasisPrimaryButton v) => _applyEnum(
       v, _primaryButton, (x) => _primaryButton = x, 'primaryButton');
-  set doubleClickSpeed(double v) => _applySpeed(
-      v, _doubleClickSpeed, (x) => _doubleClickSpeed = x, 'doubleClickSpeed');
 }
 
 /// Trackpad preferences under `shell.trackpad.*`. Independent from the mouse

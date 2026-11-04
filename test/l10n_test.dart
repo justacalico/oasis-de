@@ -226,7 +226,6 @@ void exerciseStrings(OasisLocalizations l) {
   l.settingsMouse;
   l.settingsTrackpad;
   l.pointerSpeed;
-  l.pointerDoubleClickSpeed;
   l.pointerPrimaryButton;
   l.pointerButtonLeft;
   l.pointerButtonRight;

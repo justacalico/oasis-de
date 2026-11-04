@@ -768,9 +768,6 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get pointerSpeed => 'Pointer speed';
 
   @override
-  String get pointerDoubleClickSpeed => 'Double-click speed';
-
-  @override
   String get pointerPrimaryButton => 'Primary button';
 
   @override

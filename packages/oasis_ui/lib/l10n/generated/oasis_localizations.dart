@@ -1542,12 +1542,6 @@ abstract class OasisLocalizations {
   /// **'Pointer speed'**
   String get pointerSpeed;
 
-  /// No description provided for @pointerDoubleClickSpeed.
-  ///
-  /// In en, this message translates to:
-  /// **'Double-click speed'**
-  String get pointerDoubleClickSpeed;
-
   /// No description provided for @pointerPrimaryButton.
   ///
   /// In en, this message translates to:
