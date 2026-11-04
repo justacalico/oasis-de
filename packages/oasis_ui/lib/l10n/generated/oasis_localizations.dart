@@ -1044,6 +1044,12 @@ abstract class OasisLocalizations {
   /// **'Files'**
   String get appFiles;
 
+  /// No description provided for @appScreenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot'**
+  String get appScreenshot;
+
   /// No description provided for @filesBookmarkHome.
   ///
   /// In en, this message translates to:
@@ -1589,6 +1595,72 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Two-finger scrolling'**
   String get trackpadTwoFingerScroll;
+
+  /// No description provided for @keybindScreenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a screenshot'**
+  String get keybindScreenshot;
+
+  /// No description provided for @screenshotModeRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Region'**
+  String get screenshotModeRegion;
+
+  /// No description provided for @screenshotModeFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get screenshotModeFullscreen;
+
+  /// No description provided for @screenshotDelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Delay'**
+  String get screenshotDelay;
+
+  /// No description provided for @screenshotDelayNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get screenshotDelayNone;
+
+  /// No description provided for @screenshotDelaySeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} s'**
+  String screenshotDelaySeconds(int count);
+
+  /// No description provided for @screenshotTake.
+  ///
+  /// In en, this message translates to:
+  /// **'Take screenshot'**
+  String get screenshotTake;
+
+  /// No description provided for @screenshotHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to select a region — Esc or right-click cancels'**
+  String get screenshotHint;
+
+  /// No description provided for @screenshotSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot saved'**
+  String get screenshotSavedTitle;
+
+  /// No description provided for @screenshotFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the screenshot'**
+  String get screenshotFailed;
+
+  /// No description provided for @screenshotNoCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'No captures yet'**
+  String get screenshotNoCapture;
 }
 
 class _OasisLocalizationsDelegate

@@ -185,6 +185,7 @@
   "wallpaperEmber": "余烬",
   "appCalculator": "计算器",
   "appFiles": "文件",
+  "appScreenshot": "截图",
   "filesBookmarkHome": "主目录",
   "filesBookmarkDocuments": "文档",
   "filesBookmarkDownloads": "下载",
@@ -303,5 +304,16 @@
   "pointerScrollSpeed": "滚动速度",
   "pointerNaturalScrolling": "自然滚动",
   "trackpadTapToClick": "轻点来点按",
-  "trackpadTwoFingerScroll": "双指滚动"
+  "trackpadTwoFingerScroll": "双指滚动",
+  "keybindScreenshot": "截图",
+  "screenshotModeRegion": "区域",
+  "screenshotModeFullscreen": "全屏",
+  "screenshotDelay": "延迟",
+  "screenshotDelayNone": "无",
+  "screenshotDelaySeconds": "{count} 秒",
+  "screenshotTake": "截图",
+  "screenshotHint": "拖动以选择区域，按 Esc 或右键取消",
+  "screenshotSavedTitle": "截图已保存",
+  "screenshotFailed": "无法保存截图",
+  "screenshotNoCapture": "还没有截图"
 }

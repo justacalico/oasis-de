@@ -518,6 +518,9 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get appFiles => 'Comhaid';
 
   @override
+  String get appScreenshot => 'Gabháil Scáileáin';
+
+  @override
   String get filesBookmarkHome => 'Baile';
 
   @override
@@ -798,4 +801,40 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get trackpadTwoFingerScroll => 'Scrollú dá mhéar';
+
+  @override
+  String get keybindScreenshot => 'Glac gabháil scáileáin';
+
+  @override
+  String get screenshotModeRegion => 'Réigiún';
+
+  @override
+  String get screenshotModeFullscreen => 'Iomlán';
+
+  @override
+  String get screenshotDelay => 'Moill';
+
+  @override
+  String get screenshotDelayNone => 'Dada';
+
+  @override
+  String screenshotDelaySeconds(int count) {
+    return '$count s';
+  }
+
+  @override
+  String get screenshotTake => 'Glac gabháil';
+
+  @override
+  String get screenshotHint =>
+      'Tarraing chun réigiún a roghnú — cealaíonn Esc nó deaschliceáil';
+
+  @override
+  String get screenshotSavedTitle => 'Gabháil scáileáin sábháilte';
+
+  @override
+  String get screenshotFailed => 'Níorbh fhéidir an gabháil a shábháil';
+
+  @override
+  String get screenshotNoCapture => 'Níl gabháil ar bith fós';
 }

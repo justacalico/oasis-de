@@ -199,6 +199,7 @@
   "wallpaperEmber": "Ember",
   "appCalculator": "Calculator",
   "appFiles": "Files",
+  "appScreenshot": "Screenshot",
   "filesBookmarkHome": "Home",
   "filesBookmarkDocuments": "Documents",
   "filesBookmarkDownloads": "Downloads",
@@ -317,5 +318,23 @@
   "pointerScrollSpeed": "Scroll speed",
   "pointerNaturalScrolling": "Natural scrolling",
   "trackpadTapToClick": "Tap to click",
-  "trackpadTwoFingerScroll": "Two-finger scrolling"
+  "trackpadTwoFingerScroll": "Two-finger scrolling",
+  "keybindScreenshot": "Take a screenshot",
+  "screenshotModeRegion": "Region",
+  "screenshotModeFullscreen": "Full screen",
+  "screenshotDelay": "Delay",
+  "screenshotDelayNone": "None",
+  "screenshotDelaySeconds": "{count} s",
+  "screenshotTake": "Take screenshot",
+  "screenshotHint": "Drag to select a region — Esc or right-click cancels",
+  "screenshotSavedTitle": "Screenshot saved",
+  "screenshotFailed": "Couldn't save the screenshot",
+  "screenshotNoCapture": "No captures yet",
+  "@screenshotDelaySeconds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

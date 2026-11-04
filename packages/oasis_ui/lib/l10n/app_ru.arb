@@ -185,6 +185,7 @@
   "wallpaperEmber": "Угли",
   "appCalculator": "Калькулятор",
   "appFiles": "Файлы",
+  "appScreenshot": "Снимок экрана",
   "filesBookmarkHome": "Домашняя папка",
   "filesBookmarkDocuments": "Документы",
   "filesBookmarkDownloads": "Загрузки",
@@ -303,5 +304,16 @@
   "pointerScrollSpeed": "Скорость прокрутки",
   "pointerNaturalScrolling": "Естественная прокрутка",
   "trackpadTapToClick": "Нажатие касанием",
-  "trackpadTwoFingerScroll": "Прокрутка двумя пальцами"
+  "trackpadTwoFingerScroll": "Прокрутка двумя пальцами",
+  "keybindScreenshot": "Сделать снимок экрана",
+  "screenshotModeRegion": "Область",
+  "screenshotModeFullscreen": "Весь экран",
+  "screenshotDelay": "Задержка",
+  "screenshotDelayNone": "Нет",
+  "screenshotDelaySeconds": "{count} с",
+  "screenshotTake": "Сделать снимок",
+  "screenshotHint": "Перетащите, чтобы выбрать область — Esc или правый клик отменяет",
+  "screenshotSavedTitle": "Снимок экрана сохранён",
+  "screenshotFailed": "Не удалось сохранить снимок экрана",
+  "screenshotNoCapture": "Снимков пока нет"
 }

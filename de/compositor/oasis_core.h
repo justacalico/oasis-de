@@ -109,8 +109,11 @@ class OasisHost {
     done(nullptr, 0);
   }
   virtual void hostClipboardWriteText(const std::string& text) {}
-  virtual bool captureOutput(std::vector<uint8_t>& rgba, int x, int y, int w,
-                             int h) {
+  // Grabs RGBA pixels of the composited output layout. x/y are logical
+  // layout coordinates; w/h are physical pixels in and the real buffer
+  // size out, since hosts may clip the requested region.
+  virtual bool captureOutput(std::vector<uint8_t>& rgba, int x, int y,
+                             int* w, int* h) {
     return false;
   }
 };
@@ -158,6 +161,9 @@ class OasisCore {
   void touchMotion(int32_t tid, double x, double y);
   void touchUp(int32_t tid);
   void key(uint32_t code, bool pressed);
+  // Shell-side screen grab for the snipping tool: logical layout origin
+  // plus a physical size, RGBA pixels out on success.
+  bool capture(std::vector<uint8_t>& rgba, int x, int y, int* w, int* h);
 
   oasis::OasisPrivate* p = nullptr;
 };

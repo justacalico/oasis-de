@@ -49,6 +49,12 @@ abstract class WaylandHost {
   Future<void> touchMotion(int tid, double x, double y);
   Future<void> touchUp(int tid);
   Future<void> key(int code, bool pressed);
+
+  /// Grabs composited output pixels. [x]/[y] are logical layout
+  /// coordinates while [w]/[h] are physical pixels. On success the map
+  /// carries `w`, `h` and a `rgba` byte list; null when capture is
+  /// unavailable.
+  Future<Map<String, Object?>?> capture(int x, int y, int w, int h);
 }
 
 class ChannelWaylandHost extends WaylandHost {
@@ -93,19 +99,12 @@ class ChannelWaylandHost extends WaylandHost {
   });
 
   @override
-  Future<void> configureLayer(int id, int width, int height) =>
-      _methods.invokeMethod('configureLayer', {
-        'id': id,
-        'w': width,
-        'h': height,
-      });
+  Future<void> configureLayer(int id, int width, int height) => _methods
+      .invokeMethod('configureLayer', {'id': id, 'w': width, 'h': height});
 
   @override
   Future<void> surfaceOutputs(int id, List<int> outputs) =>
-      _methods.invokeMethod('surfaceOutputs', {
-        'id': id,
-        'outputs': outputs,
-      });
+      _methods.invokeMethod('surfaceOutputs', {'id': id, 'outputs': outputs});
 
   @override
   Future<void> configureOutput(
@@ -118,18 +117,17 @@ class ChannelWaylandHost extends WaylandHost {
     double? scale,
     int? transform,
     bool? enabled,
-  }) =>
-      _methods.invokeMethod('configureOutput', {
-        'name': name,
-        'x': ?x,
-        'y': ?y,
-        'w': ?width,
-        'h': ?height,
-        'refresh': ?refreshMhz,
-        'scale': ?scale,
-        'transform': ?transform,
-        'enabled': enabled == false ? 0 : 1,
-      });
+  }) => _methods.invokeMethod('configureOutput', {
+    'name': name,
+    'x': ?x,
+    'y': ?y,
+    'w': ?width,
+    'h': ?height,
+    'refresh': ?refreshMhz,
+    'scale': ?scale,
+    'transform': ?transform,
+    'enabled': enabled == false ? 0 : 1,
+  });
 
   @override
   Future<void> close(int id) => _methods.invokeMethod('close', {'id': id});
@@ -179,21 +177,15 @@ class ChannelWaylandHost extends WaylandHost {
   });
 
   @override
-  Future<void> pointerAxisStop() =>
-      _methods.invokeMethod('pointerAxisStop');
+  Future<void> pointerAxisStop() => _methods.invokeMethod('pointerAxisStop');
 
   @override
   Future<void> inputConfig(Map<String, Object?> config) =>
       _methods.invokeMethod('inputConfig', config);
 
   @override
-  Future<void> touchDown(int id, int tid, double x, double y) =>
-      _methods.invokeMethod('touchDown', {
-        'id': id,
-        'tid': tid,
-        'x': x,
-        'y': y,
-      });
+  Future<void> touchDown(int id, int tid, double x, double y) => _methods
+      .invokeMethod('touchDown', {'id': id, 'tid': tid, 'x': x, 'y': y});
 
   @override
   Future<void> touchMotion(int tid, double x, double y) =>
@@ -206,4 +198,13 @@ class ChannelWaylandHost extends WaylandHost {
   @override
   Future<void> key(int code, bool pressed) =>
       _methods.invokeMethod('key', {'code': code, 'state': pressed ? 1 : 0});
+
+  @override
+  Future<Map<String, Object?>?> capture(int x, int y, int w, int h) =>
+      _methods.invokeMapMethod<String, Object?>('capture', {
+        'x': x,
+        'y': y,
+        'w': w,
+        'h': h,
+      });
 }

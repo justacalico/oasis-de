@@ -659,6 +659,12 @@ void OasisCore::dispatch() {
 
 void OasisCore::outputChanged() { outputs_sync_host(p); }
 
+bool OasisCore::capture(std::vector<uint8_t>& rgba, int x, int y, int* w,
+                        int* h) {
+  if (p->host == nullptr) return false;
+  return p->host->captureOutput(rgba, x, y, w, h);
+}
+
 void OasisCore::surfaceOutputs(int64_t id,
                                const std::vector<int64_t>& ids) {
   Surface* s = surface_by_id(p, id);

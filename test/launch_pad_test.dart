@@ -119,7 +119,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.text('0'), findsWidgets);
+    expect(find.text('No captures yet'), findsWidgets);
     expect(find.byType(ShellLaunchPad), findsNothing);
   });
 

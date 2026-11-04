@@ -55,7 +55,8 @@ void capture_check(OasisOutput* o) {
   std::vector<uint8_t> px;
   if (!o->powered || !c->power_on || c->lock != nullptr) {
     px.assign((size_t)w * h * 4, 0);
-  } else if (!c->host->captureOutput(px, o->x, o->y, w, h) || px.empty()) {
+  } else if (!c->host->captureOutput(px, o->x, o->y, &w, &h) ||
+             px.empty()) {
     return;
   }
   auto* buf = new PixelsBuffer();

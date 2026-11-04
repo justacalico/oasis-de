@@ -29,6 +29,7 @@ class _KeyboardPaneState extends State<KeyboardPane> {
         OasisKeybindsService.actionShowDesktop => l10n.keybindShowDesktop,
         OasisKeybindsService.actionZoom => l10n.keybindZoom,
         OasisKeybindsService.actionQuit => l10n.keybindQuit,
+        OasisKeybindsService.actionScreenshot => l10n.keybindScreenshot,
         _ => action,
       };
 
