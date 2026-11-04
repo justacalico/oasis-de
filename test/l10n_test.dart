@@ -141,6 +141,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.landingWebBody;
   l.appNotes;
   l.appCalculator;
+  l.appScreenshot;
   l.menuQuit;
   l.aboutCpu;
   l.aboutDeviceName;
@@ -222,6 +223,7 @@ void exerciseStrings(OasisLocalizations l) {
   l.keybindReset;
   l.keybindCommandHint;
   l.keybindRemove;
+  l.keybindScreenshot;
   l.tipControlCenter;
   l.settingsMouse;
   l.settingsTrackpad;
@@ -253,6 +255,16 @@ void exerciseStrings(OasisLocalizations l) {
   l.updateInstalled;
   l.updateInstalling;
   l.wallpaperInvalidPath;
+  l.screenshotModeRegion;
+  l.screenshotModeFullscreen;
+  l.screenshotDelay;
+  l.screenshotDelayNone;
+  l.screenshotDelaySeconds(3);
+  l.screenshotTake;
+  l.screenshotHint;
+  l.screenshotSavedTitle;
+  l.screenshotFailed;
+  l.screenshotNoCapture;
 }
 
 void main() {
