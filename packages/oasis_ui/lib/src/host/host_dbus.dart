@@ -10,6 +10,12 @@ const kOasisHostBusName = 'dev.oasis.Host';
 const kOasisHostInterface = 'dev.oasis.Host';
 const kOasisHostPath = '/dev/oasis/Host';
 
+const _eventMatchRule = "type='signal',"
+    "sender='$kOasisHostBusName',"
+    "interface='$kOasisHostInterface',"
+    "member='Event',"
+    "path='$kOasisHostPath'";
+
 /// Client side link to a host service on the session bus. The dbus
 /// surface is a single Call method and Event signal carrying codec
 /// payloads, so it can never drift from the in-process path.
@@ -63,6 +69,23 @@ class OasisHostDbusLink implements OasisHostLink {
           jsonDecode(signal.values.single.asString()) as Map,
         ),
       );
+
+  /// The stream's own AddMatch is fire-and-forget, so register the same
+  /// rule here and await the reply: once it lands the bus is guaranteed
+  /// to deliver Event signals to this client.
+  late final Future<void> _eventsReady = _client
+      .callMethod(
+        destination: 'org.freedesktop.DBus',
+        path: DBusObjectPath('/org/freedesktop/DBus'),
+        interface: 'org.freedesktop.DBus',
+        name: 'AddMatch',
+        values: [DBusString(_eventMatchRule)],
+        replySignature: DBusSignature(''),
+      )
+      .then((_) {});
+
+  @override
+  Future<void> get eventsReady => _eventsReady;
 
   @override
   Future<void> close() async {

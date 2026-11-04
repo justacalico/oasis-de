@@ -14,6 +14,12 @@ abstract class OasisHostLink {
 
   Stream<Map<String, Object?>> get events;
 
+  /// Resolves once a subscription on [events] is guaranteed delivery.
+  /// On dbus the signal match rule lands asynchronously; awaiting this
+  /// before snapshotting closes the window where an emitted event would
+  /// never reach the client.
+  Future<void> get eventsReady;
+
   Future<void> close();
 }
 
@@ -45,6 +51,9 @@ class OasisHostLocalLink implements OasisHostLink {
 
   @override
   Stream<Map<String, Object?>> get events => _events.stream;
+
+  @override
+  Future<void> get eventsReady => Future.value();
 
   @override
   Future<void> close() async {

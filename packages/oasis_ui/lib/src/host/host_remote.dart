@@ -135,6 +135,7 @@ class OasisHostConnection {
       openUrl: null,
     );
     connection._sub = link.events.listen(connection._onEvent);
+    await link.eventsReady;
     final state = await link.request('getState');
     connection.appearance._apply(
       OasisThemeMode.values.asNameMap()[state['themeMode']] ??
