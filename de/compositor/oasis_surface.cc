@@ -682,10 +682,12 @@ static bool acquire_ready(Surface* s) {
       ready) {
     return true;
   }
+  // DRM_IOCTL_SYNCOBJ_EVENTFD accepts only 0 or WAIT_AVAILABLE;
+  // wait-before-submit is built into the ioctl, so 0 still fires once an
+  // unsubmitted point materializes and is then signalled.
   if (wlr_drm_syncobj_timeline_waiter_init(
-          &s->acquire_waiter, st->acquire_timeline, st->acquire_point,
-          DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT, s->comp->loop,
-          acquire_ready_cb)) {
+          &s->acquire_waiter, st->acquire_timeline, st->acquire_point, 0,
+          s->comp->loop, acquire_ready_cb)) {
     s->acquire_waiting = true;
     return false;
   }
