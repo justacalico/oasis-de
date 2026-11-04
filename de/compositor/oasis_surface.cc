@@ -835,7 +835,7 @@ static void surface_commit(wl_listener* listener, void*) {
       s->wlr != nullptr
           ? wlr_linux_drm_syncobj_v1_get_surface_state(s->wlr)
           : nullptr;
-  if (syncst != nullptr) {
+  if (syncst != nullptr && s->wlr->current.buffer != nullptr) {
     wlr_linux_drm_syncobj_v1_state_signal_release_with_buffer(
         syncst, s->wlr->current.buffer);
   }
