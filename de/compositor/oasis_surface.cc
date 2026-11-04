@@ -175,6 +175,10 @@ void free_surface(Surface* s) {
   drop_texture(s);
   c->by_id.erase(s->public_id);
   if (s->wlr != nullptr) c->by_wlr.erase(s->wlr);
+  if (s->xsurface != nullptr) {
+    c->by_xsurface.erase(s->xsurface);
+    s->xsurface = nullptr;
+  }
   auto& v = c->surfaces;
   v.erase(std::remove(v.begin(), v.end(), s), v.end());
   remove_listeners(s);
@@ -502,6 +506,20 @@ static bool export_buffer(Surface* s) {
     return pushed;
   }
 
+  wlr_dmabuf_attributes attrs;
+  const bool is_dmabuf = wlr_buffer_get_dmabuf(buf, &attrs);
+  if (is_dmabuf && !s->dmabuf_broken && s->tex_kind == 2 &&
+      s->texture_id >= 0 &&
+      s->comp->host->dmabufImportFailed(s->texture_id)) {
+    // The host GL display can't present this dmabuf; stop retrying the
+    // import every frame and read the buffer back on the CPU instead.
+    // need_full forces the held buffer through the readback path even
+    // when this commit carries no new damage, so a window that has been
+    // sitting on the pink no-frame placeholder recovers right away.
+    s->dmabuf_broken = true;
+    s->need_full = true;
+  }
+
   // A commit that re-attaches the displayed buffer without damage carries
   // no new pixels; skip the whole export. Damage is read from
   // surface->buffer_damage rather than current.buffer_damage: wlroots
@@ -534,14 +552,7 @@ static bool export_buffer(Surface* s) {
   bool pushed = false;
   // Zero-copy path first: dmabuf buffers can be handed to the host as an
   // EGL image instead of being read back through the CPU.
-  wlr_dmabuf_attributes attrs;
-  if (wlr_buffer_get_dmabuf(buf, &attrs)) {
-    if (!s->dmabuf_broken && s->tex_kind == 2 && s->texture_id >= 0 &&
-        s->comp->host->dmabufImportFailed(s->texture_id)) {
-      // The host GL display can't present this dmabuf; stop retrying the
-      // import every frame and read the buffer back on the CPU instead.
-      s->dmabuf_broken = true;
-    }
+  if (is_dmabuf) {
     if (!s->dmabuf_broken) {
       ensure_texture(s, 2);
       DmabufInfo info;
@@ -953,6 +964,26 @@ static void surface_new_sub(wl_listener* listener, void* data) {
   m["textureId"] = s->texture_id;
   emit_id(s, "subsurface", std::move(m));
   emit_size(s);
+}
+
+// Xwayland surfaces can lose their wl_surface on dissociate and get a new
+// one on the next map. Leaving the listeners linked on the old surface
+// means a later attach_wlr inserts the same wl_listener nodes into a
+// second signal list, which corrupts both lists.
+void detach_wlr(Surface* s) {
+  if (s->wlr == nullptr) return;
+  s->comp->by_wlr.erase(s->wlr);
+  s->wlr = nullptr;
+  wl_list_remove(&s->commit.link);
+  wl_list_init(&s->commit.link);
+  wl_list_remove(&s->destroy.link);
+  wl_list_init(&s->destroy.link);
+  wl_list_remove(&s->map.link);
+  wl_list_init(&s->map.link);
+  wl_list_remove(&s->unmap.link);
+  wl_list_init(&s->unmap.link);
+  wl_list_remove(&s->new_sub.link);
+  wl_list_init(&s->new_sub.link);
 }
 
 void attach_wlr(Surface* s, wlr_surface* wlr) {

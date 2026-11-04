@@ -912,6 +912,10 @@ void OasisCore::stop() {
     wl_event_source_remove(p->idle_suspend_timer);
     p->idle_suspend_timer = nullptr;
   }
+  if (p->frame_fallback != nullptr) {
+    wl_event_source_remove(p->frame_fallback);
+    p->frame_fallback = nullptr;
+  }
   for (KillCheck* k : p->kill_checks) {
     if (k->timer != nullptr) wl_event_source_remove(k->timer);
     delete k;
