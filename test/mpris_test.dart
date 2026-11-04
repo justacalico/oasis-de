@@ -7,7 +7,7 @@ import 'package:oasis_de/services/mpris.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 
-import 'package:oasis_de/shell/control_center.dart';
+import 'package:oasis_de/shell/quick_settings.dart';
 
 import 'helpers/test_app.dart';
 
@@ -104,8 +104,9 @@ DBusSignal _ownerChanged(String name, String oldOwner, String newOwner) =>
 
 void main() {
   test('mpris binds player, tracks state, controls', () async {
+    final names = ['org.freedesktop.DBus', 'org.mpris.MediaPlayer2.spotify'];
     final bus = _FakeBus(
-      names: const ['org.freedesktop.DBus', 'org.mpris.MediaPlayer2.spotify'],
+      names: names,
       props: {
         'PlaybackStatus': DBusString('Playing'),
         'Metadata': _metadata('Song', ['A', 'B'], 'Record'),
@@ -163,7 +164,15 @@ void main() {
     signals.add(
       _ownerChanged('org.mpris.MediaPlayer2.other', 'dest', ''),
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
+    expect(s.hasPlayer, isTrue);
+    expect(s.playerName, 'org.mpris.MediaPlayer2.spotify');
+
+    names.remove('org.mpris.MediaPlayer2.spotify');
+    signals.add(
+      _ownerChanged('org.mpris.MediaPlayer2.spotify', 'dest', ''),
+    );
+    await pumpEventQueue();
     expect(s.hasPlayer, isFalse);
     expect(s.title, isEmpty);
 
@@ -288,7 +297,7 @@ void main() {
     expect(find.text('Band - Tune'), findsOneWidget);
   });
 
-  testWidgets('control center media card drives playback', (tester) async {
+  testWidgets('quick settings media card drives playback', (tester) async {
     final bus = _FakeBus(
       names: const ['org.mpris.MediaPlayer2.spotify'],
       props: {
@@ -312,7 +321,7 @@ void main() {
       Scaffold(
         body: ListenableBuilder(
           listenable: c,
-          builder: (context, _) => ShellControlCenter(controller: c),
+          builder: (context, _) => ShellQuickSettings(controller: c),
         ),
       ),
     );

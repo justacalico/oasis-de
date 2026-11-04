@@ -297,6 +297,83 @@ void main() {
     expect(marks.any((m) => m.kind == BookmarkKind.root), isTrue);
   });
 
+  test('IoFilesBackend search survives symlink cycles', () async {
+    final root = Directory.systemTemp.createTempSync('oasisfiles');
+    addTearDown(() => root.delete(recursive: true));
+    Directory('${root.path}/sub').createSync();
+    File('${root.path}/sub/target.txt').writeAsStringSync('x');
+    Link('${root.path}/sub/loop').createSync(root.path);
+    Link('${root.path}/up').createSync(root.path);
+    Link('${root.path}/broken').createSync('${root.path}/gone');
+
+    final found = await IoFilesBackend(home: root.path)
+        .search(root.path, 'target')
+        .timeout(const Duration(seconds: 5));
+    expect(found.single.name, 'target.txt');
+    expect(
+      await IoFilesBackend(home: root.path)
+          .search('${root.path}/missing', 'x'),
+      isEmpty,
+    );
+    final skipped = await IoFilesBackend(
+      home: root.path,
+      resolveLinks: (p) => p == '${root.path}/up'
+          ? throw const FileSystemException()
+          : Directory(p).resolveSymbolicLinksSync(),
+    ).search(root.path, 'target');
+    expect(skipped.single.name, 'target.txt');
+  });
+
+  test('IoFilesBackend paste renames collisions', () async {
+    final root = Directory.systemTemp.createTempSync('oasisfiles');
+    addTearDown(() => root.delete(recursive: true));
+    File('${root.path}/a.txt').writeAsStringSync('one');
+    Directory('${root.path}/dest').createSync();
+    File('${root.path}/dest/a.txt').writeAsStringSync('old');
+
+    final b = IoFilesBackend(home: root.path);
+    await b.paste(['${root.path}/a.txt'], '${root.path}/dest', move: false);
+    expect(File('${root.path}/dest/a (2).txt').existsSync(), isTrue);
+    expect(File('${root.path}/dest/a.txt').readAsStringSync(), 'old');
+    await b.paste(['${root.path}/a.txt'], '${root.path}/dest', move: false);
+    expect(File('${root.path}/dest/a (3).txt').existsSync(), isTrue);
+
+    Directory('${root.path}/folder').createSync();
+    Directory('${root.path}/dest/folder').createSync();
+    await b.paste(['${root.path}/folder'], '${root.path}/dest', move: false);
+    expect(Directory('${root.path}/dest/folder (2)').existsSync(), isTrue);
+  });
+
+  test('IoFilesBackend copy keeps symlinks as links', () async {
+    final root = Directory.systemTemp.createTempSync('oasisfiles');
+    addTearDown(() => root.delete(recursive: true));
+    Directory('${root.path}/src').createSync();
+    File('${root.path}/src/real.txt').writeAsStringSync('x');
+    Link('${root.path}/src/alink').createSync('${root.path}/src/real.txt');
+    Directory('${root.path}/dest').createSync();
+
+    await IoFilesBackend(home: root.path).paste(
+      ['${root.path}/src'],
+      '${root.path}/dest',
+      move: false,
+    );
+    final link = Link('${root.path}/dest/src/alink');
+    expect(link.existsSync(), isTrue);
+    expect(FileSystemEntity.isLinkSync(link.path), isTrue);
+  });
+
+  test('IoFilesBackend rejects unsafe names', () async {
+    final root = Directory.systemTemp.createTempSync('oasisfiles');
+    addTearDown(() => root.delete(recursive: true));
+    final b = IoFilesBackend(home: root.path);
+    expect(() => b.mkdir(root.path, 'a/b'), throwsArgumentError);
+    expect(() => b.mkdir(root.path, '..'), throwsArgumentError);
+    expect(
+      () => b.rename('${root.path}/x', '../escaped'),
+      throwsArgumentError,
+    );
+  });
+
   test('IoFilesBackend bookmarks lists mounted volumes', () async {
     final mounts = Directory.systemTemp.createTempSync('oasis-mounts');
     addTearDown(() => mounts.deleteSync(recursive: true));

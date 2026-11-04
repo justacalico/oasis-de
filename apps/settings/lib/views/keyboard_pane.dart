@@ -21,7 +21,7 @@ class _KeyboardPaneState extends State<KeyboardPane> {
   String _actionLabel(OasisLocalizations l10n, String action) =>
       switch (action) {
         OasisKeybindsService.actionLauncher => l10n.keybindLauncher,
-        OasisKeybindsService.actionLaunchpad => l10n.launchPad,
+        OasisKeybindsService.actionAppGrid => l10n.appGrid,
         OasisKeybindsService.actionCycleWindows => l10n.keybindCycleWindows,
         OasisKeybindsService.actionCycleWindowsBack =>
           l10n.keybindCycleWindowsBack,

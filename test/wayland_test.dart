@@ -777,7 +777,28 @@ Exec=t
 
     expect(
       desktopAppToOasis(term, environment: const {'TERMINAL': 'foot'}).exec,
-      ['foot', '-e', 't'],
+      ['foot', 't'],
+    );
+    expect(
+      desktopAppToOasis(
+        term,
+        environment: const {'TERMINAL': 'wezterm'},
+      ).exec,
+      ['wezterm', 'start', '--', 't'],
+    );
+    expect(
+      desktopAppToOasis(
+        term,
+        environment: const {'TERMINAL': '/opt/kitty'},
+      ).exec,
+      ['/opt/kitty', 't'],
+    );
+    expect(
+      desktopAppToOasis(
+        term,
+        environment: const {'TERMINAL': 'oddterm'},
+      ).exec,
+      ['oddterm', '-e', 't'],
     );
     expect(
       desktopAppToOasis(
@@ -1028,14 +1049,38 @@ Exec=bad
 NoDisplay=true
 ''');
     File('${dir.path}/notes.txt').writeAsStringSync('nope');
+    Directory('${dir.path}/nested/deep').createSync(recursive: true);
+    File('${dir.path}/nested/deep/tool.desktop').writeAsStringSync('''
+[Desktop Entry]
+Type=Application
+Name=Tool
+Exec=tool
+''');
+    Link('${dir.path}/loop').createSync(dir.path);
+    File('${dir.path}/odd.desktop.bak.desktop').writeAsStringSync('''
+[Desktop Entry]
+Type=Application
+Name=Odd
+Exec=odd
+''');
     final entries = await loadDesktopEntries(
       dirs: [dir.path, '${dir.path}/missing'],
     );
-    expect(entries.single.name, 'Good');
+    expect(
+      {for (final e in entries) e.name},
+      containsAll(['Good', 'Tool', 'Odd']),
+    );
+    expect(
+      entries.firstWhere((e) => e.name == 'Tool').id,
+      'nested-deep-tool',
+    );
+    expect(entries.firstWhere((e) => e.name == 'Odd').id, 'odd.desktop.bak');
     final all = await loadDesktopEntries();
     expect(all, isA<List<DesktopAppEntry>>());
     expect(desktopSearchDirs().first.endsWith('applications'), isTrue);
-    final app = desktopAppToOasis(entries.single);
+    final app = desktopAppToOasis(
+      entries.firstWhere((e) => e.name == 'Good'),
+    );
     expect(app.isExternal, isTrue);
     expect(app.exec, ['good']);
     expect(app.builder(_StubContext()), isNotNull);

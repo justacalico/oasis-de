@@ -193,7 +193,7 @@ void main() {
     host.emit({'event': 'size', 'id': 1, 'w': 5120, 'h': 2880});
     await pumpEventQueue();
     final w = c.windows.single;
-    final bound = Size(1280, 800 - kMenuBarHeight - 8 - kDockHeight);
+    final bound = Size(1280, 800 - kTopBarHeight - 8 - kDashHeight);
     expect(w.size, bound);
 
     host.emit({'event': 'size', 'id': 1, 'w': 6000, 'h': 4000});
@@ -210,14 +210,14 @@ void main() {
     service.dispose();
   });
 
-  test('dock reservation shrinks the adopted size on the primary head', () async {
+  test('dash reservation shrinks the adopted size on the primary head', () async {
     final host = FakeWaylandHost();
     final service = await _service(host);
-    final dock = OasisDockSettings()..position = OasisDockPosition.left;
+    final dash = OasisDashSettings()..position = OasisDashPosition.left;
     final c = ShellController(
       apps: [_external('x')],
       wayland: service,
-      dock: dock,
+      dash: dash,
     );
     host.emit({
       'event': 'outputs',
@@ -230,12 +230,12 @@ void main() {
     host.emit({'event': 'size', 'id': 1, 'w': 5120, 'h': 2880});
     await pumpEventQueue();
     final w = c.windows.single;
-    expect(w.size, Size(1280 - dockReservedExtent(dock), 762));
+    expect(w.size, Size(1280 - dashReservedExtent(dash), 762));
 
-    dock.position = OasisDockPosition.bottom;
+    dash.position = OasisDashPosition.bottom;
     host.emit({'event': 'size', 'id': 1, 'w': 6000, 'h': 4000});
     await pumpEventQueue();
-    expect(w.size, Size(1280, 762 - dockReservedExtent(dock)));
+    expect(w.size, Size(1280, 762 - dashReservedExtent(dash)));
     c.dispose();
     service.dispose();
   });
@@ -1358,6 +1358,26 @@ void main() {
     await tester.pump(const Duration(seconds: 6));
   });
 
+  testWidgets('closing a launching window silences its timeout', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(
+      apps: [_external('x')],
+      wayland: service,
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    c.openApp(c.apps.single);
+    expect(c.windows.single.launching, isTrue);
+    c.closeWindow(c.windows.single.id);
+    expect(c.windows, isEmpty);
+    await tester.pump(const Duration(seconds: 9));
+    expect(c.launchError, isNull);
+    expect(c.notifications, isEmpty);
+  });
+
   test('appId binds to the matching launching window', () async {
     final host = FakeWaylandHost();
     final service = await _service(host);
@@ -1930,10 +1950,10 @@ void main() {
     fire(LogicalKeyboardKey.arrowUp, meta: true);
     fire(LogicalKeyboardKey.space, control: true);
     await tester.pump();
-    expect(c.launchPadOpen, isTrue);
+    expect(c.appGridOpen, isTrue);
     fire(LogicalKeyboardKey.space, control: true);
     await tester.pump();
-    expect(c.launchPadOpen, isFalse);
+    expect(c.appGridOpen, isFalse);
     fire(LogicalKeyboardKey.keyD, meta: true);
     await tester.pump();
     expect(c.windows.every((w) => w.minimized), isTrue);

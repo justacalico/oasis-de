@@ -465,20 +465,36 @@ Future<List<DesktopAppEntry>> loadDesktopEntries({List<String>? dirs}) =>
 List<DesktopAppEntry> loadDesktopEntriesSync({List<String>? dirs}) {
   final found = <String, DesktopAppEntry>{};
   for (final dirPath in dirs ?? desktopSearchDirs()) {
-    final dir = Directory(dirPath);
-    if (!dir.existsSync()) continue;
-    for (final entity in dir.listSync()) {
-      if (!FileSystemEntity.isFileSync(entity.path) ||
-          !entity.path.endsWith('.desktop')) {
-        continue;
-      }
-      final id = entity.path.split('/').last.replaceAll('.desktop', '');
+    final seen = <String>{};
+    void scan(Directory d) {
+      List<FileSystemEntity> entries;
       try {
-        final contents = File(entity.path).readAsStringSync();
-        final entry = parseDesktopEntry(id, contents);
-        if (entry != null) found.putIfAbsent(id, () => entry);
-      } catch (_) {}
+        if (!seen.add(d.resolveSymbolicLinksSync())) return;
+        entries = d.listSync(followLinks: false);
+      } on FileSystemException {
+        return;
+      }
+      for (final entity in entries) {
+        if (FileSystemEntity.typeSync(entity.path) ==
+            FileSystemEntityType.directory) {
+          scan(Directory(entity.path));
+          continue;
+        }
+        if (!FileSystemEntity.isFileSync(entity.path)) continue;
+        if (!entity.path.endsWith('.desktop')) continue;
+        final rel = entity.path.substring(dirPath.length + 1);
+        final id = rel
+            .substring(0, rel.length - '.desktop'.length)
+            .replaceAll('/', '-');
+        try {
+          final contents = File(entity.path).readAsStringSync();
+          final entry = parseDesktopEntry(id, contents);
+          if (entry != null) found.putIfAbsent(id, () => entry);
+        } catch (_) {}
+      }
     }
+
+    scan(Directory(dirPath));
   }
   return found.values.toList();
 }
@@ -527,7 +543,10 @@ List<String> _findTerminal(
   String? Function(String) which,
 ) {
   final envTerm = environment['TERMINAL'];
-  if (envTerm != null && envTerm.isNotEmpty) return [envTerm, '-e'];
+  if (envTerm != null && envTerm.isNotEmpty) {
+    final args = _terminalProbes[envTerm.split('/').last];
+    return args == null ? [envTerm, '-e'] : [envTerm, ...args];
+  }
   for (final probe in _terminalProbes.entries) {
     if (which(probe.key) != null) return [probe.key, ...probe.value];
   }

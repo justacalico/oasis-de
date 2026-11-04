@@ -53,7 +53,7 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get menuAbout => 'Faoi Oasis';
 
   @override
-  String get launchPad => 'Painéal Tosaithe';
+  String get appGrid => 'Greille Aipeanna';
 
   @override
   String launchFailed(String app) {
@@ -183,7 +183,7 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get settingsDisplays => 'Taispeántais';
 
   @override
-  String get settingsDock => 'Duga';
+  String get settingsDash => 'Painéal';
 
   @override
   String get settingsSound => 'Fuaim';
@@ -376,14 +376,14 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get landingFeatureGlassBody =>
-      'Snámhann biachláir, dugaí agus fuinneoga ar thrédhearcacht fhíor le soilsiú spéaclaíoch.';
+      'Snámhann biachláir, painéil agus fuinneoga ar thrédhearcacht fhíor le soilsiú spéaclaíoch.';
 
   @override
   String get landingFeatureCalmTitle => 'Ciúin ó thús';
 
   @override
   String get landingFeatureCalmBody =>
-      'Barra roghchláir ciúin, duga a fhanann as do bhealach, agus fógraí nach mbíonn ag béiceáil.';
+      'Bharra uachtair chiúin, painéal a fhanann as do bhealach, agus fógraí nach mbíonn ag béiceáil.';
 
   @override
   String get landingFeatureOpenTitle => 'Oscailte thíos';
@@ -452,55 +452,55 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get ccNothingPlaying => 'Níl aon rud á sheinm';
 
   @override
-  String get dockPin => 'Greamaigh sa Duga';
+  String get dashPin => 'Greamaigh sa phainéal';
 
   @override
-  String get dockUnpin => 'Díghreamaigh';
+  String get dashUnpin => 'Díghreamaigh';
 
   @override
-  String get dockQuit => 'Scoir';
+  String get dashQuit => 'Scoir';
 
   @override
-  String get dockMode => 'Mód';
+  String get dashMode => 'Mód';
 
   @override
-  String get dockModePush => 'Brúigh';
+  String get dashModePush => 'Brúigh';
 
   @override
-  String get dockModeAutoHide => 'Folaigh go huathoibríoch';
+  String get dashModeAutoHide => 'Folaigh go huathoibríoch';
 
   @override
-  String get dockModeOff => 'Múch';
+  String get dashModeOff => 'Múch';
 
   @override
-  String get dockPosition => 'Suíomh';
+  String get dashPosition => 'Suíomh';
 
   @override
-  String get dockPositionLeft => 'Ar chlé';
+  String get dashPositionLeft => 'Ar chlé';
 
   @override
-  String get dockPositionBottom => 'Ag an mbun';
+  String get dashPositionBottom => 'Ag an mbun';
 
   @override
-  String get dockPositionRight => 'Ar dheis';
+  String get dashPositionRight => 'Ar dheis';
 
   @override
-  String get dockIconSize => 'Méid íocón';
+  String get dashIconSize => 'Méid íocón';
 
   @override
-  String get dockSizeSmall => 'Beag';
+  String get dashSizeSmall => 'Beag';
 
   @override
-  String get dockSizeMedium => 'Meánach';
+  String get dashSizeMedium => 'Meánach';
 
   @override
-  String get dockSizeLarge => 'Mór';
+  String get dashSizeLarge => 'Mór';
 
   @override
-  String get dockSizeCustom => 'Saincheaptha';
+  String get dashSizeCustom => 'Saincheaptha';
 
   @override
-  String get dockCustomSize => 'Méid shaincheaptha';
+  String get dashCustomSize => 'Méid shaincheaptha';
 
   @override
   String get wallpaperPeaks => 'Sléibhte';
@@ -640,7 +640,7 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get sessionShutDown => 'Múch';
 
   @override
-  String get notifCenter => 'Fógraí';
+  String get notifPanel => 'Fógraí';
 
   @override
   String get notifClearAll => 'Glan Gach';
@@ -667,7 +667,7 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get dialogCancel => 'Cealaigh';
 
   @override
-  String get tipControlCenter => 'Lárionad Rialaithe';
+  String get tipQuickSettings => 'Socsruithe Meara';
 
   @override
   String get lockHint => 'Cuir isteach do phasfhocal';

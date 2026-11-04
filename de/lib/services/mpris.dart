@@ -63,34 +63,38 @@ class MprisService extends ChangeNotifier {
     final bus = _connect();
     try {
       _bus = bus;
-      final root = DBusRemoteObject(
-        bus,
-        name: 'org.freedesktop.DBus',
-        path: DBusObjectPath('/org/freedesktop/DBus'),
-      );
-      final reply = await root.callMethod(
-        'org.freedesktop.DBus',
-        'ListNames',
-        const [],
-        replySignature: DBusSignature('as'),
-      );
       _ownerSub =
           _signals(
             bus,
             interface: 'org.freedesktop.DBus',
             name: 'NameOwnerChanged',
           ).listen(_onOwnerChanged, onError: (_) {});
-      for (final v in (reply.returnValues.first as DBusArray).children) {
-        final n = (v as DBusString).value;
-        if (n.startsWith('org.mpris.MediaPlayer2.')) {
-          await _bind(n);
-          break;
-        }
-      }
+      await _bindFirstPlayer(bus);
     } catch (e) {
       debugPrint('Oasis: mpris failed to start: $e');
       await bus.close();
       _bus = null;
+    }
+  }
+
+  Future<void> _bindFirstPlayer(DBusClient bus) async {
+    final root = DBusRemoteObject(
+      bus,
+      name: 'org.freedesktop.DBus',
+      path: DBusObjectPath('/org/freedesktop/DBus'),
+    );
+    final reply = await root.callMethod(
+      'org.freedesktop.DBus',
+      'ListNames',
+      const [],
+      replySignature: DBusSignature('as'),
+    );
+    for (final v in (reply.returnValues.first as DBusArray).children) {
+      final n = (v as DBusString).value;
+      if (n.startsWith('org.mpris.MediaPlayer2.')) {
+        await _bind(n);
+        return;
+      }
     }
   }
 
@@ -109,6 +113,12 @@ class MprisService extends ChangeNotifier {
       playing = false;
       title = artist = album = playerName = '';
       notifyListeners();
+      final bus = _bus;
+      if (bus != null) {
+        unawaited(
+          _bindFirstPlayer(bus).catchError((Object _) {}),
+        );
+      }
     }
   }
 

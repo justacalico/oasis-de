@@ -76,7 +76,7 @@ class OasisDesktopApp extends StatefulWidget {
 
 class _OasisDesktopAppState extends State<OasisDesktopApp> {
   late final OasisAppearance _appearance;
-  late final OasisDockSettings _dock;
+  late final OasisDashSettings _dash;
   late final OasisWallpaperService _wallpaper;
   late final UpdateService _updates;
   late final ShellController _controller;
@@ -105,7 +105,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   void initState() {
     super.initState();
     _appearance = widget.appearance ?? OasisAppearance();
-    _dock = OasisDockSettings(store: widget.store);
+    _dash = OasisDashSettings(store: widget.store);
     _wallpaper = widget.wallpaper ?? OasisWallpaperService();
     _updates = UpdateService(
       checker: widget.updateChecker,
@@ -126,7 +126,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       wayland: _wayland,
       backend: _backend,
       mpris: _mpris,
-      dock: _dock,
+      dash: _dash,
       keybinds: _keybinds,
       screenshots: widget.screenshots,
     );
@@ -177,33 +177,17 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       _locale = locale.isEmpty ? null : hostLocaleFromTag(locale);
       _localeNotifier.value = _locale;
     }
-    final backend = c.backend;
     final wifi = s.read('shell.wifi');
-    if (wifi != null) {
-      c.wifiOn = wifi != '0';
-      backend.wifi(c.wifiOn);
-    }
+    if (wifi != null) c.wifiOnValue = wifi != '0';
     final bluetooth = s.read('shell.bluetooth');
-    if (bluetooth != null) {
-      c.bluetoothOn = bluetooth != '0';
-      backend.bluetooth(c.bluetoothOn);
-    }
-    c.focusOn = s.read('shell.focus') == '1';
+    if (bluetooth != null) c.bluetoothOnValue = bluetooth != '0';
+    c.focusOnValue = s.read('shell.focus') == '1';
     final nightLight = s.read('shell.nightLight');
-    if (nightLight != null) {
-      c.nightLightOn = nightLight == '1';
-      backend.nightLight(c.nightLightOn);
-    }
+    if (nightLight != null) c.nightLightOnValue = nightLight == '1';
     final b = double.tryParse(s.read('shell.brightness') ?? '');
-    if (b != null) {
-      c.brightness = b;
-      backend.brightness(b);
-    }
+    if (b != null) c.brightnessValue = b;
     final v = double.tryParse(s.read('shell.volume') ?? '');
-    if (v != null) {
-      c.volume = v;
-      backend.volume(v);
-    }
+    if (v != null) c.volumeValue = v;
     final counts = s.read('shell.launchCounts');
     if (counts != null) {
       for (final part in counts.split(',')) {
@@ -263,7 +247,8 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       'shell.nightLight': c.nightLightOn ? '1' : '0',
       'shell.brightness': '${c.brightness}',
       'shell.volume': '${c.volume}',
-      'shell.pinned': [for (final a in c.pinned) a.id].join(','),
+      if (c.pinsLoaded)
+        'shell.pinned': [for (final a in c.pinned) a.id].join(','),
       'shell.launchCounts': [
         for (final e in c.launchCounts.entries) '${e.key}:${e.value}',
       ].join(','),
@@ -376,7 +361,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 displayBackend: _displayBackend,
                 powerBackend: _powerBackend,
                 keybinds: _keybinds,
-                dock: _dock,
+                dash: _dash,
                 mouse: _mouse,
                 trackpad: _trackpad,
               );
@@ -405,7 +390,7 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
                 child: Scaffold(
                   body: DesktopShell(
                     controller: _controller,
-                    dock: _dock,
+                    dash: _dash,
                     wallpaper: _wallpaper,
                     menusBuilder: () => buildShellMenus(
                       l10n,

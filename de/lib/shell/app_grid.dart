@@ -7,16 +7,16 @@ import 'package:oasis_ui/oasis_ui.dart';
 
 import 'shell_controller.dart';
 
-class ShellLaunchPad extends StatefulWidget {
-  const ShellLaunchPad({super.key, required this.controller});
+class ShellAppGrid extends StatefulWidget {
+  const ShellAppGrid({super.key, required this.controller});
 
   final ShellController controller;
 
   @override
-  State<ShellLaunchPad> createState() => _ShellLaunchPadState();
+  State<ShellAppGrid> createState() => _ShellAppGridState();
 }
 
-class _ShellLaunchPadState extends State<ShellLaunchPad> {
+class _ShellAppGridState extends State<ShellAppGrid> {
   static const _cellWidth = 148.0;
   static const _cellHeight = 118.0;
   static const _gridGap = 10.0;
@@ -65,7 +65,7 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
           for (var i = start; i < end; i++) ...[
             if (i != start) const SizedBox(width: _gridGap),
             Expanded(
-              child: _LaunchPadIcon(
+              child: _AppGridIcon(
                 app: results[i],
                 selected: i == _selected,
                 onTap: () => _open(results[i]),
@@ -97,7 +97,7 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
 
   bool _onKey(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
-    if (!widget.controller.launchPadOpen) return false;
+    if (!widget.controller.appGridOpen) return false;
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       widget.controller.closeOverlays();
       return true;
@@ -255,8 +255,8 @@ class _ShellLaunchPadState extends State<ShellLaunchPad> {
   }
 }
 
-class _LaunchPadIcon extends StatelessWidget {
-  const _LaunchPadIcon({
+class _AppGridIcon extends StatelessWidget {
+  const _AppGridIcon({
     required this.app,
     required this.selected,
     required this.onTap,

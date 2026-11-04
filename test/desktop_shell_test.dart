@@ -7,11 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
 import 'package:oasis_de/services/notifications.dart';
-import 'package:oasis_de/shell/notification_center.dart';
+import 'package:oasis_de/shell/notification_panel.dart';
 import 'package:oasis_de/apps/shell_apps.dart';
-import 'package:oasis_de/shell/dock.dart';
-import 'package:oasis_de/shell/menu_bar.dart';
-import 'package:oasis_de/shell/genie_window.dart';
+import 'package:oasis_de/shell/dash.dart';
+import 'package:oasis_de/shell/top_bar.dart';
+import 'package:oasis_de/shell/window_minimize.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_de/wayland/wayland_service.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -93,7 +93,7 @@ void main() {
     );
   });
 
-  testWidgets('desktop renders bar, dock and wallpaper', (tester) async {
+  testWidgets('desktop renders bar, dash and wallpaper', (tester) async {
     await pumpDesktop(tester);
     expect(find.text('File'), findsOneWidget);
     expect(find.text('View'), findsOneWidget);
@@ -155,7 +155,7 @@ void main() {
     expect(find.text('Minimise'), findsNothing);
   });
 
-  testWidgets('dock opens a window and traffic lights control it', (
+  testWidgets('dash opens a window and traffic lights control it', (
     tester,
   ) async {
     await pumpDesktop(tester);
@@ -244,7 +244,7 @@ void main() {
     expect(find.text('Search apps'), findsNothing);
   });
 
-  testWidgets('control center toggles and sliders work', (tester) async {
+  testWidgets('quick settings toggles and sliders work', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
@@ -312,7 +312,7 @@ void main() {
     expect(find.text('File'), findsOneWidget);
   });
 
-  testWidgets('status icons open launcher and control center', (tester) async {
+  testWidgets('status icons open launcher and quick settings', (tester) async {
     await pumpDesktop(tester, backend: _BatteryBackend(0.9, false));
     await tester.tap(find.byIcon(Icons.battery_full));
     await tester.pumpAndSettle();
@@ -465,7 +465,7 @@ void main() {
     expect(find.text('File'), findsOneWidget);
   });
 
-  testWidgets('notification center shows, dismisses and clears', (
+  testWidgets('notification panel shows, dismisses and clears', (
     tester,
   ) async {
     final daemon = _FakeDaemon();
@@ -504,25 +504,25 @@ void main() {
     await tester.pump();
     expect(
       find.descendant(
-        of: find.byType(NotificationCenterPanel),
+        of: find.byType(NotificationPanelPanel),
         matching: find.text('Again'),
       ),
       findsOneWidget,
     );
     await tester.tap(
       find.descendant(
-        of: find.byType(NotificationCenterPanel),
+        of: find.byType(NotificationPanelPanel),
         matching: find.byIcon(Icons.close),
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(NotificationCenterPanel), findsOneWidget);
+    expect(find.byType(NotificationPanelPanel), findsOneWidget);
     await tester.tapAt(const Offset(1105, 45));
     await tester.pumpAndSettle();
-    expect(find.byType(NotificationCenterPanel), findsOneWidget);
+    expect(find.byType(NotificationPanelPanel), findsOneWidget);
     await tester.tapAt(const Offset(40, 400));
     await tester.pumpAndSettle();
-    expect(find.byType(NotificationCenterPanel), findsNothing);
+    expect(find.byType(NotificationPanelPanel), findsNothing);
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
     expect(daemon.stopped, isTrue);
@@ -544,7 +544,7 @@ void main() {
     }
   });
 
-  testWidgets('window genies into the dock and back out', (tester) async {
+  testWidgets('window minimizes into the dash and back out', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.edit_note).first);
     await tester.pumpAndSettle();
@@ -566,7 +566,7 @@ void main() {
     expect(find.text('Notes'), findsWidgets);
   });
 
-  testWidgets('tapping the dock icon mid-genie pulls the window back', (
+  testWidgets('tapping the dash icon mid-animation pulls the window back', (
     tester,
   ) async {
     await pumpDesktop(tester);
@@ -582,7 +582,7 @@ void main() {
     expect(find.text('Notes'), findsWidgets);
   });
 
-  testWidgets('genie falls back when the dock icon is unmounted', (
+  testWidgets('minimize falls back when the dash icon is unmounted', (
     tester,
   ) async {
     final window = ShellWindowData(
@@ -598,7 +598,7 @@ void main() {
     )..markMinimizing();
     await tester.pumpWidget(
       MaterialApp(
-        home: GenieWindow(
+        home: WindowMinimizeEffect(
           window: window,
           rect: const Rect.fromLTWH(40, 40, 400, 300),
           onEnd: () {},
@@ -661,7 +661,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('zoomed window stops above the dock', (tester) async {
+  testWidgets('zoomed window stops above the dash', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.edit_note).first);
     await tester.pumpAndSettle();
@@ -670,12 +670,12 @@ void main() {
     await tester.tap(find.text('Zoom'));
     await tester.pumpAndSettle();
     final r = tester.getRect(find.byType(OasisWindow));
-    expect(r.top, kMenuBarHeight + 4);
-    expect(r.bottom, 800 - kDockHeight - 4);
+    expect(r.top, kTopBarHeight + 4);
+    expect(r.bottom, 800 - kDashHeight - 4);
     expect(r.width, 1280);
   });
 
-  testWidgets('control center workspace pager switches', (tester) async {
+  testWidgets('quick settings workspace pager switches', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
@@ -685,7 +685,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('control center bluetooth and volume slider', (tester) async {
+  testWidgets('quick settings bluetooth and volume slider', (tester) async {
     await pumpDesktop(
       tester,
       updateChecker: _FakeChecker(
@@ -717,7 +717,7 @@ void main() {
     expect(find.text('Version 2.0.0 is available'), findsOneWidget);
   });
 
-  testWidgets('dock magnification on hover and entry hover', (tester) async {
+  testWidgets('dash magnification on hover and entry hover', (tester) async {
     await pumpDesktop(tester);
     final m = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await m.addPointer(location: Offset.zero);
@@ -763,7 +763,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('unpinned minimized window gets a dock entry', (tester) async {
+  testWidgets('unpinned minimized window gets a dash entry', (tester) async {
     final app = OasisApp(
       id: 'extra',
       name: 'Extra',
@@ -781,17 +781,17 @@ void main() {
     await pumpOasis(
       tester,
       Scaffold(
-        body: Center(child: ShellDock(controller: c)),
+        body: Center(child: ShellDash(controller: c)),
       ),
     );
     await tester.pumpAndSettle();
-    final icon = find.byKey(w.dockIconKey);
+    final icon = find.byKey(w.dashIconKey);
     expect(icon, findsOneWidget);
     await tester.tap(icon);
     expect(w.minimized, isFalse);
   });
 
-  testWidgets('dock icons pin via context menu', (tester) async {
+  testWidgets('dash icons pin via context menu', (tester) async {
     OasisApp mk(String id) => OasisApp(
       id: id,
       name: 'App $id',
@@ -809,7 +809,7 @@ void main() {
     await pumpOasis(
       tester,
       Scaffold(
-        body: Center(child: ShellDock(controller: c)),
+        body: Center(child: ShellDash(controller: c)),
       ),
     );
     await tester.pumpAndSettle();
@@ -818,12 +818,12 @@ void main() {
       buttons: kSecondaryMouseButton,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Pin to Dock'));
+    await tester.tap(find.text('Pin to Dash'));
     await tester.pumpAndSettle();
     expect(c.pinned.map((a) => a.id), contains('ext'));
   });
 
-  testWidgets('dock icons expose semantics and alt tab cycles', (tester) async {
+  testWidgets('dash icons expose semantics and alt tab cycles', (tester) async {
     await pumpDesktop(tester);
     expect(find.bySemanticsLabel('Settings'), findsWidgets);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
@@ -833,7 +833,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('dock unpin via context menu', (tester) async {
+  testWidgets('dash unpin via context menu', (tester) async {
     OasisApp mk(String id) => OasisApp(
       id: id,
       name: 'App $id',
@@ -847,7 +847,7 @@ void main() {
     await pumpOasis(
       tester,
       Scaffold(
-        body: Center(child: ShellDock(controller: c)),
+        body: Center(child: ShellDash(controller: c)),
       ),
     );
     await tester.pumpAndSettle();
@@ -874,7 +874,7 @@ void main() {
     await pumpOasis(
       tester,
       Scaffold(
-        body: Center(child: ShellDock(controller: c)),
+        body: Center(child: ShellDash(controller: c)),
       ),
     );
     await tester.pumpAndSettle();
@@ -1024,7 +1024,7 @@ void main() {
   testWidgets('logo toggles the app menu', (tester) async {
     await pumpDesktop(tester);
     final logo = find.descendant(
-      of: find.byType(ShellMenuBar),
+      of: find.byType(ShellTopBar),
       matching: find.byIcon(Icons.water_drop),
     );
     await tester.tap(logo);
@@ -1066,7 +1066,7 @@ void main() {
     expect(c.switcherIndex, isNull);
   });
 
-  testWidgets('dock menu focuses windows, runs actions and quits', (
+  testWidgets('dash menu focuses windows, runs actions and quits', (
     tester,
   ) async {
     final host = FakeWaylandHost();
@@ -1094,7 +1094,7 @@ void main() {
     final w = c.windows.single;
     await pumpOasis(
       tester,
-      Scaffold(body: Center(child: ShellDock(controller: c))),
+      Scaffold(body: Center(child: ShellDash(controller: c))),
     );
     await tester.pumpAndSettle();
 
@@ -1197,7 +1197,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(NotificationCenterPanel), findsOneWidget);
+    expect(find.byType(NotificationPanelPanel), findsOneWidget);
     expect(find.text('Reply'), findsOneWidget);
     expect(find.text('Dismiss'), findsNothing);
     await tester.tap(find.text('Reply'));

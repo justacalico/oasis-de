@@ -169,7 +169,7 @@ void main() {
     });
   });
 
-  testWidgets('desktop genie minimise', (tester) async {
+  testWidgets('desktop window minimise', (tester) async {
     await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
@@ -191,7 +191,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 210));
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile('goldens/genie_minimise.png'),
+        matchesGoldenFile('goldens/window_minimise.png'),
       );
     });
   });
@@ -240,7 +240,7 @@ void main() {
     });
   });
 
-  testWidgets('desktop launch pad', (tester) async {
+  testWidgets('desktop app grid', (tester) async {
     await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
@@ -256,12 +256,12 @@ void main() {
       await tester.pumpAndSettle();
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile('goldens/launch_pad.png'),
+        matchesGoldenFile('goldens/app_grid.png'),
       );
     });
   });
 
-  testWidgets('desktop control center', (tester) async {
+  testWidgets('desktop quick settings', (tester) async {
     await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
@@ -277,7 +277,7 @@ void main() {
       await tester.pumpAndSettle();
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile('goldens/control_center.png'),
+        matchesGoldenFile('goldens/quick_settings.png'),
       );
     });
   });
@@ -306,7 +306,7 @@ void main() {
       });
     });
 
-    testWidgets('desktop launch pad ${mode.name}', (tester) async {
+    testWidgets('desktop app grid ${mode.name}', (tester) async {
       await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
         await _size(tester, const Size(1280, 800));
         await tester.pumpWidget(
@@ -322,12 +322,12 @@ void main() {
         await tester.pumpAndSettle();
         await expectLater(
           find.byType(MaterialApp),
-          matchesGoldenFile('goldens/launch_pad_${mode.name}.png'),
+          matchesGoldenFile('goldens/app_grid_${mode.name}.png'),
         );
       });
     });
 
-    testWidgets('desktop control center ${mode.name}', (tester) async {
+    testWidgets('desktop quick settings ${mode.name}', (tester) async {
       await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
         await _size(tester, const Size(1280, 800));
         await tester.pumpWidget(
@@ -343,7 +343,7 @@ void main() {
         await tester.pumpAndSettle();
         await expectLater(
           find.byType(MaterialApp),
-          matchesGoldenFile('goldens/control_center_${mode.name}.png'),
+          matchesGoldenFile('goldens/quick_settings_${mode.name}.png'),
         );
       });
     });
@@ -478,7 +478,7 @@ void main() {
     });
   });
 
-  testWidgets('notification center', (tester) async {
+  testWidgets('notification panel', (tester) async {
     await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
       await _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
@@ -503,11 +503,11 @@ void main() {
         ),
       );
       controller.dismissBanner();
-      controller.toggleNotificationCenter();
+      controller.toggleNotificationPanel();
       await tester.pumpAndSettle();
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile('goldens/notification_center.png'),
+        matchesGoldenFile('goldens/notification_panel.png'),
       );
     });
   });
@@ -537,7 +537,7 @@ void main() {
 
   for (final pane in [
     SettingsPane.wallpaper,
-    SettingsPane.dock,
+    SettingsPane.dash,
     SettingsPane.general,
     SettingsPane.keyboard,
     SettingsPane.mouse,

@@ -53,7 +53,7 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get menuAbout => 'О Oasis';
 
   @override
-  String get launchPad => 'Панель запуска';
+  String get appGrid => 'Сетка приложений';
 
   @override
   String launchFailed(String app) {
@@ -183,7 +183,7 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get settingsDisplays => 'Дисплеи';
 
   @override
-  String get settingsDock => 'Док';
+  String get settingsDash => 'Панель';
 
   @override
   String get settingsSound => 'Звук';
@@ -374,14 +374,14 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get landingFeatureGlassBody =>
-      'Меню, док и окна парят на настоящей полупрозрачности с бликами.';
+      'Меню, панели и окна парят на настоящей полупрозрачности с бликами.';
 
   @override
   String get landingFeatureCalmTitle => 'Спокойствие по умолчанию';
 
   @override
   String get landingFeatureCalmBody =>
-      'Тихая строка меню, док, который не мешает, и уведомления, которые не кричат.';
+      'Тихая верхняя панель, не мешающая панель приложений и уведомления, которые не кричат.';
 
   @override
   String get landingFeatureOpenTitle => 'Открытый фундамент';
@@ -450,55 +450,55 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get ccNothingPlaying => 'Ничего не воспроизводится';
 
   @override
-  String get dockPin => 'Закрепить в доке';
+  String get dashPin => 'Закрепить на панели';
 
   @override
-  String get dockUnpin => 'Открепить';
+  String get dashUnpin => 'Открепить';
 
   @override
-  String get dockQuit => 'Выйти';
+  String get dashQuit => 'Выйти';
 
   @override
-  String get dockMode => 'Режим';
+  String get dashMode => 'Режим';
 
   @override
-  String get dockModePush => 'Сдвиг';
+  String get dashModePush => 'Сдвиг';
 
   @override
-  String get dockModeAutoHide => 'Автоскрытие';
+  String get dashModeAutoHide => 'Автоскрытие';
 
   @override
-  String get dockModeOff => 'Выкл';
+  String get dashModeOff => 'Выкл';
 
   @override
-  String get dockPosition => 'Положение';
+  String get dashPosition => 'Положение';
 
   @override
-  String get dockPositionLeft => 'Слева';
+  String get dashPositionLeft => 'Слева';
 
   @override
-  String get dockPositionBottom => 'Снизу';
+  String get dashPositionBottom => 'Снизу';
 
   @override
-  String get dockPositionRight => 'Справа';
+  String get dashPositionRight => 'Справа';
 
   @override
-  String get dockIconSize => 'Размер значков';
+  String get dashIconSize => 'Размер значков';
 
   @override
-  String get dockSizeSmall => 'Маленький';
+  String get dashSizeSmall => 'Маленький';
 
   @override
-  String get dockSizeMedium => 'Средний';
+  String get dashSizeMedium => 'Средний';
 
   @override
-  String get dockSizeLarge => 'Большой';
+  String get dashSizeLarge => 'Большой';
 
   @override
-  String get dockSizeCustom => 'Свой';
+  String get dashSizeCustom => 'Свой';
 
   @override
-  String get dockCustomSize => 'Свой размер';
+  String get dashCustomSize => 'Свой размер';
 
   @override
   String get wallpaperPeaks => 'Вершины';
@@ -638,7 +638,7 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get sessionShutDown => 'Выключение';
 
   @override
-  String get notifCenter => 'Уведомления';
+  String get notifPanel => 'Уведомления';
 
   @override
   String get notifClearAll => 'Очистить всё';
@@ -665,7 +665,7 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get dialogCancel => 'Отмена';
 
   @override
-  String get tipControlCenter => 'Центр управления';
+  String get tipQuickSettings => 'Быстрые настройки';
 
   @override
   String get lockHint => 'Введите пароль';

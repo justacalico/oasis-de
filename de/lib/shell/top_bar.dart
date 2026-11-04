@@ -11,8 +11,8 @@ import 'view_scale.dart';
 import 'wifi_menu.dart';
 
 
-class ShellMenuBar extends StatelessWidget {
-  const ShellMenuBar({
+class ShellTopBar extends StatelessWidget {
+  const ShellTopBar({
     super.key,
     required this.controller,
     required this.menus,
@@ -48,7 +48,7 @@ class ShellMenuBar extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
-          height: kMenuBarHeight,
+          height: kTopBarHeight,
           color: p.glassFill.withValues(alpha: 0.55),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -119,28 +119,28 @@ class ShellMenuBar extends StatelessWidget {
                             <= 8 => Icons.battery_6_bar,
                             _ => Icons.battery_full,
                           },
-                    onTap: controller.toggleControlCenter,
+                    onTap: controller.toggleQuickSettings,
                     style: textStyle,
                     tooltip: l10n.ccBattery,
                   ),
                 _StatusIcon(
                   icon: Icons.tune,
-                  onTap: controller.toggleControlCenter,
+                  onTap: controller.toggleQuickSettings,
                   style: textStyle,
-                  tooltip: l10n.tipControlCenter,
+                  tooltip: l10n.tipQuickSettings,
                 ),
                 _StatusIcon(
                   icon: controller.notifications.isEmpty
                       ? Icons.notifications_none
                       : Icons.notifications,
-                  onTap: controller.toggleNotificationCenter,
+                  onTap: controller.toggleNotificationPanel,
                   style: textStyle,
-                  tooltip: l10n.notifCenter,
+                  tooltip: l10n.notifPanel,
                 ),
                 _SessionMenu(controller: controller, style: textStyle),
                 const SizedBox(width: 6),
                 GestureDetector(
-                  onTap: controller.toggleNotificationCenter,
+                  onTap: controller.toggleNotificationPanel,
                   child: MinuteClock(
                     builder: (context, now) {
                       final locale =

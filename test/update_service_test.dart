@@ -113,6 +113,48 @@ void main() {
     service.dispose();
   });
 
+  test('install strips directories from asset names', () async {
+    final bytes = utf8.encode('pkg-bytes');
+    final hex = sha256.convert(bytes).toString();
+    final written = <String>[];
+    final service = UpdateService(
+      checker: _FakeChecker(
+        installable('sub/dir/payload.deb', sum: 'sums'),
+      ),
+      currentVersion: () async => '1.0.0',
+      downloader: (uri) async => uri.path.endsWith('sums')
+          ? utf8.encode('$hex  sub/dir/payload.deb\n')
+          : bytes,
+      writeFile: (file, bytes) async => written.add(file.path),
+      installer: (_) async => true,
+    );
+    await service.check();
+    expect(await service.install(), isTrue);
+    expect(written.single, endsWith('oasis-payload.deb'));
+    expect(written.single, isNot(contains('/sub/')));
+    service.dispose();
+  });
+
+  test('install rejects path-traversal asset names', () async {
+    final bytes = utf8.encode('pkg-bytes');
+    final hex = sha256.convert(bytes).toString();
+    final written = <String>[];
+    final service = UpdateService(
+      checker: _FakeChecker(installable('..', sum: 'sums')),
+      currentVersion: () async => '1.0.0',
+      downloader: (uri) async => uri.path.endsWith('sums')
+          ? utf8.encode('$hex  ..\n')
+          : bytes,
+      writeFile: (file, bytes) async => written.add(file.path),
+      installer: (_) async => true,
+    );
+    await service.check();
+    expect(await service.install(), isFalse);
+    expect(written, isEmpty);
+    expect(service.installFailed, isTrue);
+    service.dispose();
+  });
+
   test('install refuses a mismatched checksum', () async {
     var installerRan = false;
     final service = UpdateService(

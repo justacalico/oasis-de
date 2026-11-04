@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -259,8 +260,19 @@ class CliSystemBackend implements OasisSystemBackend {
               .hasMatch(btOut),
       brightness: _parseBrightness(brightOut),
       volume: _parseVolume(volOut),
-      nightLight: nlOut?.contains('3500'),
+      nightLight: _parseNightLight(nlOut),
     );
+  }
+
+  static bool? _parseNightLight(String? out) {
+    if (out == null) return null;
+    final t = int.tryParse(
+      RegExp(r'temperature:\s*(\d+)', caseSensitive: false)
+              .firstMatch(out)
+              ?.group(1) ??
+          '',
+    );
+    return t == null ? null : t < 5000;
   }
 
   static double? _parseBrightness(String? out) {
@@ -329,14 +341,20 @@ class CliSystemBackend implements OasisSystemBackend {
     if (kIsWeb) return true;
     final user = (userName ?? () => Platform.environment['USER'] ?? '')();
     if (user.isEmpty) return false;
+    Process? p;
     try {
-      final p = await (startProcess ?? Process.start)(
+      p = await (startProcess ?? Process.start)(
         _checkpwdExe(),
         [user],
       );
       p.stdin.writeln(password);
       await p.stdin.close();
-      return await p.exitCode == 0;
+      return await p.exitCode
+              .timeout(const Duration(seconds: 10)) ==
+          0;
+    } on TimeoutException {
+      p?.kill();
+      return false;
     } catch (_) {
       return false;
     }

@@ -16,6 +16,7 @@ import '../services/notifications.dart';
 import '../services/screenshot.dart';
 
 import '../wayland/wayland_service.dart';
+import 'app_search.dart';
 import 'shell_constants.dart';
 import 'shell_notifications.dart';
 import 'shell_window.dart';
@@ -49,7 +50,7 @@ class ShellController extends ChangeNotifier {
     this.wayland,
     OasisSystemBackend backend = const NoopSystemBackend(),
     this.mpris,
-    this.dock,
+    this.dash,
     OasisKeybindsService? keybinds,
     ScreenshotService? screenshots,
     Duration? batteryPollInterval = const Duration(seconds: 60),
@@ -81,7 +82,7 @@ class ShellController extends ChangeNotifier {
   final List<ShellWindowData> windows = [];
   final WaylandService? wayland;
   final MprisService? mpris;
-  final OasisDockSettings? dock;
+  final OasisDashSettings? dash;
   final OasisKeybindsService keybinds;
   final ScreenshotService screenshots;
 
@@ -186,12 +187,12 @@ class ShellController extends ChangeNotifier {
 
   void resumeBannerDismiss() => _notifications.resumeDismiss();
 
-  void toggleNotificationCenter() {
-    notificationCenterOpen = !notificationCenterOpen;
-    if (notificationCenterOpen) {
+  void toggleNotificationPanel() {
+    notificationPanelOpen = !notificationPanelOpen;
+    if (notificationPanelOpen) {
       launcherOpen = false;
-      launchPadOpen = false;
-      controlCenterOpen = false;
+      appGridOpen = false;
+      quickSettingsOpen = false;
       _openMenu = null;
     }
     notifyListeners();
@@ -202,15 +203,15 @@ class ShellController extends ChangeNotifier {
   int? _focusedId;
   String? _openMenu;
 
-  /// Logical rect of the menubar label that opened [_openMenu], used to
+  /// Logical rect of the top bar label that opened [_openMenu], used to
   /// position the dropdown under the correct output.
   Rect? menuAnchor;
   int? _surfaceDragId;
   ({int id, OasisResizeEdge edge})? _resizeGesture;
   var launcherOpen = false;
-  var launchPadOpen = false;
-  var controlCenterOpen = false;
-  var notificationCenterOpen = false;
+  var appGridOpen = false;
+  var quickSettingsOpen = false;
+  var notificationPanelOpen = false;
   var activeWorkspace = 0;
 
   int? get focusedId => _focusedId;
@@ -223,6 +224,11 @@ class ShellController extends ChangeNotifier {
 
   var _pinsLoaded = false;
   final List<String> _pendingPinIds = [];
+
+  /// Whether the persisted pin list has been applied; anything that
+  /// writes the pins back to storage must wait for this or it will
+  /// persist an empty list over the user's pins.
+  bool get pinsLoaded => _pinsLoaded;
 
   void syncApps(
     List<OasisApp> fresh, {
@@ -275,7 +281,7 @@ class ShellController extends ChangeNotifier {
   }
 
   /// Whether an unminimized fullscreen window covers the active
-  /// workspace, in which case chrome (menu bar, dock, banner)
+  /// workspace, in which case chrome (top bar, dash, banner)
   /// stays hidden.
   bool get fullscreenOnActiveWorkspace => windows.any(
     (w) => w.fullscreen && !w.minimized && w.workspace == activeWorkspace,
@@ -284,62 +290,8 @@ class ShellController extends ChangeNotifier {
   final Map<String, int> launchCounts = {};
   String? launchError;
 
-  List<OasisApp> filterApps(String query) {
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) {
-      final order = {for (var i = 0; i < apps.length; i++) apps[i].id: i};
-      final sorted = [...apps]
-        ..sort((a, b) {
-          final byCount = (launchCounts[b.id] ?? 0).compareTo(
-            launchCounts[a.id] ?? 0,
-          );
-          return byCount != 0 ? byCount : order[a.id]! - order[b.id]!;
-        });
-      return sorted;
-    }
-    bool fuzzy(String field) {
-      var i = 0;
-      for (final ch in field.codeUnits) {
-        if (i < q.length && ch == q.codeUnitAt(i)) i++;
-      }
-      return i == q.length;
-    }
-
-    int score(OasisApp a) {
-      var best = 0;
-      final fields = [a.name, ?a.genericName, ...a.keywords];
-      for (var i = 0; i < fields.length; i++) {
-        final f = fields[i].toLowerCase();
-        final tier = f.startsWith(q)
-            ? 3
-            : f.contains(q)
-            ? 2
-            : fuzzy(f)
-            ? 1
-            : 0;
-        if (tier == 0) continue;
-        final s = tier * 2 + (i == 0 ? 1 : 0);
-        if (s > best) best = s;
-      }
-      return best;
-    }
-
-    final scored = <(OasisApp, int)>[];
-    for (final a in apps) {
-      final s = score(a);
-      if (s > 0) scored.add((a, s));
-    }
-    scored.sort((x, y) {
-      final byScore = y.$2.compareTo(x.$2);
-      if (byScore != 0) return byScore;
-      final byRecency = (launchCounts[y.$1.id] ?? 0).compareTo(
-        launchCounts[x.$1.id] ?? 0,
-      );
-      if (byRecency != 0) return byRecency;
-      return x.$1.name.compareTo(y.$1.name);
-    });
-    return [for (final s in scored) s.$1];
-  }
+  List<OasisApp> filterApps(String query) =>
+      rankApps(apps, launchCounts, query);
 
   void openApp(OasisApp app, {bool newWindow = false}) {
     for (final w in windows) {
@@ -396,6 +348,7 @@ class ShellController extends ChangeNotifier {
     if (surface != null) {
       wayland?.close(surface.id);
     } else {
+      window?.cancelLaunch();
       windows.removeWhere((w) => w.id == id);
       if (_focusedId == id) {
         _focusedId = null;
@@ -635,21 +588,21 @@ class ShellController extends ChangeNotifier {
           const Size(kDefaultWindowWidth, kDefaultWindowHeight);
       var x = left ? 0.0 : screen.width / 2;
       var width = screen.width / 2;
-      var height = screen.height - kMenuBarHeight - kSnapBottomMargin;
-      final d = dock;
+      var height = screen.height - kTopBarHeight - kSnapBottomMargin;
+      final d = dash;
       if (d == null) {
-        height -= kDockHeight;
+        height -= kDashHeight;
       } else {
-        final inset = dockReservedExtent(d);
+        final inset = dashReservedExtent(d);
         switch (d.position) {
-          case OasisDockPosition.bottom:
+          case OasisDashPosition.bottom:
             height -= inset;
-          case OasisDockPosition.left:
+          case OasisDashPosition.left:
             if (left) {
               x += inset;
               width -= inset;
             }
-          case OasisDockPosition.right:
+          case OasisDashPosition.right:
             if (!left) width -= inset;
         }
       }
@@ -818,8 +771,8 @@ class ShellController extends ChangeNotifier {
   }
 
   /// Work area available to a floating window on the head [w] sits on:
-  /// output rect minus menu bar, layer-exclusive insets and, on the
-  /// primary head, the dock. Client-chosen sizes are clamped to this so
+  /// output rect minus top bar, layer-exclusive insets and, on the
+  /// primary head, the dash. Client-chosen sizes are clamped to this so
   /// a window can never map bigger than the screen.
   Size? _workAreaSize(ShellWindowData w) {
     final wl = wayland;
@@ -828,18 +781,18 @@ class ShellController extends ChangeNotifier {
     if (wl == null || head == null) return null;
     final insets = wl.exclusiveInsets;
     var width = head.width - insets.horizontal;
-    var height = head.height - kMenuBarHeight - 8 - insets.vertical;
+    var height = head.height - kTopBarHeight - 8 - insets.vertical;
     if (head == wl.primaryOutput?.rect) {
-      final d = dock;
+      final d = dash;
       if (d == null) {
-        height -= kDockHeight;
+        height -= kDashHeight;
       } else {
-        final extent = dockReservedExtent(d);
+        final extent = dashReservedExtent(d);
         switch (d.position) {
-          case OasisDockPosition.left:
-          case OasisDockPosition.right:
+          case OasisDashPosition.left:
+          case OasisDashPosition.right:
             width -= extent;
-          case OasisDockPosition.bottom:
+          case OasisDashPosition.bottom:
             height -= extent;
         }
       }
@@ -1091,7 +1044,7 @@ class ShellController extends ChangeNotifier {
     String? path;
     if (region != null) path = await screenshots.captureRegion(region);
     _snipInFlight = false;
-    // Restoring the app's windows animates them through the dock, which
+    // Restoring the app's windows animates them through the dash, which
     // trips over a notification banner appearing in the same layout
     // pass — let it land a frame later instead.
     WidgetsBinding.instance
@@ -1124,8 +1077,8 @@ class ShellController extends ChangeNotifier {
     switch (action) {
       case OasisKeybindsService.actionLauncher:
         toggleLauncher();
-      case OasisKeybindsService.actionLaunchpad:
-        toggleLaunchPad();
+      case OasisKeybindsService.actionAppGrid:
+        toggleAppGrid();
       case OasisKeybindsService.actionCycleWindows:
         cycleWindows();
       case OasisKeybindsService.actionCycleWindowsBack:
@@ -1150,32 +1103,7 @@ class ShellController extends ChangeNotifier {
     }
   }
 
-  static List<String> _splitArgv(String command) {
-    final argv = <String>[];
-    final buf = StringBuffer();
-    String? quote;
-    for (var i = 0; i < command.length; i++) {
-      final ch = command[i];
-      if (quote != null) {
-        if (ch == quote) {
-          quote = null;
-        } else {
-          buf.write(ch);
-        }
-      } else if (ch == '"' || ch == "'") {
-        quote = ch;
-      } else if (ch == ' ' || ch == '\t') {
-        if (buf.isNotEmpty) {
-          argv.add(buf.toString());
-          buf.clear();
-        }
-      } else {
-        buf.write(ch);
-      }
-    }
-    if (buf.isNotEmpty) argv.add(buf.toString());
-    return argv;
-  }
+  static List<String> _splitArgv(String command) => splitArgv(command);
 
   final Set<int> _desktopHiddenIds = {};
 
@@ -1205,9 +1133,9 @@ class ShellController extends ChangeNotifier {
     _openMenu = label;
     if (label != null) {
       launcherOpen = false;
-      launchPadOpen = false;
-      controlCenterOpen = false;
-      notificationCenterOpen = false;
+      appGridOpen = false;
+      quickSettingsOpen = false;
+      notificationPanelOpen = false;
     }
     notifyListeners();
   }
@@ -1215,31 +1143,31 @@ class ShellController extends ChangeNotifier {
   void toggleLauncher() {
     launcherOpen = !launcherOpen;
     if (launcherOpen) {
-      launchPadOpen = false;
-      controlCenterOpen = false;
-      notificationCenterOpen = false;
+      appGridOpen = false;
+      quickSettingsOpen = false;
+      notificationPanelOpen = false;
       _openMenu = null;
     }
     notifyListeners();
   }
 
-  void toggleLaunchPad() {
-    launchPadOpen = !launchPadOpen;
-    if (launchPadOpen) {
+  void toggleAppGrid() {
+    appGridOpen = !appGridOpen;
+    if (appGridOpen) {
       launcherOpen = false;
-      controlCenterOpen = false;
-      notificationCenterOpen = false;
+      quickSettingsOpen = false;
+      notificationPanelOpen = false;
       _openMenu = null;
     }
     notifyListeners();
   }
 
-  void toggleControlCenter() {
-    controlCenterOpen = !controlCenterOpen;
-    if (controlCenterOpen) {
+  void toggleQuickSettings() {
+    quickSettingsOpen = !quickSettingsOpen;
+    if (quickSettingsOpen) {
       launcherOpen = false;
-      launchPadOpen = false;
-      notificationCenterOpen = false;
+      appGridOpen = false;
+      notificationPanelOpen = false;
       _openMenu = null;
     }
     notifyListeners();
@@ -1248,14 +1176,13 @@ class ShellController extends ChangeNotifier {
   void closeOverlays() {
     cancelSnip();
     launcherOpen = false;
-    launchPadOpen = false;
-    controlCenterOpen = false;
-    notificationCenterOpen = false;
+    appGridOpen = false;
+    quickSettingsOpen = false;
+    notificationPanelOpen = false;
     _openMenu = null;
     notifyListeners();
   }
 
-  OasisSystemBackend get backend => _status.backend;
   double? get batteryLevel => _status.batteryLevel;
   bool get batteryCharging => _status.batteryCharging;
   Future<void> pollBattery() => _status.pollBattery();
@@ -1263,17 +1190,11 @@ class ShellController extends ChangeNotifier {
   List<OasisWifiNetwork> get wifiNetworks => _status.wifiNetworks;
   bool get wifiScanning => _status.wifiScanning;
   bool get wifiOn => _status.wifiOn;
-  set wifiOn(bool v) => _status.wifiOn = v;
   bool get bluetoothOn => _status.bluetoothOn;
-  set bluetoothOn(bool v) => _status.bluetoothOn = v;
   bool get focusOn => _status.focusOn;
-  set focusOn(bool v) => _status.focusOn = v;
   bool get nightLightOn => _status.nightLightOn;
-  set nightLightOn(bool v) => _status.nightLightOn = v;
   double get brightness => _status.brightness;
-  set brightness(double v) => _status.brightness = v;
   double get volume => _status.volume;
-  set volume(double v) => _status.volume = v;
 
   set wifiOnValue(bool v) => _status.wifiOnValue = v;
   set bluetoothOnValue(bool v) => _status.bluetoothOnValue = v;

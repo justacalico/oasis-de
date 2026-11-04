@@ -33,15 +33,24 @@ class IoFilesBackend implements FilesBackend {
     FilesProcessRunner? runProcess,
     List<String>? mountRoots,
     Future<void> Function(FileSystemEntity, String)? renameEntity,
+    String Function(String)? resolveLinks,
   })  : _home = home ?? Platform.environment['HOME'] ?? '/',
         _runProcess = runProcess ?? Process.run,
         _mountRoots = mountRoots,
-        _renameEntity = renameEntity;
+        _renameEntity = renameEntity,
+        _resolveLinks = resolveLinks;
 
   final String _home;
   final FilesProcessRunner _runProcess;
   final List<String>? _mountRoots;
   final Future<void> Function(FileSystemEntity, String)? _renameEntity;
+  final String Function(String)? _resolveLinks;
+
+  String _realPath(String path) =>
+      (_resolveLinks ??
+              (p) => Directory(p).resolveSymbolicLinksSync())(
+        path,
+      );
 
   @override
   Future<List<FileItem>> list(String dir, {bool showHidden = false}) async {
@@ -72,6 +81,12 @@ class IoFilesBackend implements FilesBackend {
   }) async {
     final needle = query.toLowerCase();
     final found = <FileItem>[];
+    final seen = <String>{};
+    try {
+      seen.add(_realPath(root));
+    } on FileSystemException {
+      return found;
+    }
     final pending = <String>[root];
     while (pending.isNotEmpty && found.length < limit) {
       final dir = pending.removeAt(0);
@@ -84,7 +99,15 @@ class IoFilesBackend implements FilesBackend {
       for (final item in items) {
         if (found.length >= limit) break;
         if (item.name.toLowerCase().contains(needle)) found.add(item);
-        if (item.isDir) pending.add(item.path);
+        if (item.isDir) {
+          try {
+            if (seen.add(_realPath(item.path))) {
+              pending.add(item.path);
+            }
+          } on FileSystemException {
+            continue;
+          }
+        }
       }
     }
     return found;
@@ -122,12 +145,38 @@ class IoFilesBackend implements FilesBackend {
 
   String get _user => Platform.environment['USER'] ?? '';
 
+  static void _checkName(String name) {
+    if (name.isEmpty ||
+        name == '.' ||
+        name == '..' ||
+        name.contains('/')) {
+      throw ArgumentError.value(name, 'name', 'invalid file name');
+    }
+  }
+
+  static String _uniquePath(String target) {
+    var candidate = target;
+    for (var i = 2;
+        FileSystemEntity.typeSync(candidate) !=
+            FileSystemEntityType.notFound;
+        i++) {
+      final slash = target.lastIndexOf('/');
+      final dot = target.lastIndexOf('.');
+      final at = dot > slash ? dot : target.length;
+      candidate = '${target.substring(0, at)} ($i)${target.substring(at)}';
+    }
+    return candidate;
+  }
+
   @override
-  Future<void> mkdir(String parent, String name) =>
-      Directory('$parent/$name').create(recursive: true);
+  Future<void> mkdir(String parent, String name) {
+    _checkName(name);
+    return Directory('$parent/$name').create(recursive: true);
+  }
 
   @override
   Future<void> rename(String path, String newName) {
+    _checkName(newName);
     final parent = path.substring(0, path.lastIndexOf('/'));
     final target = '$parent/$newName';
     if (FileSystemEntity.typeSync(path) ==
@@ -145,7 +194,7 @@ class IoFilesBackend implements FilesBackend {
   }) async {
     for (final path in paths) {
       final name = path.split('/').last;
-      final target = '$destDir/$name';
+      final target = _uniquePath('$destDir/$name');
       if (move) {
         final isDir = FileSystemEntity.typeSync(path) ==
             FileSystemEntityType.directory;
@@ -169,10 +218,14 @@ class IoFilesBackend implements FilesBackend {
   }
 
   Future<void> _copy(String from, String to) async {
+    if (FileSystemEntity.isLinkSync(from)) {
+      await Link(to).create(await Link(from).target());
+      return;
+    }
     if (FileSystemEntity.typeSync(from) ==
         FileSystemEntityType.directory) {
       await Directory(to).create(recursive: true);
-      await for (final e in Directory(from).list()) {
+      await for (final e in Directory(from).list(followLinks: false)) {
         await _copy(e.path, '$to/${e.path.split('/').last}');
       }
     } else {

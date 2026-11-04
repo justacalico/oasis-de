@@ -6,10 +6,10 @@ import 'package:oasis_ui/oasis_ui.dart';
 import 'context_menu.dart';
 import 'shell_controller.dart';
 
-OasisApp launchPadEntry(OasisLocalizations l10n, OasisPalette palette) =>
+OasisApp appGridEntry(OasisLocalizations l10n, OasisPalette palette) =>
     OasisApp(
       id: 'launch-pad',
-      name: l10n.launchPad,
+      name: l10n.appGrid,
       icon: Icons.rocket_launch,
       iconColors: [
         palette.accent,
@@ -18,25 +18,25 @@ OasisApp launchPadEntry(OasisLocalizations l10n, OasisPalette palette) =>
       builder: (_) => const SizedBox.shrink(),
     );
 
-class ShellDock extends StatefulWidget {
-  const ShellDock({
+class ShellDash extends StatefulWidget {
+  const ShellDash({
     super.key,
     required this.controller,
-    this.iconSize = kDockIconSize,
-    this.position = OasisDockPosition.bottom,
+    this.iconSize = kDashIconSize,
+    this.position = OasisDashPosition.bottom,
   });
 
   final ShellController controller;
   final double iconSize;
-  final OasisDockPosition position;
+  final OasisDashPosition position;
 
-  bool get vertical => position != OasisDockPosition.bottom;
+  bool get vertical => position != OasisDashPosition.bottom;
 
   @override
-  State<ShellDock> createState() => _ShellDockState();
+  State<ShellDash> createState() => _ShellDashState();
 }
 
-class _ShellDockState extends State<ShellDock>
+class _ShellDashState extends State<ShellDash>
     with SingleTickerProviderStateMixin {
   double? _pointer;
   late final AnimationController _magnify = AnimationController(
@@ -62,7 +62,7 @@ class _ShellDockState extends State<ShellDock>
     return base + base * 0.38 * falloff * falloff * _magnify.value;
   }
 
-  Widget _dockMenu(
+  Widget _dashMenu(
     BuildContext context,
     Widget child,
     OasisApp app, {
@@ -96,14 +96,14 @@ class _ShellDockState extends State<ShellDock>
             ),
           if (canPin)
             ShellMenuItem(
-              label: pinned ? l10n.dockUnpin : l10n.dockPin,
+              label: pinned ? l10n.dashUnpin : l10n.dashPin,
               action: (_) =>
                   pinned ? c.unpinApp(app.id) : c.pinApp(app.id),
               separatorAfter: appWindows.isNotEmpty,
             ),
           if (appWindows.isNotEmpty)
             ShellMenuItem(
-              label: l10n.dockQuit,
+              label: l10n.dashQuit,
               action: (_) {
                 for (final w in appWindows) {
                   c.closeWindow(w.id);
@@ -131,7 +131,7 @@ class _ShellDockState extends State<ShellDock>
       for (final w in c.windows)
         if ((w.minimized || w.transition != ShellWindowTransition.none) &&
             pinnedIds.contains(w.app.id))
-          w.app.id: w.dockIconKey,
+          w.app.id: w.dashIconKey,
     };
     final unpinnedRunning = <ShellWindowData>[];
     final seenRunning = <String>{};
@@ -141,15 +141,15 @@ class _ShellDockState extends State<ShellDock>
     }
 
     final icons = <Widget>[
-      _DockIcon(
-        app: launchPadEntry(l10n, p),
-        running: c.launchPadOpen,
+      _DashIcon(
+        app: appGridEntry(l10n, p),
+        running: c.appGridOpen,
         measure: _sizeAt,
         size: widget.iconSize,
         position: widget.position,
-        onTap: c.toggleLaunchPad,
+        onTap: c.toggleAppGrid,
       ),
-      _DockDivider(length: widget.iconSize * 0.8, vertical: vertical),
+      _DashDivider(length: widget.iconSize * 0.8, vertical: vertical),
       for (final app in c.pinned)
         DragTarget<OasisApp>(
           onAcceptWithDetails: (d) => c.movePinned(d.data.id, app.id),
@@ -157,7 +157,7 @@ class _ShellDockState extends State<ShellDock>
             data: app,
             feedback: Material(
               type: MaterialType.transparency,
-              child: _DockIcon(
+              child: _DashIcon(
                 app: app,
                 running: false,
                 measure: _sizeAt,
@@ -166,9 +166,9 @@ class _ShellDockState extends State<ShellDock>
                 onTap: null,
               ),
             ),
-            child: _dockMenu(
+            child: _dashMenu(
               context,
-              _DockIcon(
+              _DashIcon(
                 key: pinnedMinimizedKeys[app.id],
                 triggerMode: TooltipTriggerMode.manual,
                 app: app,
@@ -184,9 +184,9 @@ class _ShellDockState extends State<ShellDock>
           ),
         ),
       for (final w in unpinnedRunning)
-        _dockMenu(
+        _dashMenu(
           context,
-          _DockIcon(
+          _DashIcon(
             app: w.app,
             running: true,
             measure: _sizeAt,
@@ -198,12 +198,12 @@ class _ShellDockState extends State<ShellDock>
           pinned: pinnedIds.contains(w.app.id),
         ),
       if (minimized.isNotEmpty)
-        _DockDivider(length: widget.iconSize * 0.8, vertical: vertical),
+        _DashDivider(length: widget.iconSize * 0.8, vertical: vertical),
       for (final w in minimized)
-        _dockMenu(
+        _dashMenu(
           context,
-          _DockIcon(
-            key: w.dockIconKey,
+          _DashIcon(
+            key: w.dashIconKey,
             app: w.app,
             running: true,
             measure: _sizeAt,
@@ -224,9 +224,9 @@ class _ShellDockState extends State<ShellDock>
       onExit: (_) => _magnify.reverse(),
       child: Container(
         margin: switch (widget.position) {
-          OasisDockPosition.left => const EdgeInsets.only(left: 10),
-          OasisDockPosition.right => const EdgeInsets.only(right: 10),
-          OasisDockPosition.bottom => const EdgeInsets.only(bottom: 10),
+          OasisDashPosition.left => const EdgeInsets.only(left: 10),
+          OasisDashPosition.right => const EdgeInsets.only(right: 10),
+          OasisDashPosition.bottom => const EdgeInsets.only(bottom: 10),
         },
         padding: vertical
             ? const EdgeInsets.symmetric(horizontal: 8, vertical: 10)
@@ -250,7 +250,7 @@ class _ShellDockState extends State<ShellDock>
                 borderRadius: BorderRadius.circular(24),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                  child: Container(color: p.dockFill),
+                  child: Container(color: p.dashFill),
                 ),
               ),
             ),
@@ -274,8 +274,8 @@ class _ShellDockState extends State<ShellDock>
   }
 }
 
-class _DockDivider extends StatelessWidget {
-  const _DockDivider({required this.length, required this.vertical});
+class _DashDivider extends StatelessWidget {
+  const _DashDivider({required this.length, required this.vertical});
 
   final double length;
   final bool vertical;
@@ -294,14 +294,14 @@ class _DockDivider extends StatelessWidget {
   }
 }
 
-class _DockIcon extends StatelessWidget {
-  const _DockIcon({
+class _DashIcon extends StatelessWidget {
+  const _DashIcon({
     super.key,
     required this.app,
     required this.running,
     required this.measure,
-    this.size = kDockIconSize,
-    this.position = OasisDockPosition.bottom,
+    this.size = kDashIconSize,
+    this.position = OasisDashPosition.bottom,
     this.onTap,
     this.triggerMode,
   });
@@ -310,14 +310,14 @@ class _DockIcon extends StatelessWidget {
   final bool running;
   final double Function(double center) measure;
   final double size;
-  final OasisDockPosition position;
+  final OasisDashPosition position;
   final VoidCallback? onTap;
   final TooltipTriggerMode? triggerMode;
 
   @override
   Widget build(BuildContext context) {
     final p = OasisStyle.of(context).palette;
-    final vertical = position != OasisDockPosition.bottom;
+    final vertical = position != OasisDashPosition.bottom;
     return LayoutBuilder(
       builder: (context, constraints) {
         var s = size;
@@ -342,9 +342,9 @@ class _DockIcon extends StatelessWidget {
               child: Transform.scale(
                 scale: s / size,
                 alignment: switch (position) {
-                  OasisDockPosition.left => Alignment.centerLeft,
-                  OasisDockPosition.right => Alignment.centerRight,
-                  OasisDockPosition.bottom => Alignment.bottomCenter,
+                  OasisDashPosition.left => Alignment.centerLeft,
+                  OasisDashPosition.right => Alignment.centerRight,
+                  OasisDashPosition.bottom => Alignment.bottomCenter,
                 },
                 child: OasisAppIcon(
                   icon: app.icon,
@@ -378,15 +378,15 @@ class _DockIcon extends StatelessWidget {
             button: true,
             label: app.name,
             child: switch (position) {
-              OasisDockPosition.bottom => Column(
+              OasisDashPosition.bottom => Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [icon, const SizedBox(height: 3), dot],
               ),
-              OasisDockPosition.left => Row(
+              OasisDashPosition.left => Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [dot, const SizedBox(width: 3), icon],
               ),
-              OasisDockPosition.right => Row(
+              OasisDashPosition.right => Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [icon, const SizedBox(width: 3), dot],
               ),

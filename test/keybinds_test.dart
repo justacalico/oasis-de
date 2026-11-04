@@ -328,8 +328,8 @@ void main() {
 
     c.runKeybindAction(OasisKeybindsService.actionLauncher);
     expect(c.launcherOpen, isTrue);
-    c.runKeybindAction(OasisKeybindsService.actionLaunchpad);
-    expect(c.launchPadOpen, isTrue);
+    c.runKeybindAction(OasisKeybindsService.actionAppGrid);
+    expect(c.appGridOpen, isTrue);
     expect(c.launcherOpen, isFalse);
 
     c.runKeybindAction(OasisKeybindsService.actionCycleWindows);
@@ -337,7 +337,7 @@ void main() {
     c.runKeybindAction(OasisKeybindsService.actionCycleWindowsBack);
     c.runKeybindAction(OasisKeybindsService.actionDismiss);
     expect(c.switcherIndex, isNull);
-    expect(c.launchPadOpen, isFalse);
+    expect(c.appGridOpen, isFalse);
 
     c.runKeybindAction(OasisKeybindsService.actionShowDesktop);
     expect(c.windows.every((w) => w.minimized), isTrue);

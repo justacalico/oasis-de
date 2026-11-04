@@ -8,15 +8,15 @@ import 'package:oasis_ui/oasis_ui.dart';
 import '../wayland/layer_surface_view.dart';
 import '../wayland/wayland_service.dart';
 import '../wayland/wayland_surface_view.dart';
-import 'control_center.dart';
+import 'quick_settings.dart';
 import 'context_menu.dart';
-import 'dock.dart';
-import 'genie_window.dart';
-import 'launch_pad.dart';
+import 'dash.dart';
+import 'window_minimize.dart';
+import 'app_grid.dart';
 import 'launcher.dart';
 import 'lock_screen.dart';
-import 'menu_bar.dart';
-import 'notification_center.dart';
+import 'top_bar.dart';
+import 'notification_panel.dart';
 import 'shell_controller.dart';
 import 'snip_overlay.dart';
 import 'window_switcher.dart';
@@ -25,13 +25,13 @@ class DesktopShell extends StatefulWidget {
   const DesktopShell({
     super.key,
     required this.controller,
-    this.dock,
+    this.dash,
     this.wallpaper,
     required this.menusBuilder,
   });
 
   final ShellController controller;
-  final OasisDockSettings? dock;
+  final OasisDashSettings? dash;
   final OasisWallpaperService? wallpaper;
   final List<ShellMenu> Function() menusBuilder;
 
@@ -41,46 +41,46 @@ class DesktopShell extends StatefulWidget {
 
 class _DesktopShellState extends State<DesktopShell> {
   StreamSubscription<WaylandRequest>? _requestSub;
-  OasisDockSettings? _fallbackDock;
+  OasisDashSettings? _fallbackDash;
   final _pointerPos = ValueNotifier<Offset>(Offset.zero);
   DateTime? _lastActivity;
-  var _dockRevealed = false;
-  Timer? _dockHideTimer;
+  var _dashRevealed = false;
+  Timer? _dashHideTimer;
   Rect _primaryRect = Rect.zero;
 
   ShellController get controller => widget.controller;
 
-  OasisDockSettings get _dock =>
-      widget.dock ?? (_fallbackDock ??= OasisDockSettings());
+  OasisDashSettings get _dash =>
+      widget.dash ?? (_fallbackDash ??= OasisDashSettings());
 
-  bool get _dockConcealed =>
-      _dock.mode == OasisDockMode.autoHide && !_dockRevealed;
+  bool get _dashConcealed =>
+      _dash.mode == OasisDashMode.autoHide && !_dashRevealed;
 
-  /// Reveals an auto-hiding dock when the pointer hugs the screen edge it
+  /// Reveals an auto-hiding dash when the pointer hugs the screen edge it
   /// sits on, and schedules the hide once it drifts away.
-  void _updateDockReveal(Offset pos) {
-    final dock = _dock;
-    if (dock.mode != OasisDockMode.autoHide) {
-      if (_dockRevealed) {
-        _dockHideTimer?.cancel();
-        setState(() => _dockRevealed = false);
+  void _updateDashReveal(Offset pos) {
+    final dash = _dash;
+    if (dash.mode != OasisDashMode.autoHide) {
+      if (_dashRevealed) {
+        _dashHideTimer?.cancel();
+        setState(() => _dashRevealed = false);
       }
       return;
     }
     final rect = _primaryRect;
-    final d = switch (dock.position) {
-      OasisDockPosition.bottom => rect.bottom - pos.dy,
-      OasisDockPosition.left => pos.dx - rect.left,
-      OasisDockPosition.right => rect.right - pos.dx,
+    final d = switch (dash.position) {
+      OasisDashPosition.bottom => rect.bottom - pos.dy,
+      OasisDashPosition.left => pos.dx - rect.left,
+      OasisDashPosition.right => rect.right - pos.dx,
     };
-    final show = _dockRevealed ? d < dock.iconSize + 45 : d <= 3;
-    if (show == _dockRevealed) return;
-    _dockHideTimer?.cancel();
+    final show = _dashRevealed ? d < dash.iconSize + 45 : d <= 3;
+    if (show == _dashRevealed) return;
+    _dashHideTimer?.cancel();
     if (show) {
-      setState(() => _dockRevealed = true);
+      setState(() => _dashRevealed = true);
     } else {
-      _dockHideTimer = Timer(const Duration(milliseconds: 250), () {
-        if (mounted) setState(() => _dockRevealed = false);
+      _dashHideTimer = Timer(const Duration(milliseconds: 250), () {
+        if (mounted) setState(() => _dashRevealed = false);
       });
     }
   }
@@ -96,7 +96,7 @@ class _DesktopShellState extends State<DesktopShell> {
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onAltRelease);
     _requestSub?.cancel();
-    _dockHideTimer?.cancel();
+    _dashHideTimer?.cancel();
     _pointerPos.dispose();
     super.dispose();
   }
@@ -146,7 +146,7 @@ class _DesktopShellState extends State<DesktopShell> {
       animation: Listenable.merge([
         controller,
         controller.keybinds,
-        _dock,
+        _dash,
         if (controller.wayland != null) controller.wayland!,
       ]),
       builder: (context, _) {
@@ -174,11 +174,11 @@ class _DesktopShellState extends State<DesktopShell> {
             onPointerHover: (e) {
               _pointerPos.value = e.localPosition;
               controller.lastPointerPosition = e.localPosition;
-              _updateDockReveal(e.localPosition);
+              _updateDashReveal(e.localPosition);
               if (e.buttons == 0) controller.endSurfaceGesture();
             },
             onPointerMove: (e) {
-              _updateDockReveal(e.localPosition);
+              _updateDashReveal(e.localPosition);
               _onShellPointerMove(e, MediaQuery.sizeOf(context));
             },
             onPointerUp: (e) => controller.endSurfaceGesture(
@@ -221,7 +221,7 @@ class _DesktopShellState extends State<DesktopShell> {
                             return Positioned(
                               left: r.left,
                               top: r.top,
-                              child: GenieWindow(
+                              child: WindowMinimizeEffect(
                                 window: w,
                                 rect: _windowRect(w, context),
                                 onEnd: () => controller.finishTransition(w.id),
@@ -271,7 +271,7 @@ class _DesktopShellState extends State<DesktopShell> {
                         );
                       },
                     ),
-                if (controller.openMenu != null || controller.controlCenterOpen)
+                if (controller.openMenu != null || controller.quickSettingsOpen)
                   Positioned.fill(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
@@ -282,18 +282,18 @@ class _DesktopShellState extends State<DesktopShell> {
                   for (var i = 0; i < (heads.isEmpty ? 1 : heads.length); i++)
                     Positioned.fromRect(
                       rect: heads.isEmpty
-                          ? Rect.fromLTWH(0, 0, screen.width, kMenuBarHeight)
+                          ? Rect.fromLTWH(0, 0, screen.width, kTopBarHeight)
                           : Rect.fromLTWH(
                               heads[i].rect.left,
                               heads[i].rect.top,
                               heads[i].rect.width,
-                              kMenuBarHeight,
+                              kTopBarHeight,
                             ),
-                      child: ShellMenuBar(controller: controller, menus: menus),
+                      child: ShellTopBar(controller: controller, menus: menus),
                     ),
                 if (controller.openMenu != null)
                   Positioned(
-                    top: (controller.menuAnchor?.bottom ?? kMenuBarHeight) + 2,
+                    top: (controller.menuAnchor?.bottom ?? kTopBarHeight) + 2,
                     left: _menuLeft(context, menus),
                     child: MenuDropdown(
                       menuIndex: _menuIndex(menus),
@@ -301,18 +301,18 @@ class _DesktopShellState extends State<DesktopShell> {
                       controller: controller,
                     ),
                   ),
-                if (controller.controlCenterOpen)
+                if (controller.quickSettingsOpen)
                   Positioned.fromRect(
                     rect: activeRect,
-                    child: ShellControlCenter(controller: controller),
+                    child: ShellQuickSettings(controller: controller),
                   ),
-                if (controller.notificationCenterOpen)
+                if (controller.notificationPanelOpen)
                   Positioned.fromRect(
                     rect: activeRect,
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: controller.toggleNotificationCenter,
-                      child: NotificationCenterPanel(controller: controller),
+                      onTap: controller.toggleNotificationPanel,
+                      child: NotificationPanelPanel(controller: controller),
                     ),
                   ),
                 if (controller.switcherIndex != null)
@@ -351,31 +351,31 @@ class _DesktopShellState extends State<DesktopShell> {
                   ),
                 ),
                 if (!controller.fullscreenOnActiveWorkspace &&
-                    _dock.mode != OasisDockMode.off)
+                    _dash.mode != OasisDashMode.off)
                   Positioned.fromRect(
                     rect: primaryRect,
                     child: Align(
-                      alignment: switch (_dock.position) {
-                        OasisDockPosition.left => Alignment.centerLeft,
-                        OasisDockPosition.right => Alignment.centerRight,
-                        OasisDockPosition.bottom => Alignment.bottomCenter,
+                      alignment: switch (_dash.position) {
+                        OasisDashPosition.left => Alignment.centerLeft,
+                        OasisDashPosition.right => Alignment.centerRight,
+                        OasisDashPosition.bottom => Alignment.bottomCenter,
                       },
                       child: AnimatedSlide(
-                        offset: _dockConcealed
-                            ? switch (_dock.position) {
-                                OasisDockPosition.left => const Offset(-1, 0),
-                                OasisDockPosition.right => const Offset(1, 0),
-                                OasisDockPosition.bottom => const Offset(0, 1),
+                        offset: _dashConcealed
+                            ? switch (_dash.position) {
+                                OasisDashPosition.left => const Offset(-1, 0),
+                                OasisDashPosition.right => const Offset(1, 0),
+                                OasisDashPosition.bottom => const Offset(0, 1),
                               }
                             : Offset.zero,
                         duration: const Duration(milliseconds: 180),
                         curve: Curves.easeOutCubic,
                         child: IgnorePointer(
-                          ignoring: _dockConcealed,
-                          child: ShellDock(
+                          ignoring: _dashConcealed,
+                          child: ShellDash(
                             controller: controller,
-                            iconSize: _dock.iconSize,
-                            position: _dock.position,
+                            iconSize: _dash.iconSize,
+                            position: _dash.position,
                           ),
                         ),
                       ),
@@ -395,8 +395,8 @@ class _DesktopShellState extends State<DesktopShell> {
                         child: child,
                       ),
                     ),
-                    child: controller.launchPadOpen
-                        ? ShellLaunchPad(controller: controller)
+                    child: controller.appGridOpen
+                        ? ShellAppGrid(controller: controller)
                         : const SizedBox.shrink(),
                   ),
                 ),
@@ -627,17 +627,17 @@ class _DesktopShellState extends State<DesktopShell> {
     final insets = wl?.exclusiveInsets ?? EdgeInsets.zero;
     var left = head.left + insets.left;
     var width = head.width - insets.horizontal;
-    var height = head.height - kMenuBarHeight - 8 - insets.vertical;
+    var height = head.height - kTopBarHeight - 8 - insets.vertical;
     if (head == (wl?.primaryOutput?.rect ?? head)) {
-      final dock = dockReservedExtent(_dock);
-      switch (_dock.position) {
-        case OasisDockPosition.left:
-          left += dock;
-          width -= dock;
-        case OasisDockPosition.right:
-          width -= dock;
-        case OasisDockPosition.bottom:
-          height -= dock;
+      final dash = dashReservedExtent(_dash);
+      switch (_dash.position) {
+        case OasisDashPosition.left:
+          left += dash;
+          width -= dash;
+        case OasisDashPosition.right:
+          width -= dash;
+        case OasisDashPosition.bottom:
+          height -= dash;
       }
     }
     return Rect.fromLTWH(
@@ -735,8 +735,8 @@ class _DesktopShellState extends State<DesktopShell> {
         escReserved:
             controller.openMenu != null ||
             controller.launcherOpen ||
-            controller.launchPadOpen ||
-            controller.controlCenterOpen ||
+            controller.appGridOpen ||
+            controller.quickSettingsOpen ||
             controller.switcherIndex != null,
       );
     } else if (w.launching) {

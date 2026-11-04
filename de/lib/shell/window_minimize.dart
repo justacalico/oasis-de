@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'shell_controller.dart';
 import 'view_scale.dart';
 
-class GenieWindow extends StatefulWidget {
-  const GenieWindow({
+class WindowMinimizeEffect extends StatefulWidget {
+  const WindowMinimizeEffect({
     super.key,
     required this.window,
     required this.rect,
@@ -20,17 +20,17 @@ class GenieWindow extends StatefulWidget {
   final Widget child;
 
   @override
-  State<GenieWindow> createState() => _GenieWindowState();
+  State<WindowMinimizeEffect> createState() => _WindowMinimizeEffectState();
 }
 
-class _GenieWindowState extends State<GenieWindow>
+class _WindowMinimizeEffectState extends State<WindowMinimizeEffect>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _genie;
+  late final AnimationController _anim;
 
   @override
   void initState() {
     super.initState();
-    _genie = AnimationController(
+    _anim = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 420),
       reverseDuration: const Duration(milliseconds: 380),
@@ -42,7 +42,7 @@ class _GenieWindowState extends State<GenieWindow>
   }
 
   @override
-  void didUpdateWidget(GenieWindow old) {
+  void didUpdateWidget(WindowMinimizeEffect old) {
     super.didUpdateWidget(old);
     _sync();
   }
@@ -50,11 +50,11 @@ class _GenieWindowState extends State<GenieWindow>
   void _sync() {
     switch (widget.window.transition) {
       case ShellWindowTransition.minimizing:
-        _genie.forward();
+        _anim.forward();
       case ShellWindowTransition.restoring:
-        _genie.reverse();
+        _anim.reverse();
       case ShellWindowTransition.none:
-        _genie.stop();
+        _anim.stop();
     }
   }
 
@@ -70,13 +70,13 @@ class _GenieWindowState extends State<GenieWindow>
 
   @override
   void dispose() {
-    _genie.dispose();
+    _anim.dispose();
     super.dispose();
   }
 
-  Rect _dockIconRect(BuildContext context) {
+  Rect _dashIconRect(BuildContext context) {
     final box =
-        widget.window.dockIconKey.currentContext?.findRenderObject();
+        widget.window.dashIconKey.currentContext?.findRenderObject();
     if (box is RenderBox && box.attached && box.hasSize) {
       final k = ViewScale.of(context);
       final p = box.localToGlobal(Offset.zero);
@@ -90,22 +90,22 @@ class _GenieWindowState extends State<GenieWindow>
     final screen = MediaQuery.sizeOf(context);
     return Rect.fromCenter(
       center: Offset(screen.width / 2, screen.height - kWindowBottomMargin),
-      width: kDockIconSize,
-      height: kDockIconSize,
+      width: kDashIconSize,
+      height: kDashIconSize,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _genie,
+      animation: _anim,
       child: widget.child,
       builder: (context, child) {
-        final t = _genie.value;
+        final t = _anim.value;
         if (t <= 0) return child!;
         final eased = Curves.easeInOut.transform(t);
         final origin = widget.rect;
-        final target = _dockIconRect(context);
+        final target = _dashIconRect(context);
         return IgnorePointer(
           child: Transform.translate(
             offset: Offset(
@@ -121,7 +121,7 @@ class _GenieWindowState extends State<GenieWindow>
               scaleY:
                   lerpDouble(1, target.height / origin.height, eased),
               child: ClipPath(
-                clipper: _GenieClip(
+                clipper: _MinimizeClip(
                   pinch: eased,
                   pullX: target.center.dx - origin.left,
                 ),
@@ -138,8 +138,8 @@ class _GenieWindowState extends State<GenieWindow>
   }
 }
 
-class _GenieClip extends CustomClipper<Path> {
-  const _GenieClip({required this.pinch, required this.pullX});
+class _MinimizeClip extends CustomClipper<Path> {
+  const _MinimizeClip({required this.pinch, required this.pullX});
 
   final double pinch;
   final double pullX;
@@ -166,6 +166,6 @@ class _GenieClip extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(_GenieClip old) =>
+  bool shouldReclip(_MinimizeClip old) =>
       old.pinch != pinch || old.pullX != pullX;
 }
