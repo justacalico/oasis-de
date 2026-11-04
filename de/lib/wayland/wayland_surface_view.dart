@@ -38,7 +38,7 @@ Size logicalSurfaceSize(WaylandSurface s) {
 
 Offset surfaceCoordsAt(WaylandSurface surface, Offset local, Size box) {
   final src = surface.vpSrc;
-  final s = src != null ? src.size : logicalSurfaceSize(surface);
+  final s = src != null ? src.size : surface.size;
   if (s.width <= 0 || s.height <= 0) return local;
   return Offset(
     (src?.left ?? 0) +
@@ -375,7 +375,7 @@ class _WaylandSurfaceViewState extends State<WaylandSurfaceView> {
               final size = surface.size;
               return SurfaceHitRegion(
                 region: surface.inputRegion,
-                surfaceSize: logicalSurfaceSize(surface),
+                surfaceSize: surface.size,
                 geoOffset: surface.geoOffset,
                 child: MouseRegion(
                   onExit: (_) => service.pointerExit(surface.id),
@@ -581,15 +581,24 @@ class WaylandLayerTree extends StatelessWidget {
   final WaylandService service;
   final WaylandSurface surface;
 
-  double _geoScale() {
-    final buf = logicalSurfaceSize(surface);
-    return buf.width > 0 ? surface.size.width / buf.width : 1.0;
+  // Surface coordinates map 1:1 to widget pixels: the view shows the
+  // window geometry region of the surface space, so buffer, geometry
+  // offset and subsurface positions all share that coordinate system.
+  // The only stretch happens with wp_viewport: the source rect scales
+  // up to the surface size the compositor reports.
+  (double, double) _srcScale() {
+    final src = surface.vpSrc;
+    final sx = src != null && src.width > 0
+        ? surface.size.width / src.width
+        : 1.0;
+    final sy = src != null && src.height > 0
+        ? surface.size.height / src.height
+        : 1.0;
+    return (sx, sy);
   }
 
   List<Widget> _layers(WaylandSurface root, Offset base) {
-    final buf = logicalSurfaceSize(surface);
-    final sx = buf.width > 0 ? surface.size.width / buf.width : 1.0;
-    final sy = buf.height > 0 ? surface.size.height / buf.height : 1.0;
+    final (sx, sy) = _srcScale();
     final out = <Widget>[];
     for (final id in root.children) {
       final sub = service.surfaces[id];
@@ -618,14 +627,16 @@ class WaylandLayerTree extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final buf = logicalSurfaceSize(surface);
+    final (sx, sy) = _srcScale();
     return Stack(
       children: [
         if (surface.textureId >= 0)
           Positioned(
-            left: -surface.geoOffset.dx * _geoScale(),
-            top: -surface.geoOffset.dy * _geoScale(),
-            width: logicalSurfaceSize(surface).width * _geoScale(),
-            height: logicalSurfaceSize(surface).height * _geoScale(),
+            left: -surface.geoOffset.dx * sx,
+            top: -surface.geoOffset.dy * sy,
+            width: buf.width * sx,
+            height: buf.height * sy,
             child: applyBufferTransform(
               Texture(textureId: surface.textureId),
               surface.transform,
