@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.14.0 - 2026-11-04
+#### Other changes
+- Merge branch 'fix/surface-damage-freeze' into 'main' - (4d631be) - HttpAnimations
+#### Features
+- 新增截图工具与区域截取 - (c200110) - user.email
+#### Bug Fixes
+- 补全截图相关本地化字符串的测试覆盖 - (1f69efc) - HttpAnimations
+- 修正自绘标题栏检测，消除 Devinorium 等应用的双重标题栏 - (76ee347) - user.email
+- 修复仅上报 surface 坐标损伤的提交被跳过导致的画面冻结 - (fea8e58) - HttpAnimations
+- 修复共享内存客户端提交被折叠后画面冻结 - (6e02808) - HttpAnimations
+
+- - -
+
 ## v0.13.0 - 2026-11-04
 #### Features
 - 让鼠标与触控板设置真正生效 - (c6931a0) - HttpAnimations
