@@ -6,8 +6,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 import '../state/settings_state.dart';
 import 'settings_row.dart';
 
-const kAccentChoices = <Color?>[
-  null,
+const kAccentChoices = <Color>[
   Color(0xFF007AFF),
   Color(0xFFBF5AF2),
   Color(0xFFFF375F),
@@ -24,7 +23,6 @@ class AppearancePane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = OasisLocalizations.of(context);
-    final p = OasisStyle.of(context).palette;
     final host = OasisHost.of(context);
     final appearance = host.appearance;
     final text = Theme.of(context).textTheme;
@@ -76,11 +74,12 @@ class AppearancePane extends StatelessWidget {
                     children: [
                       for (final c in kAccentChoices)
                         _AccentSwatch(
-                          color: c ?? const Color(0xFF007AFF),
-                          label: c == null ? 'A' : null,
-                          selected: appearance.accent == c,
+                          key: ValueKey(c),
+                          color: c,
+                          selected: (appearance.accent ??
+                                  kAccentChoices.first) ==
+                              c,
                           onTap: () => appearance.accent = c,
-                          ring: c == null ? p.accent : null,
                         ),
                     ],
                   ),
@@ -164,18 +163,15 @@ class _ThemeCard extends StatelessWidget {
 
 class _AccentSwatch extends StatelessWidget {
   const _AccentSwatch({
+    super.key,
     required this.color,
     required this.selected,
     required this.onTap,
-    this.label,
-    this.ring,
   });
 
   final Color color;
   final bool selected;
   final VoidCallback onTap;
-  final String? label;
-  final Color? ring;
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +181,6 @@ class _AccentSwatch extends StatelessWidget {
       child: Semantics(
         button: true,
         selected: selected,
-        label: label,
         child: Padding(
           padding: const EdgeInsets.all(3),
           child: Container(
@@ -195,22 +190,10 @@ class _AccentSwatch extends StatelessWidget {
               shape: BoxShape.circle,
               color: color,
               border: Border.all(
-                color: selected ? ring ?? color : p.divider,
+                color: selected ? color : p.divider,
                 width: selected ? 3 : 0.5,
               ),
             ),
-            child: label == null
-                ? null
-                : Center(
-                    child: Text(
-                      label!,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFFFFFFF),
-                      ),
-                    ),
-                  ),
           ),
         ),
       ),
