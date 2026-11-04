@@ -79,6 +79,7 @@ class OasisMenuCascade {
     );
     _owners.add(owner);
     _overlay.insert(_subs.last);
+    if (_subs.length > 1) _subs[_subs.length - 2].markNeedsBuild();
   }
 
   void closeFrom(int depth) {

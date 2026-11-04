@@ -339,6 +339,17 @@ void main() {
     );
   });
 
+  test('platform signal stream wraps DBusSignalStream', () {
+    final stream = AppMenuService.platformSignalStream(
+      _FakeBus(),
+      sender: ':1.5',
+      interface: 'com.canonical.dbusmenu',
+      name: 'LayoutUpdated',
+      path: DBusObjectPath('/MenuBar'),
+    );
+    expect(stream, isA<Stream<DBusSignal>>());
+  });
+
   test('appMenuLabel strips mnemonics', () {
     expect(appMenuLabel('File'), 'File');
     expect(appMenuLabel('_File'), 'File');
@@ -1255,33 +1266,55 @@ void main() {
       await pumpOasis(
         tester,
         Builder(
-          builder: (context) => GestureDetector(
-            onTap: () {
-              cascade = OasisMenuCascade(Overlay.of(context));
-              cascade!.open(
-                1,
-                const Rect.fromLTWH(290, 200, 8, 30),
-                const OasisMenuItem(label: 'root'),
-                const [OasisMenuItem(label: 'Fly A')],
-                () {},
-              );
-              cascade!.open(
-                2,
-                const Rect.fromLTWH(2, 50, 8, 30),
-                const OasisMenuItem(label: 'root2'),
-                const [OasisMenuItem(label: 'Fly B')],
-                () {},
-              );
-            },
-            child: const Text('go'),
+          builder: (context) => Column(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  cascade = OasisMenuCascade(Overlay.of(context));
+                  cascade!.open(
+                    1,
+                    const Rect.fromLTWH(290, 200, 8, 30),
+                    const OasisMenuItem(label: 'root'),
+                    const [OasisMenuItem(label: 'Fly A')],
+                    () {},
+                  );
+                },
+                child: const Text('a'),
+              ),
+              GestureDetector(
+                onTap: () {
+                  cascade!.open(
+                    2,
+                    const Rect.fromLTWH(2, 50, 8, 30),
+                    const OasisMenuItem(label: 'root2'),
+                    const [OasisMenuItem(label: 'Fly B')],
+                    () {},
+                  );
+                  cascade!.open(
+                    3,
+                    const Rect.fromLTWH(2, 220, 8, 30),
+                    const OasisMenuItem(label: 'root3'),
+                    [
+                      for (var i = 0; i < 12; i++)
+                        OasisMenuItem(label: 'Fly C$i'),
+                    ],
+                    () {},
+                  );
+                },
+                child: const Text('b'),
+              ),
+            ],
           ),
         ),
         size: const Size(300, 250),
       );
-      await tester.tap(find.text('go'));
+      await tester.tap(find.text('a'));
       await tester.pump();
       expect(find.text('Fly A'), findsOneWidget);
+      await tester.tap(find.text('b'));
+      await tester.pump();
       expect(find.text('Fly B'), findsOneWidget);
+      expect(find.text('Fly C0'), findsOneWidget);
       cascade?.close();
       await tester.pump();
       expect(find.text('Fly A'), findsNothing);
