@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.15.0 - 2026-11-04
+#### Features
+- 设置应用接入远程主机连接 - (1055dc4) - zhenxi
+- 桌面会话导出主机服务到会话总线 - (054f9bf) - zhenxi
+- 新增主机服务协议、端点与远程客户端 - (3907958) - zhenxi
+- 抽出外观与更新服务的主机契约接口 - (f1a8b1b) - zhenxi
+#### Bug Fixes
+- 修复 dmabuf 客户端的粉色窗口与关闭后的卡顿 - (efa67a7) - HttpAnimations
+#### Tests
+- 主机契约双端一致性测试 - (5932d61) - zhenxi
+
+- - -
+
 ## v0.14.1 - 2026-11-04
 #### Bug Fixes
 - 菜单贴近屏幕下缘时向上翻出，避免超出屏幕 - (b52fbd1) - HttpAnimations
