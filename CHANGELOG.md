@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.14.1 - 2026-11-04
+#### Bug Fixes
+- 菜单贴近屏幕下缘时向上翻出，避免超出屏幕 - (b52fbd1) - HttpAnimations
+
+- - -
+
 ## v0.14.0 - 2026-11-04
 #### Other changes
 - Merge branch 'fix/surface-damage-freeze' into 'main' - (4d631be) - HttpAnimations
