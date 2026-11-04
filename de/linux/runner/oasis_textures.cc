@@ -121,6 +121,7 @@ struct _OasisGLTexture {
   bool failed = false;
   EGLImage image = EGL_NO_IMAGE;
   EGLDisplay img_dpy = EGL_NO_DISPLAY;
+  EGLContext gl_ctx = EGL_NO_CONTEXT;
   GLuint gl_name = 0;
   uint32_t w = 0;
   uint32_t h = 0;
@@ -194,6 +195,7 @@ static gboolean oasis_gl_texture_populate(FlTextureGL* texture,
     return FALSE;
   }
   if (self->gl_name == 0) glGenTextures(1, &self->gl_name);
+  self->gl_ctx = eglGetCurrentContext();
   if (self->image == EGL_NO_IMAGE || self->dirty) {
     if (self->image != EGL_NO_IMAGE && self->img_dpy == dpy) {
       eglDestroyImage(self->img_dpy, self->image);
@@ -269,10 +271,13 @@ void oasis_gl_texture_set_dmabuf(OasisGLTexture* self, const DmabufInfo& db) {
 static void oasis_gl_texture_dispose(GObject* object) {
   OasisGLTexture* self = OASIS_GL_TEXTURE(object);
   g_mutex_lock(&self->mutex);
-  if (self->gl_name != 0) {
+  // Dispose can run on the platform thread where the name's owning
+  // context isn't current; deleting then would hit whichever context is
+  // (or none at all). The name dies with its context either way.
+  if (self->gl_name != 0 && eglGetCurrentContext() == self->gl_ctx) {
     glDeleteTextures(1, &self->gl_name);
-    self->gl_name = 0;
   }
+  self->gl_name = 0;
   if (self->image != EGL_NO_IMAGE && self->img_dpy != EGL_NO_DISPLAY) {
     eglDestroyImage(self->img_dpy, self->image);
     self->image = EGL_NO_IMAGE;

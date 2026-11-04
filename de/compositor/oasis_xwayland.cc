@@ -37,12 +37,7 @@ static void xs_emit_prop(Surface* s, const char* event,
 }
 
 static void xs_free(Surface* s) {
-  OasisPrivate* c = s->comp;
-  if (s->xsurface != nullptr) {
-    c->by_xsurface.erase(s->xsurface);
-    s->xsurface = nullptr;
-  }
-  s->wlr = nullptr;
+  detach_wlr(s);
   free_surface(s);
 }
 
@@ -53,10 +48,7 @@ static void xs_destroyed(wl_listener* listener, void*) {
 
 static void xs_dissociated(wl_listener* listener, void*) {
   Surface* s = wl_container_of(listener, s, xs_dissociate);
-  if (s->wlr != nullptr) {
-    s->comp->by_wlr.erase(s->wlr);
-    s->wlr = nullptr;
-  }
+  detach_wlr(s);
 }
 
 static void xs_associated(wl_listener* listener, void*) {

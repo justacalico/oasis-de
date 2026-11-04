@@ -409,6 +409,7 @@ void install_host_source(OasisPrivate* c);
 void surface_new(OasisPrivate* c, wlr_surface* wlr);
 void init_surface_listeners(Surface* s);
 void attach_wlr(Surface* s, wlr_surface* wlr);
+void detach_wlr(Surface* s);
 void toplevel_new(OasisPrivate* c, wlr_xdg_toplevel* toplevel);
 void popup_new(OasisPrivate* c, wlr_xdg_popup* popup);
 void layer_new(OasisPrivate* c, wlr_layer_surface_v1* layer_surface);
