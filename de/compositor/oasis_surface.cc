@@ -662,6 +662,9 @@ void frame_pending_add(Surface* s) {
 // the timeline waiter run it once the fence fires.
 static void acquire_ready_cb(wlr_drm_syncobj_timeline_waiter* waiter) {
   Surface* s = wl_container_of(waiter, s, acquire_waiter);
+  // The waiter stays registered after firing; finish it here or every
+  // deferred commit leaks an eventfd until the fd table fills up.
+  wlr_drm_syncobj_timeline_waiter_finish(&s->acquire_waiter);
   s->acquire_waiting = false;
   if (export_buffer(s) && s->texture_id >= 0 &&
       (s->announced || s == s->comp->cursor_surface)) {
