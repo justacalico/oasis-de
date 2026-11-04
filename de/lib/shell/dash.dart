@@ -127,6 +127,10 @@ class _ShellDashState extends State<ShellDash>
         .where((w) => w.minimized && !pinnedIds.contains(w.app.id))
         .toList(growable: false);
     final running = {for (final w in c.windows) w.app.id};
+    final launching = {
+      for (final w in c.windows)
+        if (w.launching) w.app.id,
+    };
     final pinnedMinimizedKeys = {
       for (final w in c.windows)
         if ((w.minimized || w.transition != ShellWindowTransition.none) &&
@@ -173,6 +177,7 @@ class _ShellDashState extends State<ShellDash>
                 triggerMode: TooltipTriggerMode.manual,
                 app: app,
                 running: running.contains(app.id),
+                bouncing: launching.contains(app.id),
                 measure: _sizeAt,
                 size: widget.iconSize,
                 position: widget.position,
@@ -189,6 +194,7 @@ class _ShellDashState extends State<ShellDash>
           _DashIcon(
             app: w.app,
             running: true,
+            bouncing: launching.contains(w.app.id),
             measure: _sizeAt,
             size: widget.iconSize,
             position: widget.position,
@@ -206,6 +212,7 @@ class _ShellDashState extends State<ShellDash>
             key: w.dashIconKey,
             app: w.app,
             running: true,
+            bouncing: launching.contains(w.app.id),
             measure: _sizeAt,
             size: widget.iconSize,
             position: widget.position,
@@ -300,6 +307,7 @@ class _DashIcon extends StatelessWidget {
     required this.app,
     required this.running,
     required this.measure,
+    this.bouncing = false,
     this.size = kDashIconSize,
     this.position = OasisDashPosition.bottom,
     this.onTap,
@@ -308,6 +316,7 @@ class _DashIcon extends StatelessWidget {
 
   final OasisApp app;
   final bool running;
+  final bool bouncing;
   final double Function(double center) measure;
   final double size;
   final OasisDashPosition position;
@@ -330,27 +339,36 @@ class _DashIcon extends StatelessWidget {
                 : origin.dx + box.size.width / 2,
           );
         }
-        final icon = OasisTooltip(
-          message: app.name,
-          preferBelow: false,
-          triggerMode: triggerMode,
-          child: GestureDetector(
-            onTap: onTap,
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Transform.scale(
-                scale: s / size,
-                alignment: switch (position) {
-                  OasisDashPosition.left => Alignment.centerLeft,
-                  OasisDashPosition.right => Alignment.centerRight,
-                  OasisDashPosition.bottom => Alignment.bottomCenter,
-                },
-                child: OasisAppIcon(
-                  icon: app.icon,
-                  colors: app.iconColors,
-                  iconPath: app.iconPath,
-                  size: size,
+        final peak = switch (position) {
+          OasisDashPosition.bottom => Offset(0, -size * 0.55),
+          OasisDashPosition.left => Offset(size * 0.55, 0),
+          OasisDashPosition.right => Offset(-size * 0.55, 0),
+        };
+        final icon = _DashBounce(
+          active: bouncing,
+          peak: peak,
+          child: OasisTooltip(
+            message: app.name,
+            preferBelow: false,
+            triggerMode: triggerMode,
+            child: GestureDetector(
+              onTap: onTap,
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: Transform.scale(
+                  scale: s / size,
+                  alignment: switch (position) {
+                    OasisDashPosition.left => Alignment.centerLeft,
+                    OasisDashPosition.right => Alignment.centerRight,
+                    OasisDashPosition.bottom => Alignment.bottomCenter,
+                  },
+                  child: OasisAppIcon(
+                    icon: app.icon,
+                    colors: app.iconColors,
+                    iconPath: app.iconPath,
+                    size: size,
+                  ),
                 ),
               ),
             ),
@@ -394,6 +412,80 @@ class _DashIcon extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _DashBounce extends StatefulWidget {
+  const _DashBounce({
+    required this.active,
+    required this.peak,
+    required this.child,
+  });
+
+  final bool active;
+  final Offset peak;
+  final Widget child;
+
+  @override
+  State<_DashBounce> createState() => _DashBounceState();
+}
+
+class _DashBounceState extends State<_DashBounce>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _hop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 850),
+  );
+
+  static final _rise = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(begin: 0.0, end: 1.0)
+          .chain(CurveTween(curve: Curves.easeOutCubic)),
+      weight: 45,
+    ),
+    TweenSequenceItem(
+      tween: Tween(begin: 1.0, end: 0.0)
+          .chain(CurveTween(curve: Curves.easeInCubic)),
+      weight: 55,
+    ),
+  ]);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) _hop.repeat();
+  }
+
+  @override
+  void didUpdateWidget(_DashBounce old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !_hop.isAnimating) {
+      _hop.repeat();
+    } else if (!widget.active && _hop.isAnimating) {
+      _hop.animateTo(
+        0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeIn,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _hop.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _hop,
+      child: widget.child,
+      builder: (context, child) => Transform.translate(
+        offset: widget.peak * _rise.evaluate(_hop),
+        child: child,
+      ),
     );
   }
 }

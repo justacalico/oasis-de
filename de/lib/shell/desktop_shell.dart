@@ -198,6 +198,7 @@ class _DesktopShellState extends State<DesktopShell> {
                 for (final s in _layerItems(1)) s,
                 for (final w in controller.windows)
                   if (w.workspace == controller.activeWorkspace &&
+                      !w.launching &&
                       (!w.minimized ||
                           w.transition != ShellWindowTransition.none))
                     Builder(
@@ -738,22 +739,6 @@ class _DesktopShellState extends State<DesktopShell> {
             controller.appGridOpen ||
             controller.quickSettingsOpen ||
             controller.switcherIndex != null,
-      );
-    } else if (w.launching) {
-      body = Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            OasisAppIcon(
-              icon: w.app.icon,
-              colors: w.app.iconColors,
-              iconPath: w.app.iconPath,
-              size: 64,
-            ),
-            const SizedBox(height: 12),
-            Text(w.app.name, style: Theme.of(context).textTheme.titleMedium),
-          ],
-        ),
       );
     } else {
       body = Builder(builder: w.app.builder);
