@@ -45,6 +45,8 @@ Future<void> main() async {
   runApp(
     OasisDesktopApp(
       notificationDaemon: NotificationDaemon(),
+      exportHostService:
+          kInterfaceMode || Platform.environment['OASIS_SESSION'] == '1',
       version: info.version,
       wallpaper: OasisWallpaperService(store: PrefsOasisStore(prefs)),
       store: PrefsOasisStore(prefs),

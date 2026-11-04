@@ -15,6 +15,7 @@ class OasisSettingsApp extends StatefulWidget {
     this.wallpaper,
     this.state,
     this.locale,
+    this.host,
   });
 
   final String version;
@@ -24,46 +25,52 @@ class OasisSettingsApp extends StatefulWidget {
   final OasisWallpaperService? wallpaper;
   final SettingsState? state;
   final Locale? locale;
+  final OasisHostConnection? host;
 
   @override
   State<OasisSettingsApp> createState() => _OasisSettingsAppState();
 }
 
 class _OasisSettingsAppState extends State<OasisSettingsApp> {
-  late final OasisAppearance _appearance;
+  late final OasisAppearanceApi _appearance;
   late final OasisWallpaperService _wallpaper;
-  late final UpdateService _updates;
+  late final OasisUpdateApi? _updates;
   Locale? _locale;
 
   @override
   void initState() {
     super.initState();
-    _appearance = widget.appearance ?? OasisAppearance();
+    _appearance = widget.appearance ?? widget.host?.appearance ??
+        OasisAppearance();
     _wallpaper = widget.wallpaper ?? OasisWallpaperService();
-    _updates = UpdateService(
-      checker: widget.updateChecker,
-      currentVersion: () async => widget.version,
-    );
+    _updates = widget.host?.updates ??
+        UpdateService(
+          checker: widget.updateChecker,
+          currentVersion: () async => widget.version,
+        );
     _locale = widget.locale;
   }
 
   @override
   void dispose() {
-    _updates.dispose();
+    if (widget.host == null) _updates?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final host = widget.host;
     return AnimatedBuilder(
-      animation: _appearance,
+      animation: host == null
+          ? _appearance
+          : Listenable.merge([_appearance, host.locale]),
       builder: (context, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           onGenerateTitle: (context) =>
               OasisLocalizations.of(context).settingsTitle,
           theme: _appearance.theme,
-          locale: _locale,
+          locale: host?.locale.value ?? _locale,
           supportedLocales: OasisLocalizations.supportedLocales,
           localizationsDelegates: const [
             OasisLocalizations.delegate,
@@ -71,24 +78,28 @@ class _OasisSettingsAppState extends State<OasisSettingsApp> {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: OasisHost(
-            appearance: _appearance,
-            updates: _updates,
-            setLocale: (l) => setState(() => _locale = l),
-            locale: _locale,
-            openUrl: widget.openUrl,
-            child: Scaffold(
-              body: SafeArea(
-                child: SettingsHome(
-                  version: widget.version,
-                  wallpaper: _wallpaper,
-                  state: widget.state,
-                ),
-              ),
-            ),
-          ),
+          home: host == null
+              ? OasisHost(
+                  appearance: _appearance,
+                  updates: _updates,
+                  setLocale: (l) => setState(() => _locale = l),
+                  locale: _locale,
+                  openUrl: widget.openUrl,
+                  child: _scaffold(),
+                )
+              : RemoteOasisHost(connection: host, child: _scaffold()),
         );
       },
     );
   }
+
+  Widget _scaffold() => Scaffold(
+        body: SafeArea(
+          child: SettingsHome(
+            version: widget.version,
+            wallpaper: _wallpaper,
+            state: widget.state,
+          ),
+        ),
+      );
 }

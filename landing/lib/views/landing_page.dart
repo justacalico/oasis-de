@@ -263,7 +263,7 @@ class _LocaleMenu extends StatelessWidget {
 class _ThemeMenu extends StatelessWidget {
   const _ThemeMenu({required this.appearance});
 
-  final OasisAppearance appearance;
+  final OasisAppearanceApi appearance;
 
   @override
   Widget build(BuildContext context) {

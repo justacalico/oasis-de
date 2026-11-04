@@ -45,6 +45,8 @@ class OasisDesktopApp extends StatefulWidget {
     this.mouse,
     this.trackpad,
     this.screenshots,
+    this.exportHostService = false,
+    this.hostServerFactory,
   });
 
   final String version;
@@ -64,6 +66,9 @@ class OasisDesktopApp extends StatefulWidget {
   final OasisMouseSettings? mouse;
   final OasisTrackpadSettings? trackpad;
   final ScreenshotService? screenshots;
+  final bool exportHostService;
+  final OasisHostDbusServer Function(OasisHostEndpoint endpoint)?
+      hostServerFactory;
 
   @override
   State<OasisDesktopApp> createState() => _OasisDesktopAppState();
@@ -88,6 +93,9 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   List<OasisApp> _externalApps = const [];
   late final String? _savedPins = widget.store?.read('shell.pinned');
   Locale? _locale;
+  late final ValueNotifier<Locale?> _localeNotifier;
+  late final OasisHostEndpoint _hostEndpoint;
+  OasisHostDbusServer? _hostServer;
   StreamSubscription<void>? _appDirWatch;
 
   ShellController get controller => _controller;
@@ -136,6 +144,20 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
       _locale ?? const Locale('en'),
     ).screenshotFailed;
     _locale = widget.locale;
+    _localeNotifier = ValueNotifier(_locale);
+    _hostEndpoint = OasisHostEndpoint(
+      appearance: _appearance,
+      updates: _updates,
+      locale: _localeNotifier,
+      setLocale: _setLocale,
+      openUrl: widget.openUrl,
+    );
+    if (widget.exportHostService) {
+      _hostServer = (widget.hostServerFactory ?? OasisHostDbusServer.new)(
+        _hostEndpoint,
+      );
+      unawaited(_serveHost());
+    }
     _restoreState();
     _appearance.addListener(_persistState);
     _controller.addListener(_persistState);
@@ -152,7 +174,8 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     if (accent != null) _appearance.accent = Color(accent);
     final locale = s.read('shell.locale');
     if (locale != null) {
-      _locale = locale.isEmpty ? null : _localeFromTag(locale);
+      _locale = locale.isEmpty ? null : hostLocaleFromTag(locale);
+      _localeNotifier.value = _locale;
     }
     final backend = c.backend;
     final wifi = s.read('shell.wifi');
@@ -308,6 +331,9 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
     _mpris.dispose();
     _keybinds.dispose();
     _updates.dispose();
+    unawaited(_hostServer?.close() ?? Future.value());
+    _hostEndpoint.dispose();
+    _localeNotifier.dispose();
     super.dispose();
   }
 
@@ -399,7 +425,16 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
 
   void _setLocale(Locale? locale) {
     setState(() => _locale = locale);
+    _localeNotifier.value = locale;
     _persistState();
+  }
+
+  Future<void> _serveHost() async {
+    try {
+      await _hostServer?.serve();
+    } catch (e) {
+      debugPrint('Oasis: host service failed: $e');
+    }
   }
 
   String _focusedAppName(OasisLocalizations l10n) {
@@ -408,21 +443,4 @@ class _OasisDesktopAppState extends State<OasisDesktopApp> {
   }
 }
 
-Locale _localeFromTag(String tag) {
-  final parts = tag.split(RegExp('[-_]'));
-  String? script;
-  String? country;
-  for (var i = 1; i < parts.length; i++) {
-    final p = parts[i];
-    if (script == null && p.length == 4) {
-      script = p;
-    } else {
-      country ??= p;
-    }
-  }
-  return Locale.fromSubtags(
-    languageCode: parts[0],
-    scriptCode: script,
-    countryCode: country,
-  );
-}
+

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -12,7 +14,14 @@ Future<void> main() async {
   await initializeDateFormatting();
   final prefs = await SharedPreferences.getInstance();
   final store = PrefsOasisStore(prefs);
+  OasisHostConnection? host;
+  if (Platform.environment['OASIS_HOST_REMOTE'] == '1') {
+    host = await OasisHostConnection.connect(
+      await OasisHostDbusLink.session(),
+    );
+  }
   runApp(OasisSettingsApp(
+    host: host,
     wallpaper: OasisWallpaperService(store: store),
     state: SettingsState(
       store: store,

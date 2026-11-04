@@ -16,7 +16,19 @@ typedef ProcessRunner = Future<ProcessResult> Function(
   List<String> arguments,
 );
 
-class UpdateService extends ChangeNotifier {
+abstract class OasisUpdateApi extends ChangeNotifier {
+  AppUpdate? get update;
+  bool get checking;
+  bool get failed;
+  bool get installing;
+  bool get installDone;
+  bool get installFailed;
+  String get releasesPageUrl;
+  Future<AppUpdate?> check();
+  Future<bool> install();
+}
+
+class UpdateService extends OasisUpdateApi {
   UpdateService({
     UpdateChecker? checker,
     required Future<String> Function() currentVersion,
@@ -53,14 +65,22 @@ class UpdateService extends ChangeNotifier {
   bool _installFailed = false;
   Future<AppUpdate?>? _inFlight;
 
+  @override
   AppUpdate? get update => _update;
+  @override
   bool get checking => _checking;
+  @override
   bool get failed => _failed;
+  @override
   bool get installing => _installing;
+  @override
   bool get installDone => _installDone;
+  @override
   bool get installFailed => _installFailed;
+  @override
   String get releasesPageUrl => _checker.releasesUrl;
 
+  @override
   Future<AppUpdate?> check() {
     final existing = _inFlight;
     if (existing != null) return existing;
@@ -87,6 +107,7 @@ class UpdateService extends ChangeNotifier {
     }
   }
 
+  @override
   Future<bool> install() async {
     final update = _update;
     final asset = update?.asset;
