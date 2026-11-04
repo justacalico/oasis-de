@@ -63,13 +63,13 @@ class MprisService extends ChangeNotifier {
     final bus = _connect();
     try {
       _bus = bus;
+      await _bindFirstPlayer(bus);
       _ownerSub =
           _signals(
             bus,
             interface: 'org.freedesktop.DBus',
             name: 'NameOwnerChanged',
           ).listen(_onOwnerChanged, onError: (_) {});
-      await _bindFirstPlayer(bus);
     } catch (e) {
       debugPrint('Oasis: mpris failed to start: $e');
       await bus.close();
