@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.15.3 - 2026-11-04
+#### Bug Fixes
+- 恢复 mpris 启动顺序修复无总线环境下的测试 - (0206acf) - HttpAnimations
+- 清理苹果风格命名并修复一批缺陷 - (0afc004) - HttpAnimations
+
+- - -
+
 ## v0.15.2 - 2026-11-04
 #### Bug Fixes
 - 钳制客户端自报窗口尺寸不超过工作区 - (57be00f) - HttpAnimations
