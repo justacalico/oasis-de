@@ -281,8 +281,10 @@ void main() {
     events.clear();
   });
 
-  testWidgets('OasisWindow edge grabbers report resize deltas', (tester) async {
-    final calls = <(Offset, OasisResizeEdge)>[];
+  testWidgets('OasisWindow edge grabbers report resize starts', (
+    tester,
+  ) async {
+    final edges = <OasisResizeEdge>[];
     await pumpOasis(
       tester,
       Center(
@@ -290,26 +292,32 @@ void main() {
           title: 'r',
           width: 400,
           height: 300,
-          onResize: (d, edge) => calls.add((d, edge)),
+          onResizeStart: edges.add,
           child: const SizedBox(),
         ),
       ),
     );
     final topLeft = tester.getTopLeft(find.byType(OasisWindow));
 
-    final corner = await tester.startGesture(topLeft + const Offset(398, 298));
+    final corner = await tester.startGesture(
+      topLeft + const Offset(398, 298),
+    );
     await corner.moveBy(const Offset(20, 10));
     await corner.up();
-    expect(calls, hasLength(1));
-    expect(calls.single.$2, OasisResizeEdge.bottomRight);
-    expect(calls.single.$1.dx, 20);
-    expect(calls.single.$1.dy, 10);
+    expect(edges, [OasisResizeEdge.bottomRight]);
 
-    calls.clear();
+    edges.clear();
     final edge = await tester.startGesture(topLeft + const Offset(200, 2));
     await edge.moveBy(const Offset(0, 15));
     await edge.up();
-    expect(calls.single.$2, OasisResizeEdge.top);
+    expect(edges, [OasisResizeEdge.top]);
+
+    edges.clear();
+    await tester.tapAt(
+      topLeft + const Offset(398, 298),
+      buttons: kSecondaryMouseButton,
+    );
+    expect(edges, isEmpty);
   });
 
   testWidgets('OasisWindow unfocused dims', (tester) async {
@@ -331,7 +339,7 @@ void main() {
           title: 't',
           width: 400,
           height: 338,
-          onResize: (d, e) {},
+          onResizeStart: (e) {},
           child: LayoutBuilder(
             builder: (context, constraints) {
               inner = constraints.biggest;

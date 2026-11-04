@@ -8,19 +8,20 @@ import 'oasis_traffic_lights.dart';
 const kOasisWindowTitleBarHeight = 38.0;
 
 enum OasisResizeEdge {
-  top(0, -1),
-  bottom(0, 1),
-  left(-1, 0),
-  right(1, 0),
-  topLeft(-1, -1),
-  topRight(1, -1),
-  bottomLeft(-1, 1),
-  bottomRight(1, 1);
+  top(0, -1, SystemMouseCursors.resizeUpDown),
+  bottom(0, 1, SystemMouseCursors.resizeUpDown),
+  left(-1, 0, SystemMouseCursors.resizeLeftRight),
+  right(1, 0, SystemMouseCursors.resizeLeftRight),
+  topLeft(-1, -1, SystemMouseCursors.resizeUpLeftDownRight),
+  topRight(1, -1, SystemMouseCursors.resizeUpRightDownLeft),
+  bottomLeft(-1, 1, SystemMouseCursors.resizeUpRightDownLeft),
+  bottomRight(1, 1, SystemMouseCursors.resizeUpLeftDownRight);
 
-  const OasisResizeEdge(this.dx, this.dy);
+  const OasisResizeEdge(this.dx, this.dy, this.cursor);
 
   final int dx;
   final int dy;
+  final MouseCursor cursor;
 }
 
 class OasisWindow extends StatefulWidget {
@@ -36,7 +37,7 @@ class OasisWindow extends StatefulWidget {
     this.focused = true,
     this.decorated = true,
     this.onDrag,
-    this.onResize,
+    this.onResizeStart,
   });
 
   final String title;
@@ -52,7 +53,11 @@ class OasisWindow extends StatefulWidget {
   /// used for surfaces that draw their own client-side decorations.
   final bool decorated;
   final ValueChanged<Offset>? onDrag;
-  final void Function(Offset delta, OasisResizeEdge edge)? onResize;
+
+  /// Called when the pointer presses a resize grabber. The grab is
+  /// expected to be driven by the embedder's own pointer tracking so it
+  /// keeps working when the pointer leaves the grab strip.
+  final ValueChanged<OasisResizeEdge>? onResizeStart;
 
   @override
   State<OasisWindow> createState() => _OasisWindowState();
@@ -121,7 +126,7 @@ class _OasisWindowState extends State<OasisWindow> {
       ),
     );
 
-    final onResize = widget.onResize;
+    final onResizeStart = widget.onResizeStart;
     final window = Container(
       width: widget.width,
       height: widget.height,
@@ -151,7 +156,7 @@ class _OasisWindowState extends State<OasisWindow> {
         ),
       ),
     );
-    if (onResize == null) return window;
+    if (onResizeStart == null) return window;
     return Stack(
       children: [
         window,
@@ -163,11 +168,7 @@ class _OasisWindowState extends State<OasisWindow> {
             right: g.right,
             width: g.width,
             height: g.height,
-            child: _ResizeGrabber(
-              edge: g.edge,
-              cursor: g.cursor,
-              onResize: onResize,
-            ),
+            child: _ResizeGrabber(edge: g.edge, onStart: onResizeStart),
           ),
       ],
     );
@@ -176,8 +177,7 @@ class _OasisWindowState extends State<OasisWindow> {
 
 class _GrabberSpec {
   const _GrabberSpec(
-    this.edge,
-    this.cursor, {
+    this.edge, {
     this.top,
     this.bottom,
     this.left,
@@ -187,7 +187,6 @@ class _GrabberSpec {
   });
 
   final OasisResizeEdge edge;
-  final MouseCursor cursor;
   final double? top;
   final double? bottom;
   final double? left;
@@ -202,7 +201,6 @@ const _corner = 16.0;
 const _grabbers = [
   _GrabberSpec(
     OasisResizeEdge.top,
-    SystemMouseCursors.resizeUpDown,
     top: 0,
     left: _corner,
     right: _corner,
@@ -210,7 +208,6 @@ const _grabbers = [
   ),
   _GrabberSpec(
     OasisResizeEdge.bottom,
-    SystemMouseCursors.resizeUpDown,
     bottom: 0,
     left: _corner,
     right: _corner,
@@ -218,7 +215,6 @@ const _grabbers = [
   ),
   _GrabberSpec(
     OasisResizeEdge.left,
-    SystemMouseCursors.resizeLeftRight,
     left: 0,
     top: _corner,
     bottom: _corner,
@@ -226,7 +222,6 @@ const _grabbers = [
   ),
   _GrabberSpec(
     OasisResizeEdge.right,
-    SystemMouseCursors.resizeLeftRight,
     right: 0,
     top: _corner,
     bottom: _corner,
@@ -234,7 +229,6 @@ const _grabbers = [
   ),
   _GrabberSpec(
     OasisResizeEdge.topLeft,
-    SystemMouseCursors.resizeUpLeftDownRight,
     top: 0,
     left: 0,
     width: _corner,
@@ -242,7 +236,6 @@ const _grabbers = [
   ),
   _GrabberSpec(
     OasisResizeEdge.topRight,
-    SystemMouseCursors.resizeUpRightDownLeft,
     top: 0,
     right: 0,
     width: _corner,
@@ -250,7 +243,6 @@ const _grabbers = [
   ),
   _GrabberSpec(
     OasisResizeEdge.bottomLeft,
-    SystemMouseCursors.resizeUpRightDownLeft,
     bottom: 0,
     left: 0,
     width: _corner,
@@ -258,7 +250,6 @@ const _grabbers = [
   ),
   _GrabberSpec(
     OasisResizeEdge.bottomRight,
-    SystemMouseCursors.resizeUpLeftDownRight,
     bottom: 0,
     right: 0,
     width: _corner,
@@ -267,23 +258,20 @@ const _grabbers = [
 ];
 
 class _ResizeGrabber extends StatelessWidget {
-  const _ResizeGrabber({
-    required this.edge,
-    required this.cursor,
-    required this.onResize,
-  });
+  const _ResizeGrabber({required this.edge, required this.onStart});
 
   final OasisResizeEdge edge;
-  final MouseCursor cursor;
-  final void Function(Offset delta, OasisResizeEdge edge) onResize;
+  final ValueChanged<OasisResizeEdge> onStart;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      cursor: cursor,
+      cursor: edge.cursor,
       child: Listener(
         behavior: HitTestBehavior.opaque,
-        onPointerMove: (e) => onResize(e.localDelta, edge),
+        onPointerDown: (e) {
+          if (e.buttons == kPrimaryButton) onStart(edge);
+        },
         child: const SizedBox.expand(),
       ),
     );

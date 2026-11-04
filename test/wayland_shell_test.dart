@@ -165,15 +165,15 @@ void main() {
 
     host.emit({'event': 'resize', 'id': 1, 'edges': 4});
     await pumpEventQueue();
-    expect(c.surfaceResize?.id, w.id);
-    expect(c.surfaceResize?.edge, OasisResizeEdge.left);
+    expect(c.resizeGesture?.id, w.id);
+    expect(c.resizeGesture?.edge, OasisResizeEdge.left);
     host.emit({'event': 'resize', 'id': 1, 'edges': 0});
     host.emit({'event': 'resize', 'id': 999, 'edges': 4});
     host.emit({'event': 'move', 'id': 999});
     await pumpEventQueue();
-    expect(c.surfaceResize?.edge, OasisResizeEdge.left);
+    expect(c.resizeGesture?.edge, OasisResizeEdge.left);
     c.endSurfaceGesture();
-    expect(c.surfaceResize, isNull);
+    expect(c.resizeGesture, isNull);
     c.dispose();
     service.dispose();
   });
@@ -867,10 +867,87 @@ void main() {
     );
     await gesture.moveBy(const Offset(30, 20));
     expect(c.windows.single.size, const Size(100 + 30, 138 + 20));
+    await tester.pump();
+    expect(
+      host.calls,
+      contains('configure:1:130x120:false:false:resizing'),
+    );
+
+    host.emit({'event': 'size', 'id': 1, 'w': 110, 'h': 105});
+    await tester.pump();
+    expect(c.windows.single.size, const Size(100 + 30, 138 + 20));
+
     await gesture.up();
-    expect(c.surfaceResize, isNull);
+    await tester.pump();
+    expect(c.resizeGesture, isNull);
+    expect(host.calls, contains('configure:1:130x120:false:false'));
     c.dispose();
     service.dispose();
+  });
+
+  test('stale surface commits do not fight an active resize', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    addTearDown(c.dispose);
+    addTearDown(service.dispose);
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 320, 'h': 240});
+    await pumpEventQueue();
+    final w = c.windows.single;
+    expect(w.size, const Size(320, 240 + kOasisWindowTitleBarHeight));
+
+    c.beginResize(w.id, OasisResizeEdge.bottomRight);
+    expect(c.resizeGesture?.id, w.id);
+    c.resizeWindow(
+      w.id,
+      const Offset(100, 60),
+      OasisResizeEdge.bottomRight,
+      const Size(320, 240),
+    );
+    expect(w.size, const Size(420, 300 + kOasisWindowTitleBarHeight));
+
+    host.emit({'event': 'size', 'id': 1, 'w': 340, 'h': 260});
+    host.emit({'event': 'size', 'id': 1, 'w': 380, 'h': 280});
+    await pumpEventQueue();
+    expect(w.size, const Size(420, 300 + kOasisWindowTitleBarHeight));
+
+    c.endSurfaceGesture();
+    expect(c.resizeGesture, isNull);
+    host.emit({'event': 'size', 'id': 1, 'w': 440, 'h': 310});
+    await pumpEventQueue();
+    expect(w.size, const Size(440, 310 + kOasisWindowTitleBarHeight));
+  });
+
+  test('resize gesture rejects invalid windows and clears on close', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    addTearDown(c.dispose);
+    addTearDown(service.dispose);
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    await pumpEventQueue();
+    final w = c.windows.single;
+
+    c.beginResize(999, OasisResizeEdge.left);
+    expect(c.resizeGesture, isNull);
+
+    c.beginResize(w.id, OasisResizeEdge.bottomRight);
+    c.beginResize(w.id, OasisResizeEdge.bottomRight);
+    expect(c.resizeGesture?.edge, OasisResizeEdge.bottomRight);
+
+    host.emit({'event': 'move', 'id': 1});
+    await pumpEventQueue();
+    c.dragWindow(w.id, const Offset(1, 1), const Size(1280, 800));
+    expect(c.surfaceDragWindowId, w.id);
+
+    host.emit({'event': 'toplevelClosed', 'id': 1});
+    await pumpEventQueue();
+    expect(c.resizeGesture, isNull);
+    expect(c.surfaceDragWindowId, isNull);
+    expect(c.windows, isEmpty);
   });
 
   test('window adopts the surface size and honors client limits', () async {

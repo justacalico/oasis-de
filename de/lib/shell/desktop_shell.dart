@@ -467,6 +467,13 @@ class _DesktopShellState extends State<DesktopShell> {
                       child: const ColoredBox(color: Color(0xFF000000)),
                     ),
                   ),
+                if (controller.resizeGesture != null)
+                  Positioned.fill(
+                    child: MouseRegion(
+                      cursor: controller.resizeGesture!.edge.cursor,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -520,7 +527,7 @@ class _DesktopShellState extends State<DesktopShell> {
 
   void _onShellPointerMove(PointerMoveEvent e, Size screen) {
     _pointerPos.value = e.localPosition;
-    final resize = controller.surfaceResize;
+    final resize = controller.resizeGesture;
     if (resize != null) {
       controller.resizeWindow(
         resize.id,
@@ -730,7 +737,7 @@ class _DesktopShellState extends State<DesktopShell> {
         focused: controller.focusedId == w.id,
         maximized: w.zoomed,
         fullscreen: w.fullscreen,
-        resizing: controller.surfaceResize?.id == w.id,
+        resizing: controller.resizeGesture?.id == w.id,
         escReserved:
             controller.openMenu != null ||
             controller.launcherOpen ||
@@ -767,14 +774,9 @@ class _DesktopShellState extends State<DesktopShell> {
       onMinimize: () => controller.minimizeWindow(w.id),
       onMaximize: () => controller.toggleZoom(w.id),
       onDrag: (d) => controller.dragWindow(w.id, d, MediaQuery.sizeOf(context)),
-      onResize: w.zoomed
+      onResizeStart: w.zoomed
           ? null
-          : (d, edge) => controller.resizeWindow(
-              w.id,
-              d,
-              edge,
-              _defaultWindowSize(MediaQuery.sizeOf(context)),
-            ),
+          : (edge) => controller.beginResize(w.id, edge),
       child: body,
     );
   }
