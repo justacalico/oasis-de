@@ -119,4 +119,12 @@ void layer_new(OasisPrivate* c, wlr_layer_surface_v1* ls) {
   emit_layer_pending(s);
 }
 
+void layer_init(OasisPrivate* c) {
+  c->new_layer_surface.notify = [](wl_listener* listener, void* data) {
+    OasisPrivate* c = wl_container_of(listener, c, new_layer_surface);
+    layer_new(c, static_cast<wlr_layer_surface_v1*>(data));
+  };
+  wl_signal_add(&c->layer_shell->events.new_surface, &c->new_layer_surface);
+}
+
 }  // namespace oasis

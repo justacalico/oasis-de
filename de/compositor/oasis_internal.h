@@ -368,71 +368,142 @@ struct OasisPrivate {
   bool power_on = true;
 };
 
-Surface* surface_of(OasisPrivate* c, wlr_surface* wlr);
-Surface* surface_by_id(OasisPrivate* c, int64_t id);
-OasisOutput* output_of(OasisPrivate* c, wlr_output* wlr);
-OasisOutput* output_primary(OasisPrivate* c);
-OasisOutput* output_for_surface(Surface* s);
-void outputs_sync_host(OasisPrivate* c);
-void outputs_apply_config(OasisPrivate* c, const HostOutput& cfg);
-void outputs_emit(OasisPrivate* c);
-void outputs_manager_push(OasisPrivate* c);
-void outputs_layout_normalize(OasisPrivate* c);
-void outputs_init(OasisPrivate* c);
-void outputs_finish(OasisPrivate* c);
-void output_apply_state(OasisOutput* o);
-void output_notify_surfaces(OasisPrivate* c);
-void surface_sync_outputs(Surface* s);
-double surface_preferred_scale(Surface* s);
+// oasis_core.cc
+uint32_t now_ms();
+void comp_flush(OasisPrivate* c);
 void emit(OasisPrivate* c, const char* name, OEvent fields = {});
 void emit_id(Surface* s, const char* name, OEvent fields = {});
-void emit_size(Surface* s);
-void emit_decoration(Surface* s);
-void apply_decoration(Surface* s);
-void emit_cursor(OasisPrivate* c);
+Surface* surface_of(OasisPrivate* c, wlr_surface* wlr);
+Surface* surface_by_id(OasisPrivate* c, int64_t id);
+
+// oasis_surface.cc
+void surface_new(OasisPrivate* c, wlr_surface* wlr);
+void surfaces_init(OasisPrivate* c);
 void free_surface(Surface* s);
 void remove_listeners(Surface* s);
-void announce_toplevel(Surface* s);
-void send_frame_done(Surface* s, const timespec& ts, bool vsync);
-void frames_presented(OasisPrivate* c, const timespec& ts, bool vsync);
-void frame_pending_add(Surface* s);
-void sync_text_input_focus(OasisPrivate* c);
-void seat_focus(OasisPrivate* c, Surface* s);
-void constraint_activate(OasisPrivate* c, Surface* s, double sx, double sy);
-void constraint_drop(OasisPrivate* c);
-void ksi_sync(Surface* s);
-void toplevel_configure(Surface* s, int w, int h, bool maximized, bool active,
-                        bool fullscreen, bool resizing);
-void popup_position(Surface* s, int* x, int* y);
-void mirror_selection_to_host(OasisPrivate* c, wlr_data_source* source);
-void install_host_source(OasisPrivate* c);
-void surface_new(OasisPrivate* c, wlr_surface* wlr);
 void init_surface_listeners(Surface* s);
 void attach_wlr(Surface* s, wlr_surface* wlr);
 void detach_wlr(Surface* s);
+void announce_toplevel(Surface* s);
+
+// oasis_report.cc
+void emit_cursor(OasisPrivate* c);
+void emit_size(Surface* s);
+void emit_input_region(Surface* s);
+void check_minmax(Surface* s);
+void check_child_order(Surface* s);
+void check_position(Surface* s);
+
+// oasis_export.cc
+void drop_texture(Surface* s);
+bool export_frame(Surface* s);
+
+// oasis_frame.cc
+void send_frame_done(Surface* s, const timespec& ts, bool vsync);
+void frames_presented(OasisPrivate* c, const timespec& ts, bool vsync);
+void frame_pending_add(Surface* s);
+
+// oasis_output.cc
+OasisOutput* output_of(OasisPrivate* c, wlr_output* wlr);
+OasisOutput* output_primary(OasisPrivate* c);
+OasisOutput* output_for_surface(Surface* s);
+OasisOutput* output_track(OasisPrivate* c, wlr_output* wlr);
+void output_fill(OasisOutput* o, const HostOutput& h);
+void output_apply_state(OasisOutput* o);
+wlr_output_mode* mode_add(OasisOutput* o, int32_t w, int32_t h,
+                          int32_t refresh, bool preferred);
+void modes_clear(OasisOutput* o);
+bool modes_equal(OasisOutput* o,
+                 const std::vector<HostOutputMode>& want);
+void outputs_layout_normalize(OasisPrivate* c);
+void outputs_relayout(OasisPrivate* c);
+void output_notify_surfaces(OasisPrivate* c);
+void outputs_reconfigure_locks(OasisPrivate* c);
+void surface_sync_outputs(Surface* s);
+double surface_preferred_scale(Surface* s);
+void outputs_init(OasisPrivate* c);
+void outputs_finish(OasisPrivate* c);
+
+// oasis_output_config.cc
+void outputs_sync_host(OasisPrivate* c);
+void outputs_apply_config(OasisPrivate* c, const HostOutput& cfg);
+void outputs_changed(OasisPrivate* c, bool client_driven);
+void outputs_emit(OasisPrivate* c);
+void outputs_manager_push(OasisPrivate* c);
+void output_manager_init(OasisPrivate* c);
+
+// oasis_xdg.cc
 void toplevel_new(OasisPrivate* c, wlr_xdg_toplevel* toplevel);
 void popup_new(OasisPrivate* c, wlr_xdg_popup* popup);
+void xdg_init(OasisPrivate* c);
+void toplevel_configure(Surface* s, int w, int h, bool maximized, bool active,
+                        bool fullscreen, bool resizing);
+void send_initial_configure(Surface* s);
+void popup_position(Surface* s, int* x, int* y);
+
+// oasis_xwayland.cc
+void xwayland_init(OasisPrivate* c);
+void xwayland_new_surface(OasisPrivate* c, wlr_xwayland_surface* xsurface);
+
+// oasis_layer.cc
+void layer_init(OasisPrivate* c);
 void layer_new(OasisPrivate* c, wlr_layer_surface_v1* layer_surface);
 void announce_layer(Surface* s);
 void emit_layer_current(Surface* s);
+
+// oasis_lock.cc
+void lock_init(OasisPrivate* c);
+void session_lock_new(OasisPrivate* c, wlr_session_lock_v1* lock);
 void lock_surface_new(OasisPrivate* c,
                       wlr_session_lock_surface_v1* lock_surface);
 void announce_lock_surface(Surface* s);
-void session_lock_new(OasisPrivate* c, wlr_session_lock_v1* lock);
+void power_init(OasisPrivate* c);
+void power_mode_set(OasisPrivate* c, wlr_output* output, uint32_t mode);
+void output_power_set(OasisPrivate* c, bool on);
 void idle_activity(OasisPrivate* c);
 void idle_arm(OasisPrivate* c);
 void idle_resync_inhibit(OasisPrivate* c);
 bool idle_wake(OasisPrivate* c);
 void idle_off_timer_start(OasisPrivate* c);
 void idle_suspend_timer_start(OasisPrivate* c);
-void output_power_set(OasisPrivate* c, bool on);
-void capture_check(OasisOutput* o);
-void power_mode_set(OasisPrivate* c, wlr_output* output, uint32_t mode);
-void xwayland_new_surface(OasisPrivate* c, wlr_xwayland_surface* xsurface);
-uint32_t now_ms();
+
+// oasis_seat.cc
+void seat_init(OasisPrivate* c);
+
+// oasis_clipboard.cc
+void install_host_source(OasisPrivate* c);
+void mirror_selection_to_host(OasisPrivate* c, wlr_data_source* source);
+
+// oasis_text_input.cc
+void text_input_init(OasisPrivate* c);
+void sync_text_input_focus(OasisPrivate* c);
+
+// oasis_decoration.cc
+void decoration_init(OasisPrivate* c);
+void apply_decoration(Surface* s);
+void emit_decoration(Surface* s);
+
+// oasis_inhibit.cc
+void inhibit_init(OasisPrivate* c);
+
+// oasis_input.cc
+void constraints_init(OasisPrivate* c);
+void constraint_activate(OasisPrivate* c, Surface* s, double sx, double sy);
+void constraint_drop(OasisPrivate* c);
+void ksi_sync(Surface* s);
+void seat_focus(OasisPrivate* c, Surface* s);
+
+// oasis_keyboard.cc
 void build_keymap(OasisPrivate* c);
 void send_modifiers(OasisPrivate* c);
-void comp_flush(OasisPrivate* c);
+void keyboard_init(OasisPrivate* c);
+void keyboard_finish(OasisPrivate* c);
+
+// oasis_egl_debug.cc
+void install_egl_debug_filter();
+
+// oasis_capture.cc
+void capture_check(OasisOutput* o);
 
 }  // namespace oasis
 
