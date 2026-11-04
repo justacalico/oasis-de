@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.15.1 - 2026-11-04
+#### Bug Fixes
+- 连接时等待事件订阅生效后再取主机快照 - (02dcb1f) - HttpAnimations
+
+- - -
+
 ## v0.15.0 - 2026-11-04
 #### Features
 - 设置应用接入远程主机连接 - (1055dc4) - zhenxi
