@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.13.0 - 2026-11-04
+#### Features
+- 让鼠标与触控板设置真正生效 - (c6931a0) - HttpAnimations
+- 新增鼠标与触控板设置 - (a463a5c) - HttpAnimations
+
+- - -
+
 ## v0.12.5 - 2026-11-04
 #### Bug Fixes
 - 修复窗口缩放时的尺寸回弹抖动 - (2faf9fb) - HttpAnimations

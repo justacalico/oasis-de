@@ -2,7 +2,7 @@ name: oasis_de
 description: The Oasis desktop shell.
 publish_to: none
 resolution: workspace
-version: 0.12.5
+version: 0.13.0
 
 environment:
   sdk: ^3.9.0
