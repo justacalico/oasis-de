@@ -501,6 +501,7 @@ static void deco_destroyed(wl_listener* listener, void*) {
   wl_list_init(&listener->link);
   wl_list_remove(&s->deco_request.link);
   wl_list_init(&s->deco_request.link);
+  emit_decoration(s);
 }
 
 static void deco_requested(wl_listener* listener, void*) {
@@ -525,16 +526,19 @@ static void handle_new_decoration(wl_listener* listener, void* data) {
 
 static void kde_mode_changed(wl_listener* listener, void*) {
   Surface* s = wl_container_of(listener, s, kde_mode);
+  s->kde_req = true;
   emit_decoration(s);
 }
 
 static void kde_deco_destroyed(wl_listener* listener, void*) {
   Surface* s = wl_container_of(listener, s, kde_destroy);
   s->kde_deco = nullptr;
+  s->kde_req = false;
   wl_list_remove(&s->kde_mode.link);
   wl_list_init(&s->kde_mode.link);
   wl_list_remove(&s->kde_destroy.link);
   wl_list_init(&s->kde_destroy.link);
+  emit_decoration(s);
 }
 
 static void handle_new_server_decoration(wl_listener* listener, void* data) {

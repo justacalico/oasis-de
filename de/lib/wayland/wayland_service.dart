@@ -6,6 +6,11 @@ import 'package:flutter/services.dart';
 
 import 'wayland_host.dart';
 
+/// App ids that draw their own titlebar yet still ask the compositor for
+/// server-side decorations. The negotiated mode cannot tell them apart
+/// from ordinary clients, so they are listed explicitly.
+const _selfDecoratedAppIds = {'gitlab.openlyst.devinorium'};
+
 class WaylandSurface {
   WaylandSurface({
     required this.id,
@@ -43,7 +48,8 @@ class WaylandSurface {
   /// Negotiated decoration mode: 0 none, 1 client-side, 2 server-side.
   /// Surfaces default to server-side when they never negotiate.
   int decorationMode = 2;
-  bool get clientDecorated => decorationMode != 2;
+  bool get clientDecorated =>
+      decorationMode != 2 || _selfDecoratedAppIds.contains(appId);
 
   bool isLayer = false;
   bool isLock = false;
