@@ -178,6 +178,98 @@ void main() {
     service.dispose();
   });
 
+  test('oversized client size clamps to the work area', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    host.emit({
+      'event': 'outputs',
+      'list': [
+        {'id': 1, 'name': 'eDP-1', 'primary': true, 'w': 1280, 'h': 800},
+      ],
+    });
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 5120, 'h': 2880});
+    await pumpEventQueue();
+    final w = c.windows.single;
+    final bound = Size(1280, 800 - kMenuBarHeight - 8 - kDockHeight);
+    expect(w.size, bound);
+
+    host.emit({'event': 'size', 'id': 1, 'w': 6000, 'h': 4000});
+    await pumpEventQueue();
+    expect(w.size, bound);
+
+    host.emit({'event': 'size', 'id': 1, 'w': 640, 'h': 480});
+    await pumpEventQueue();
+    expect(
+      w.size,
+      const Size(640, 480 + kOasisWindowTitleBarHeight),
+    );
+    c.dispose();
+    service.dispose();
+  });
+
+  test('dock reservation shrinks the adopted size on the primary head', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final dock = OasisDockSettings()..position = OasisDockPosition.left;
+    final c = ShellController(
+      apps: [_external('x')],
+      wayland: service,
+      dock: dock,
+    );
+    host.emit({
+      'event': 'outputs',
+      'list': [
+        {'id': 1, 'name': 'eDP-1', 'primary': true, 'w': 1280, 'h': 800},
+      ],
+    });
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 5120, 'h': 2880});
+    await pumpEventQueue();
+    final w = c.windows.single;
+    expect(w.size, Size(1280 - dockReservedExtent(dock), 762));
+
+    dock.position = OasisDockPosition.bottom;
+    host.emit({'event': 'size', 'id': 1, 'w': 6000, 'h': 4000});
+    await pumpEventQueue();
+    expect(w.size, Size(1280, 762 - dockReservedExtent(dock)));
+    c.dispose();
+    service.dispose();
+  });
+
+  test('fullscreen surface keeps its floating size', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(apps: [_external('x')], wayland: service);
+    host.emit({
+      'event': 'outputs',
+      'list': [
+        {'id': 1, 'name': 'eDP-1', 'primary': true, 'w': 1280, 'h': 800},
+      ],
+    });
+    c.openApp(c.apps.single);
+    _emitToplevel(host);
+    host.emit({'event': 'size', 'id': 1, 'w': 640, 'h': 480});
+    await pumpEventQueue();
+    final w = c.windows.single;
+    final floating = w.size;
+
+    host.emit({'event': 'fullscreen', 'id': 1, 'on': true});
+    await pumpEventQueue();
+    host.emit({'event': 'size', 'id': 1, 'w': 1280, 'h': 800});
+    await pumpEventQueue();
+    expect(w.size, floating);
+
+    host.emit({'event': 'fullscreen', 'id': 1, 'on': false});
+    await pumpEventQueue();
+    expect(w.size, floating);
+    c.dispose();
+    service.dispose();
+  });
+
   test('focus pushes to compositor', () async {
     final host = FakeWaylandHost();
     final service = await _service(host);
