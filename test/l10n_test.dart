@@ -223,6 +223,18 @@ void exerciseStrings(OasisLocalizations l) {
   l.keybindCommandHint;
   l.keybindRemove;
   l.tipControlCenter;
+  l.settingsMouse;
+  l.settingsTrackpad;
+  l.pointerSpeed;
+  l.pointerDoubleClickSpeed;
+  l.pointerPrimaryButton;
+  l.pointerButtonLeft;
+  l.pointerButtonRight;
+  l.pointerScrolling;
+  l.pointerScrollSpeed;
+  l.pointerNaturalScrolling;
+  l.trackpadTapToClick;
+  l.trackpadTwoFingerScroll;
   l.displaysApply;
   l.displaysArrangeHint;
   l.displaysIdentify;

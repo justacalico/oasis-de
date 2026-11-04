@@ -292,5 +292,17 @@
   "keybindAdd": "Добавить сочетание",
   "keybindReset": "Сбросить настройки",
   "keybindCommandHint": "Команда для запуска",
-  "keybindRemove": "Удалить"
+  "keybindRemove": "Удалить",
+  "settingsMouse": "Мышь",
+  "settingsTrackpad": "Сенсорная панель",
+  "pointerSpeed": "Скорость указателя",
+  "pointerDoubleClickSpeed": "Скорость двойного щелчка",
+  "pointerPrimaryButton": "Основная кнопка",
+  "pointerButtonLeft": "Левая",
+  "pointerButtonRight": "Правая",
+  "pointerScrolling": "Прокрутка",
+  "pointerScrollSpeed": "Скорость прокрутки",
+  "pointerNaturalScrolling": "Естественная прокрутка",
+  "trackpadTapToClick": "Нажатие касанием",
+  "trackpadTwoFingerScroll": "Прокрутка двумя пальцами"
 }

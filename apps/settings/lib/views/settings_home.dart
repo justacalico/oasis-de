@@ -6,6 +6,7 @@ import 'displays_pane.dart';
 import 'dock_pane.dart';
 import 'keyboard_pane.dart';
 import 'panes.dart';
+import 'pointer_pane.dart';
 import 'sound_pane.dart';
 import 'wallpaper_pane.dart';
 import 'wifi_pane.dart';
@@ -60,6 +61,10 @@ class _SettingsHomeState extends State<SettingsHome> {
           const Color(0xFFFF375F)),
       (SettingsPane.keyboard, l10n.settingsKeyboard, Icons.keyboard,
           const Color(0xFF636366)),
+      (SettingsPane.mouse, l10n.settingsMouse, Icons.mouse,
+          const Color(0xFF8E8E93)),
+      (SettingsPane.trackpad, l10n.settingsTrackpad, Icons.touch_app,
+          const Color(0xFF98989D)),
       (SettingsPane.general, l10n.settingsGeneral, Icons.settings,
           const Color(0xFF8E8E93)),
       (SettingsPane.wifi, l10n.settingsWifi, Icons.wifi,
@@ -132,6 +137,8 @@ class _SettingsHomeState extends State<SettingsHome> {
                     SettingsPane.dock => DockPane(state: s),
                     SettingsPane.sound => SoundPane(state: s),
                     SettingsPane.keyboard => KeyboardPane(state: s),
+                    SettingsPane.mouse => MousePane(state: s),
+                    SettingsPane.trackpad => TrackpadPane(state: s),
                     SettingsPane.power => PowerPane(state: s),
                     SettingsPane.datetime => const DateTimePane(),
                     SettingsPane.users => UsersPane(state: s),

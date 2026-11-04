@@ -540,6 +540,8 @@ void main() {
     SettingsPane.dock,
     SettingsPane.general,
     SettingsPane.keyboard,
+    SettingsPane.mouse,
+    SettingsPane.trackpad,
     SettingsPane.power,
     SettingsPane.about,
   ]) {

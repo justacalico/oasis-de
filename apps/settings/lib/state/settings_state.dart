@@ -14,6 +14,8 @@ enum SettingsPane {
   dock,
   sound,
   keyboard,
+  mouse,
+  trackpad,
   general,
   wifi,
   bluetooth,
@@ -30,9 +32,13 @@ class SettingsState extends ChangeNotifier {
       this.displayBackend,
       this.powerBackend,
       this.keybinds,
-      OasisDockSettings? dock})
+      OasisDockSettings? dock,
+      OasisMouseSettings? mouse,
+      OasisTrackpadSettings? trackpad})
       : _store = store ?? MemorySettingsStore() {
     this.dock = dock ?? OasisDockSettings(store: _store);
+    this.mouse = mouse ?? OasisMouseSettings(store: _store);
+    this.trackpad = trackpad ?? OasisTrackpadSettings(store: _store);
     wifiOn = _store.read('shell.wifi') != '0';
     bluetoothOn = _store.read('shell.bluetooth') != '0';
     nightLightOn = _store.read('shell.nightLight') == '1';
@@ -77,6 +83,8 @@ class SettingsState extends ChangeNotifier {
 
   final SettingsStore _store;
   late final OasisDockSettings dock;
+  late final OasisMouseSettings mouse;
+  late final OasisTrackpadSettings trackpad;
   final OasisSystemBackend? backend;
   final OasisDisplayBackend? displayBackend;
   final OasisPowerBackend? powerBackend;

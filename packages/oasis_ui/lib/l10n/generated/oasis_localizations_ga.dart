@@ -765,4 +765,40 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get keybindRemove => 'Bain';
+
+  @override
+  String get settingsMouse => 'Luch';
+
+  @override
+  String get settingsTrackpad => 'Ceap tadhaill';
+
+  @override
+  String get pointerSpeed => 'Luas an phointeálaí';
+
+  @override
+  String get pointerDoubleClickSpeed => 'Luas déchliceála';
+
+  @override
+  String get pointerPrimaryButton => 'Príomhchnaipe';
+
+  @override
+  String get pointerButtonLeft => 'Ar chlé';
+
+  @override
+  String get pointerButtonRight => 'Ar dheis';
+
+  @override
+  String get pointerScrolling => 'Scrollú';
+
+  @override
+  String get pointerScrollSpeed => 'Luas scrollú';
+
+  @override
+  String get pointerNaturalScrolling => 'Scrollú nádúrtha';
+
+  @override
+  String get trackpadTapToClick => 'Tapáil chun cliceáil';
+
+  @override
+  String get trackpadTwoFingerScroll => 'Scrollú dá mhéar';
 }

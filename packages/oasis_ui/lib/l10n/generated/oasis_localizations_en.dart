@@ -757,4 +757,40 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get keybindRemove => 'Remove';
+
+  @override
+  String get settingsMouse => 'Mouse';
+
+  @override
+  String get settingsTrackpad => 'Trackpad';
+
+  @override
+  String get pointerSpeed => 'Pointer speed';
+
+  @override
+  String get pointerDoubleClickSpeed => 'Double-click speed';
+
+  @override
+  String get pointerPrimaryButton => 'Primary button';
+
+  @override
+  String get pointerButtonLeft => 'Left';
+
+  @override
+  String get pointerButtonRight => 'Right';
+
+  @override
+  String get pointerScrolling => 'Scrolling';
+
+  @override
+  String get pointerScrollSpeed => 'Scroll speed';
+
+  @override
+  String get pointerNaturalScrolling => 'Natural scrolling';
+
+  @override
+  String get trackpadTapToClick => 'Tap to click';
+
+  @override
+  String get trackpadTwoFingerScroll => 'Two-finger scrolling';
 }
