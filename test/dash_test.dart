@@ -46,7 +46,7 @@ void main() {
     expect(d.position, OasisDashPosition.bottom);
     expect(d.size, OasisDashSize.medium);
     expect(d.iconSize, kDashIconSizeMedium);
-    expect(dashReservedExtent(d), kDashIconSizeMedium + 37);
+    expect(dashReservedExtent(d), kDashIconSizeMedium + 24);
     d.dispose();
   });
 
@@ -91,7 +91,7 @@ void main() {
     expect(d.iconSize, d.customSize);
     d.position = OasisDashPosition.left;
     d.size = OasisDashSize.large;
-    expect(dashReservedExtent(d), kDashIconSizeLarge + 37);
+    expect(dashReservedExtent(d), kDashIconSizeLarge + 24);
     d.dispose();
   });
 
@@ -306,7 +306,7 @@ void main() {
     tester,
   ) async {
     for (final (mode, left) in [
-      (OasisDashMode.push, kDashIconSizeMedium + 37),
+      (OasisDashMode.push, kDashIconSizeMedium + 24),
       (OasisDashMode.autoHide, 0.0),
     ]) {
       final dash = OasisDashSettings()
@@ -363,7 +363,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.getRect(find.byType(OasisWindow)).right,
-      moreOrLessEquals(1280 - (kDashIconSizeMedium + 37), epsilon: 0.01),
+      moreOrLessEquals(1280 - (kDashIconSizeMedium + 24), epsilon: 0.01),
     );
   });
 
@@ -385,15 +385,15 @@ void main() {
 
     final leftDash = OasisDashSettings()..position = OasisDashPosition.left;
     var w = snap(leftDash, const Offset(0, 400));
-    expect(w.position.dx, kDashIconSizeMedium + 37);
-    expect(w.size!.width, 1280 / 2 - (kDashIconSizeMedium + 37));
+    expect(w.position.dx, kDashIconSizeMedium + 24);
+    expect(w.size!.width, 1280 / 2 - (kDashIconSizeMedium + 24));
     w = snap(leftDash, const Offset(1279, 400));
     expect(w.position.dx, 640);
     expect(w.size!.width, 640);
 
     final rightDash = OasisDashSettings()..position = OasisDashPosition.right;
     w = snap(rightDash, const Offset(1279, 400));
-    expect(w.size!.width, 640 - (kDashIconSizeMedium + 37));
+    expect(w.size!.width, 640 - (kDashIconSizeMedium + 24));
 
     final hidden = OasisDashSettings()..mode = OasisDashMode.autoHide;
     w = snap(hidden, const Offset(0, 400));
@@ -401,7 +401,7 @@ void main() {
 
     final bottom = OasisDashSettings();
     w = snap(bottom, const Offset(0, 400));
-    expect(w.size!.height, 800 - 30 - 8 - (kDashIconSizeMedium + 37));
+    expect(w.size!.height, 800 - 30 - 8 - (kDashIconSizeMedium + 24));
     leftDash.dispose();
     rightDash.dispose();
     hidden.dispose();

@@ -3,7 +3,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 const kTopBarHeight = 30.0;
 const kCcTopOffset = 34.0;
 const kDashIconSize = 52.0;
-const kDashHeight = kDashIconSize + 37.0;
+const kDashHeight = kDashIconSize + 24.0;
 const kMinWindowWidth = 360.0;
 const kMinWindowHeight = 300.0;
 const kDefaultWindowWidth = 480.0;
@@ -36,5 +36,5 @@ const kMaxNotifications = 50;
 /// windows use the whole edge.
 double dashReservedExtent(OasisDashSettings dash) {
   if (dash.mode != OasisDashMode.push) return 0;
-  return dash.iconSize + 37.0;
+  return dash.iconSize + 24.0;
 }
