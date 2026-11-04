@@ -22,7 +22,7 @@ class OasisPalette {
     required this.desktopGradientStart,
     required this.desktopGradientMid,
     required this.desktopGradientEnd,
-    required this.dockFill,
+    required this.dashFill,
     required this.isDark,
     required this.isOled,
   });
@@ -45,7 +45,7 @@ class OasisPalette {
   final Color desktopGradientStart;
   final Color desktopGradientMid;
   final Color desktopGradientEnd;
-  final Color dockFill;
+  final Color dashFill;
   final bool isDark;
   final bool isOled;
 
@@ -68,7 +68,7 @@ class OasisPalette {
     desktopGradientStart: Color(0xFF7EC8E3),
     desktopGradientMid: Color(0xFFE8C99B),
     desktopGradientEnd: Color(0xFFC98D5E),
-    dockFill: Color(0x61FFFFFF),
+    dashFill: Color(0x61FFFFFF),
     isDark: false,
     isOled: false,
   );
@@ -92,7 +92,7 @@ class OasisPalette {
     desktopGradientStart: Color(0xFF1B2A4A),
     desktopGradientMid: Color(0xFF46324A),
     desktopGradientEnd: Color(0xFF6B3B2E),
-    dockFill: Color(0x40FFFFFF),
+    dashFill: Color(0x40FFFFFF),
     isDark: true,
     isOled: false,
   );
@@ -116,7 +116,7 @@ class OasisPalette {
     desktopGradientStart: Color(0xFF05070F),
     desktopGradientMid: Color(0xFF0E0B14),
     desktopGradientEnd: Color(0xFF140A08),
-    dockFill: Color(0x2EFFFFFF),
+    dashFill: Color(0x2EFFFFFF),
     isDark: true,
     isOled: true,
   );

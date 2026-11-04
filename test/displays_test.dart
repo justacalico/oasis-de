@@ -11,7 +11,7 @@ import 'package:oasis_ui/oasis_ui.dart';
 import 'helpers/test_app.dart';
 import 'package:oasis_de/services/displays.dart';
 import 'package:oasis_de/shell/desktop_shell.dart';
-import 'package:oasis_de/shell/menu_bar.dart';
+import 'package:oasis_de/shell/top_bar.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_de/wayland/wayland_host.dart';
 import 'package:oasis_de/wayland/wayland_service.dart';
@@ -554,7 +554,7 @@ void main() {
       wayland.outputsFor(const Rect.fromLTWH(0, 0, 3840, 20)).length,
       2,
     );
-    expect(find.byType(ShellMenuBar), findsNWidgets(2));
+    expect(find.byType(ShellTopBar), findsNWidgets(2));
 
     controller.lastPointerPosition = const Offset(2000, 200);
     controller.openApp(

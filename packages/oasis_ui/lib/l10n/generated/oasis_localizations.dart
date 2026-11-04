@@ -186,11 +186,11 @@ abstract class OasisLocalizations {
   /// **'About Oasis'**
   String get menuAbout;
 
-  /// No description provided for @launchPad.
+  /// No description provided for @appGrid.
   ///
   /// In en, this message translates to:
-  /// **'Launch Pad'**
-  String get launchPad;
+  /// **'App Grid'**
+  String get appGrid;
 
   /// No description provided for @launchFailed.
   ///
@@ -432,11 +432,11 @@ abstract class OasisLocalizations {
   /// **'Displays'**
   String get settingsDisplays;
 
-  /// No description provided for @settingsDock.
+  /// No description provided for @settingsDash.
   ///
   /// In en, this message translates to:
-  /// **'Dock'**
-  String get settingsDock;
+  /// **'Dash'**
+  String get settingsDash;
 
   /// No description provided for @settingsSound.
   ///
@@ -771,7 +771,7 @@ abstract class OasisLocalizations {
   /// No description provided for @landingFeatureGlassBody.
   ///
   /// In en, this message translates to:
-  /// **'Menus, docks and windows float on real translucency with specular highlights.'**
+  /// **'Menus, panels and windows float on real translucency with specular highlights.'**
   String get landingFeatureGlassBody;
 
   /// No description provided for @landingFeatureCalmTitle.
@@ -783,7 +783,7 @@ abstract class OasisLocalizations {
   /// No description provided for @landingFeatureCalmBody.
   ///
   /// In en, this message translates to:
-  /// **'A quiet menu bar, a dock that stays out of the way, and notifications that never shout.'**
+  /// **'A quiet top bar, a dash that stays out of the way, and notifications that never shout.'**
   String get landingFeatureCalmBody;
 
   /// No description provided for @landingFeatureOpenTitle.
@@ -912,107 +912,107 @@ abstract class OasisLocalizations {
   /// **'Nothing playing'**
   String get ccNothingPlaying;
 
-  /// No description provided for @dockPin.
+  /// No description provided for @dashPin.
   ///
   /// In en, this message translates to:
-  /// **'Pin to Dock'**
-  String get dockPin;
+  /// **'Pin to Dash'**
+  String get dashPin;
 
-  /// No description provided for @dockUnpin.
+  /// No description provided for @dashUnpin.
   ///
   /// In en, this message translates to:
   /// **'Unpin'**
-  String get dockUnpin;
+  String get dashUnpin;
 
-  /// No description provided for @dockQuit.
+  /// No description provided for @dashQuit.
   ///
   /// In en, this message translates to:
   /// **'Quit'**
-  String get dockQuit;
+  String get dashQuit;
 
-  /// No description provided for @dockMode.
+  /// No description provided for @dashMode.
   ///
   /// In en, this message translates to:
   /// **'Mode'**
-  String get dockMode;
+  String get dashMode;
 
-  /// No description provided for @dockModePush.
+  /// No description provided for @dashModePush.
   ///
   /// In en, this message translates to:
   /// **'Push'**
-  String get dockModePush;
+  String get dashModePush;
 
-  /// No description provided for @dockModeAutoHide.
+  /// No description provided for @dashModeAutoHide.
   ///
   /// In en, this message translates to:
   /// **'Auto-hide'**
-  String get dockModeAutoHide;
+  String get dashModeAutoHide;
 
-  /// No description provided for @dockModeOff.
+  /// No description provided for @dashModeOff.
   ///
   /// In en, this message translates to:
   /// **'Off'**
-  String get dockModeOff;
+  String get dashModeOff;
 
-  /// No description provided for @dockPosition.
+  /// No description provided for @dashPosition.
   ///
   /// In en, this message translates to:
   /// **'Position'**
-  String get dockPosition;
+  String get dashPosition;
 
-  /// No description provided for @dockPositionLeft.
+  /// No description provided for @dashPositionLeft.
   ///
   /// In en, this message translates to:
   /// **'Left'**
-  String get dockPositionLeft;
+  String get dashPositionLeft;
 
-  /// No description provided for @dockPositionBottom.
+  /// No description provided for @dashPositionBottom.
   ///
   /// In en, this message translates to:
   /// **'Bottom'**
-  String get dockPositionBottom;
+  String get dashPositionBottom;
 
-  /// No description provided for @dockPositionRight.
+  /// No description provided for @dashPositionRight.
   ///
   /// In en, this message translates to:
   /// **'Right'**
-  String get dockPositionRight;
+  String get dashPositionRight;
 
-  /// No description provided for @dockIconSize.
+  /// No description provided for @dashIconSize.
   ///
   /// In en, this message translates to:
   /// **'Icon size'**
-  String get dockIconSize;
+  String get dashIconSize;
 
-  /// No description provided for @dockSizeSmall.
+  /// No description provided for @dashSizeSmall.
   ///
   /// In en, this message translates to:
   /// **'Small'**
-  String get dockSizeSmall;
+  String get dashSizeSmall;
 
-  /// No description provided for @dockSizeMedium.
+  /// No description provided for @dashSizeMedium.
   ///
   /// In en, this message translates to:
   /// **'Medium'**
-  String get dockSizeMedium;
+  String get dashSizeMedium;
 
-  /// No description provided for @dockSizeLarge.
+  /// No description provided for @dashSizeLarge.
   ///
   /// In en, this message translates to:
   /// **'Large'**
-  String get dockSizeLarge;
+  String get dashSizeLarge;
 
-  /// No description provided for @dockSizeCustom.
+  /// No description provided for @dashSizeCustom.
   ///
   /// In en, this message translates to:
   /// **'Custom'**
-  String get dockSizeCustom;
+  String get dashSizeCustom;
 
-  /// No description provided for @dockCustomSize.
+  /// No description provided for @dashCustomSize.
   ///
   /// In en, this message translates to:
   /// **'Custom size'**
-  String get dockCustomSize;
+  String get dashCustomSize;
 
   /// No description provided for @wallpaperPeaks.
   ///
@@ -1272,11 +1272,11 @@ abstract class OasisLocalizations {
   /// **'Shut Down'**
   String get sessionShutDown;
 
-  /// No description provided for @notifCenter.
+  /// No description provided for @notifPanel.
   ///
   /// In en, this message translates to:
   /// **'Notifications'**
-  String get notifCenter;
+  String get notifPanel;
 
   /// No description provided for @notifClearAll.
   ///
@@ -1326,11 +1326,11 @@ abstract class OasisLocalizations {
   /// **'Cancel'**
   String get dialogCancel;
 
-  /// No description provided for @tipControlCenter.
+  /// No description provided for @tipQuickSettings.
   ///
   /// In en, this message translates to:
-  /// **'Control Center'**
-  String get tipControlCenter;
+  /// **'Quick Settings'**
+  String get tipQuickSettings;
 
   /// No description provided for @lockHint.
   ///

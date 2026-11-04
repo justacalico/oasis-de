@@ -53,7 +53,7 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get menuAbout => '关于 Oasis';
 
   @override
-  String get launchPad => '启动台';
+  String get appGrid => '应用网格';
 
   @override
   String launchFailed(String app) {
@@ -182,7 +182,7 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get settingsDisplays => '显示器';
 
   @override
-  String get settingsDock => 'Dock';
+  String get settingsDash => '启动栏';
 
   @override
   String get settingsSound => '声音';
@@ -364,13 +364,13 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get landingFeatureGlassTitle => '流动的表面';
 
   @override
-  String get landingFeatureGlassBody => '菜单、Dock 和窗口悬浮在真实的半透明质感之上，带有高光细节。';
+  String get landingFeatureGlassBody => '菜单、面板和窗口悬浮在真实的半透明质感之上，带有高光细节。';
 
   @override
   String get landingFeatureCalmTitle => '默认即安静';
 
   @override
-  String get landingFeatureCalmBody => '安静的菜单栏、不打扰的程序坞，以及从不喧哗的通知。';
+  String get landingFeatureCalmBody => '安静的顶栏、不打扰的启动栏，以及从不喧哗的通知。';
 
   @override
   String get landingFeatureOpenTitle => '底层开放';
@@ -436,55 +436,55 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get ccNothingPlaying => '暂无播放';
 
   @override
-  String get dockPin => '固定到 Dock';
+  String get dashPin => '固定到启动栏';
 
   @override
-  String get dockUnpin => '取消固定';
+  String get dashUnpin => '取消固定';
 
   @override
-  String get dockQuit => '退出';
+  String get dashQuit => '退出';
 
   @override
-  String get dockMode => '模式';
+  String get dashMode => '模式';
 
   @override
-  String get dockModePush => '推移';
+  String get dashModePush => '推移';
 
   @override
-  String get dockModeAutoHide => '自动隐藏';
+  String get dashModeAutoHide => '自动隐藏';
 
   @override
-  String get dockModeOff => '关闭';
+  String get dashModeOff => '关闭';
 
   @override
-  String get dockPosition => '位置';
+  String get dashPosition => '位置';
 
   @override
-  String get dockPositionLeft => '左侧';
+  String get dashPositionLeft => '左侧';
 
   @override
-  String get dockPositionBottom => '底部';
+  String get dashPositionBottom => '底部';
 
   @override
-  String get dockPositionRight => '右侧';
+  String get dashPositionRight => '右侧';
 
   @override
-  String get dockIconSize => '图标大小';
+  String get dashIconSize => '图标大小';
 
   @override
-  String get dockSizeSmall => '小';
+  String get dashSizeSmall => '小';
 
   @override
-  String get dockSizeMedium => '中';
+  String get dashSizeMedium => '中';
 
   @override
-  String get dockSizeLarge => '大';
+  String get dashSizeLarge => '大';
 
   @override
-  String get dockSizeCustom => '自定义';
+  String get dashSizeCustom => '自定义';
 
   @override
-  String get dockCustomSize => '自定义大小';
+  String get dashCustomSize => '自定义大小';
 
   @override
   String get wallpaperPeaks => '山峰';
@@ -624,7 +624,7 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get sessionShutDown => '关机';
 
   @override
-  String get notifCenter => '通知';
+  String get notifPanel => '通知';
 
   @override
   String get notifClearAll => '全部清除';
@@ -651,7 +651,7 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get dialogCancel => '取消';
 
   @override
-  String get tipControlCenter => '控制中心';
+  String get tipQuickSettings => '快捷设置';
 
   @override
   String get lockHint => '输入密码';

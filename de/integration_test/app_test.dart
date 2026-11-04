@@ -5,7 +5,7 @@ import 'package:oasis_de/app.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 void main() {
-  testWidgets('desktop boots to menu bar and dock', (tester) async {
+  testWidgets('desktop boots to top bar and dash', (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);

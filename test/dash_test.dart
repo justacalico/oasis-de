@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
 import 'package:oasis_de/shell/desktop_shell.dart';
-import 'package:oasis_de/shell/dock.dart';
+import 'package:oasis_de/shell/dash.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_settings/oasis_settings.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -40,24 +40,24 @@ Future<void> _pumpDesktop(WidgetTester tester, {OasisStore? store}) async {
 }
 
 void main() {
-  test('OasisDockSettings defaults to push, bottom, medium', () {
-    final d = OasisDockSettings();
-    expect(d.mode, OasisDockMode.push);
-    expect(d.position, OasisDockPosition.bottom);
-    expect(d.size, OasisDockSize.medium);
-    expect(d.iconSize, kDockIconSizeMedium);
-    expect(dockReservedExtent(d), kDockIconSizeMedium + 37);
+  test('OasisDashSettings defaults to push, bottom, medium', () {
+    final d = OasisDashSettings();
+    expect(d.mode, OasisDashMode.push);
+    expect(d.position, OasisDashPosition.bottom);
+    expect(d.size, OasisDashSize.medium);
+    expect(d.iconSize, kDashIconSizeMedium);
+    expect(dashReservedExtent(d), kDashIconSizeMedium + 37);
     d.dispose();
   });
 
-  test('OasisDockSettings persists and restores', () {
+  test('OasisDashSettings persists and restores', () {
     final store = MemoryOasisStore();
-    final d = OasisDockSettings(store: store);
+    final d = OasisDashSettings(store: store);
     var notified = 0;
     d.addListener(() => notified++);
-    d.mode = OasisDockMode.autoHide;
-    d.position = OasisDockPosition.left;
-    d.size = OasisDockSize.custom;
+    d.mode = OasisDashMode.autoHide;
+    d.position = OasisDashPosition.left;
+    d.size = OasisDashSize.custom;
     d.customSize = 80;
     expect(notified, 4);
     expect(store.read('shell.dock.mode'), 'autoHide');
@@ -65,41 +65,41 @@ void main() {
     expect(store.read('shell.dock.size'), 'custom');
     expect(store.read('shell.dock.customSize'), '80.0');
     expect(d.iconSize, 80);
-    expect(dockReservedExtent(d), 0);
+    expect(dashReservedExtent(d), 0);
 
     d.customSize = 200;
-    expect(d.customSize, kDockCustomSizeMax);
-    d.customSize = kDockCustomSizeMax;
-    d.mode = OasisDockMode.autoHide;
+    expect(d.customSize, kDashCustomSizeMax);
+    d.customSize = kDashCustomSizeMax;
+    d.mode = OasisDashMode.autoHide;
 
-    final restored = OasisDockSettings(store: store);
-    expect(restored.mode, OasisDockMode.autoHide);
-    expect(restored.position, OasisDockPosition.left);
-    expect(restored.size, OasisDockSize.custom);
-    expect(restored.customSize, kDockCustomSizeMax);
+    final restored = OasisDashSettings(store: store);
+    expect(restored.mode, OasisDashMode.autoHide);
+    expect(restored.position, OasisDashPosition.left);
+    expect(restored.size, OasisDashSize.custom);
+    expect(restored.customSize, kDashCustomSizeMax);
     d.dispose();
     restored.dispose();
   });
 
-  test('OasisDockSettings icon sizes and extent per position', () {
-    final d = OasisDockSettings();
-    d.size = OasisDockSize.small;
-    expect(d.iconSize, kDockIconSizeSmall);
-    d.size = OasisDockSize.large;
-    expect(d.iconSize, kDockIconSizeLarge);
-    d.size = OasisDockSize.custom;
+  test('OasisDashSettings icon sizes and extent per position', () {
+    final d = OasisDashSettings();
+    d.size = OasisDashSize.small;
+    expect(d.iconSize, kDashIconSizeSmall);
+    d.size = OasisDashSize.large;
+    expect(d.iconSize, kDashIconSizeLarge);
+    d.size = OasisDashSize.custom;
     expect(d.iconSize, d.customSize);
-    d.position = OasisDockPosition.left;
-    d.size = OasisDockSize.large;
-    expect(dockReservedExtent(d), kDockIconSizeLarge + 37);
+    d.position = OasisDashPosition.left;
+    d.size = OasisDashSize.large;
+    expect(dashReservedExtent(d), kDashIconSizeLarge + 37);
     d.dispose();
   });
 
-  testWidgets('dock pane edits settings through the shared model', (
+  testWidgets('dash pane edits settings through the shared model', (
     tester,
   ) async {
     final store = MemoryOasisStore();
-    final s = SettingsState(store: store)..selectPane(SettingsPane.dock);
+    final s = SettingsState(store: store)..selectPane(SettingsPane.dash);
     await pumpOasis(
       tester,
       OasisHost(
@@ -109,46 +109,46 @@ void main() {
       ),
       size: const Size(900, 620),
     );
-    expect(find.text('Dock'), findsWidgets);
+    expect(find.text('Dash'), findsWidgets);
     expect(find.text('Mode'), findsOneWidget);
 
     await tester.tap(find.text('Push'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Auto-hide').last);
     await tester.pumpAndSettle();
-    expect(s.dock.mode, OasisDockMode.autoHide);
+    expect(s.dash.mode, OasisDashMode.autoHide);
     expect(store.read('shell.dock.mode'), 'autoHide');
 
     await tester.tap(find.text('Bottom'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Left').last);
     await tester.pumpAndSettle();
-    expect(s.dock.position, OasisDockPosition.left);
+    expect(s.dash.position, OasisDashPosition.left);
 
     expect(find.byType(OasisSlider), findsNothing);
     await tester.tap(find.text('Medium'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Custom').last);
     await tester.pumpAndSettle();
-    expect(s.dock.size, OasisDockSize.custom);
+    expect(s.dash.size, OasisDashSize.custom);
     final slider = find.byType(OasisSlider);
     expect(slider, findsOneWidget);
     await tester.tapAt(tester.getCenter(slider) + const Offset(20, 0));
     await tester.pumpAndSettle();
-    expect(s.dock.customSize, isNot(64.0));
+    expect(s.dash.customSize, isNot(64.0));
     s.dispose();
   });
 
-  testWidgets('dock hides entirely in off mode', (tester) async {
+  testWidgets('dash hides entirely in off mode', (tester) async {
     final store = MemoryOasisStore();
     await store.write('shell.dock.mode', 'off');
     await _pumpDesktop(tester, store: store);
-    expect(find.byType(ShellDock), findsNothing);
+    expect(find.byType(ShellDash), findsNothing);
   });
 
-  testWidgets('auto-hide reveals the dock at the screen edge', (tester) async {
-    final dock = OasisDockSettings()..mode = OasisDockMode.autoHide;
-    addTearDown(dock.dispose);
+  testWidgets('auto-hide reveals the dash at the screen edge', (tester) async {
+    final dash = OasisDashSettings()..mode = OasisDashMode.autoHide;
+    addTearDown(dash.dispose);
     final c = ShellController(batteryPollInterval: null, apps: [_app('a')]);
     addTearDown(c.dispose);
     await pumpOasis(
@@ -156,12 +156,12 @@ void main() {
       Scaffold(
         body: DesktopShell(
           controller: c,
-          dock: dock,
+          dash: dash,
           menusBuilder: () => const [],
         ),
       ),
     );
-    final hidden = tester.getRect(find.byType(ShellDock));
+    final hidden = tester.getRect(find.byType(ShellDash));
     expect(hidden.top, greaterThanOrEqualTo(780));
 
     final m = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -169,7 +169,7 @@ void main() {
     addTearDown(m.removePointer);
     await m.moveTo(const Offset(640, 799));
     await tester.pumpAndSettle();
-    final shown = tester.getRect(find.byType(ShellDock));
+    final shown = tester.getRect(find.byType(ShellDash));
     expect(shown.bottom, lessThanOrEqualTo(800));
     expect(shown.top, lessThan(hidden.top));
 
@@ -177,7 +177,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     expect(
-      tester.getRect(find.byType(ShellDock)).top,
+      tester.getRect(find.byType(ShellDash)).top,
       greaterThanOrEqualTo(780),
     );
   });
@@ -185,11 +185,11 @@ void main() {
   testWidgets('auto-hide tracks the left and right screen edges', (
     tester,
   ) async {
-    for (final position in [OasisDockPosition.left, OasisDockPosition.right]) {
-      final dock = OasisDockSettings()
-        ..mode = OasisDockMode.autoHide
+    for (final position in [OasisDashPosition.left, OasisDashPosition.right]) {
+      final dash = OasisDashSettings()
+        ..mode = OasisDashMode.autoHide
         ..position = position;
-      addTearDown(dock.dispose);
+      addTearDown(dash.dispose);
       final c = ShellController(batteryPollInterval: null, apps: [_app('a')]);
       addTearDown(c.dispose);
       await pumpOasis(
@@ -197,23 +197,23 @@ void main() {
         Scaffold(
           body: DesktopShell(
             controller: c,
-            dock: dock,
+            dash: dash,
             menusBuilder: () => const [],
           ),
         ),
       );
-      final hidden = tester.getRect(find.byType(ShellDock));
+      final hidden = tester.getRect(find.byType(ShellDash));
 
       final m = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await m.addPointer(location: Offset.zero);
       await m.moveTo(
-        position == OasisDockPosition.left
+        position == OasisDashPosition.left
             ? const Offset(1, 400)
             : const Offset(1279, 400),
       );
       await tester.pumpAndSettle();
-      final shown = tester.getRect(find.byType(ShellDock));
-      if (position == OasisDockPosition.left) {
+      final shown = tester.getRect(find.byType(ShellDash));
+      if (position == OasisDashPosition.left) {
         expect(shown.left, greaterThan(hidden.left));
         expect(shown.left, greaterThanOrEqualTo(0));
       } else {
@@ -224,14 +224,14 @@ void main() {
       await m.moveTo(const Offset(640, 400));
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
-      expect(tester.getRect(find.byType(ShellDock)), hidden);
+      expect(tester.getRect(find.byType(ShellDash)), hidden);
       await m.removePointer();
     }
   });
 
   testWidgets('leaving auto-hide clears the revealed state', (tester) async {
-    final dock = OasisDockSettings()..mode = OasisDockMode.autoHide;
-    addTearDown(dock.dispose);
+    final dash = OasisDashSettings()..mode = OasisDashMode.autoHide;
+    addTearDown(dash.dispose);
     final c = ShellController(batteryPollInterval: null, apps: [_app('a')]);
     addTearDown(c.dispose);
     await pumpOasis(
@@ -239,7 +239,7 @@ void main() {
       Scaffold(
         body: DesktopShell(
           controller: c,
-          dock: dock,
+          dash: dash,
           menusBuilder: () => const [],
         ),
       ),
@@ -250,25 +250,25 @@ void main() {
     addTearDown(m.removePointer);
     await m.moveTo(const Offset(640, 799));
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.byType(ShellDock)).top, lessThan(780));
+    expect(tester.getRect(find.byType(ShellDash)).top, lessThan(780));
 
-    dock.mode = OasisDockMode.push;
+    dash.mode = OasisDashMode.push;
     await tester.pumpAndSettle();
     await m.moveTo(const Offset(640, 400));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     expect(
-      tester.getRect(find.byType(ShellDock)).bottom,
+      tester.getRect(find.byType(ShellDash)).bottom,
       lessThanOrEqualTo(800),
     );
   });
 
-  testWidgets('left and right positions render a vertical dock', (
+  testWidgets('left and right positions render a vertical dash', (
     tester,
   ) async {
-    for (final position in [OasisDockPosition.left, OasisDockPosition.right]) {
-      final dock = OasisDockSettings()..position = position;
-      addTearDown(dock.dispose);
+    for (final position in [OasisDashPosition.left, OasisDashPosition.right]) {
+      final dash = OasisDashSettings()..position = position;
+      addTearDown(dash.dispose);
       final c = ShellController(
         batteryPollInterval: null,
         apps: [_app('a'), _app('b')],
@@ -280,13 +280,13 @@ void main() {
         Scaffold(
           body: DesktopShell(
             controller: c,
-            dock: dock,
+            dash: dash,
             menusBuilder: () => const [],
           ),
         ),
       );
-      final r = tester.getRect(find.byType(ShellDock));
-      if (position == OasisDockPosition.left) {
+      final r = tester.getRect(find.byType(ShellDash));
+      if (position == OasisDashPosition.left) {
         expect(r.left, lessThan(60));
       } else {
         expect(r.right, greaterThan(1220));
@@ -302,21 +302,21 @@ void main() {
     }
   });
 
-  testWidgets('zoomed window clears a left dock but not a hidden one', (
+  testWidgets('zoomed window clears a left dash but not a hidden one', (
     tester,
   ) async {
     for (final (mode, left) in [
-      (OasisDockMode.push, kDockIconSizeMedium + 37),
-      (OasisDockMode.autoHide, 0.0),
+      (OasisDashMode.push, kDashIconSizeMedium + 37),
+      (OasisDashMode.autoHide, 0.0),
     ]) {
-      final dock = OasisDockSettings()
+      final dash = OasisDashSettings()
         ..mode = mode
-        ..position = OasisDockPosition.left;
-      addTearDown(dock.dispose);
+        ..position = OasisDashPosition.left;
+      addTearDown(dash.dispose);
       final c = ShellController(
         batteryPollInterval: null,
         apps: [_app('a')],
-        dock: dock,
+        dash: dash,
       );
       addTearDown(c.dispose);
       await pumpOasis(
@@ -324,7 +324,7 @@ void main() {
         Scaffold(
           body: DesktopShell(
             controller: c,
-            dock: dock,
+            dash: dash,
             menusBuilder: () => const [],
           ),
         ),
@@ -339,13 +339,13 @@ void main() {
     }
   });
 
-  testWidgets('zoomed window clears a right dock', (tester) async {
-    final dock = OasisDockSettings()..position = OasisDockPosition.right;
-    addTearDown(dock.dispose);
+  testWidgets('zoomed window clears a right dash', (tester) async {
+    final dash = OasisDashSettings()..position = OasisDashPosition.right;
+    addTearDown(dash.dispose);
     final c = ShellController(
       batteryPollInterval: null,
       apps: [_app('a')],
-      dock: dock,
+      dash: dash,
     );
     addTearDown(c.dispose);
     await pumpOasis(
@@ -353,7 +353,7 @@ void main() {
       Scaffold(
         body: DesktopShell(
           controller: c,
-          dock: dock,
+          dash: dash,
           menusBuilder: () => const [],
         ),
       ),
@@ -363,18 +363,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.getRect(find.byType(OasisWindow)).right,
-      moreOrLessEquals(1280 - (kDockIconSizeMedium + 37), epsilon: 0.01),
+      moreOrLessEquals(1280 - (kDashIconSizeMedium + 37), epsilon: 0.01),
     );
   });
 
-  test('half snap respects the dock edge', () {
+  test('half snap respects the dash edge', () {
     final app = _app('a');
     const screen = Size(1280, 800);
-    ShellWindowData snap(OasisDockSettings dock, Offset pointer) {
+    ShellWindowData snap(OasisDashSettings dash, Offset pointer) {
       final c = ShellController(
         batteryPollInterval: null,
         apps: [app],
-        dock: dock,
+        dash: dash,
       );
       addTearDown(c.dispose);
       c.openApp(app);
@@ -383,27 +383,27 @@ void main() {
       return c.windows.single;
     }
 
-    final leftDock = OasisDockSettings()..position = OasisDockPosition.left;
-    var w = snap(leftDock, const Offset(0, 400));
-    expect(w.position.dx, kDockIconSizeMedium + 37);
-    expect(w.size!.width, 1280 / 2 - (kDockIconSizeMedium + 37));
-    w = snap(leftDock, const Offset(1279, 400));
+    final leftDash = OasisDashSettings()..position = OasisDashPosition.left;
+    var w = snap(leftDash, const Offset(0, 400));
+    expect(w.position.dx, kDashIconSizeMedium + 37);
+    expect(w.size!.width, 1280 / 2 - (kDashIconSizeMedium + 37));
+    w = snap(leftDash, const Offset(1279, 400));
     expect(w.position.dx, 640);
     expect(w.size!.width, 640);
 
-    final rightDock = OasisDockSettings()..position = OasisDockPosition.right;
-    w = snap(rightDock, const Offset(1279, 400));
-    expect(w.size!.width, 640 - (kDockIconSizeMedium + 37));
+    final rightDash = OasisDashSettings()..position = OasisDashPosition.right;
+    w = snap(rightDash, const Offset(1279, 400));
+    expect(w.size!.width, 640 - (kDashIconSizeMedium + 37));
 
-    final hidden = OasisDockSettings()..mode = OasisDockMode.autoHide;
+    final hidden = OasisDashSettings()..mode = OasisDashMode.autoHide;
     w = snap(hidden, const Offset(0, 400));
     expect(w.size!.height, 800 - 30 - 8);
 
-    final bottom = OasisDockSettings();
+    final bottom = OasisDashSettings();
     w = snap(bottom, const Offset(0, 400));
-    expect(w.size!.height, 800 - 30 - 8 - (kDockIconSizeMedium + 37));
-    leftDock.dispose();
-    rightDock.dispose();
+    expect(w.size!.height, 800 - 30 - 8 - (kDashIconSizeMedium + 37));
+    leftDash.dispose();
+    rightDash.dispose();
     hidden.dispose();
     bottom.dispose();
   });

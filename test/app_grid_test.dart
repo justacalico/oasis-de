@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
-import 'package:oasis_de/shell/dock.dart';
-import 'package:oasis_de/shell/launch_pad.dart';
+import 'package:oasis_de/shell/dash.dart';
+import 'package:oasis_de/shell/app_grid.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
@@ -38,29 +38,29 @@ OasisApp _app(String id) => OasisApp(
 );
 
 void main() {
-  testWidgets('launch pad dock entry is not a windowed app', (tester) async {
+  testWidgets('app grid dash entry is not a windowed app', (tester) async {
     await pumpDesktop(tester);
     final context = tester.element(find.byType(Scaffold));
-    final entry = launchPadEntry(
+    final entry = appGridEntry(
       lookupOasisLocalizations(const Locale('en', 'GB')),
       OasisPalette.light,
     );
-    expect(entry.name, 'Launch Pad');
+    expect(entry.name, 'App Grid');
     expect(entry.isExternal, isFalse);
     expect(entry.builder(context), isA<SizedBox>());
   });
 
-  testWidgets('dock rocket toggles the launch pad', (tester) async {
+  testWidgets('dash rocket toggles the app grid', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.rocket_launch));
     await tester.pumpAndSettle();
-    expect(find.byType(ShellLaunchPad), findsOneWidget);
+    expect(find.byType(ShellAppGrid), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Notes'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.rocket_launch));
     await tester.pumpAndSettle();
-    expect(find.byType(ShellLaunchPad), findsNothing);
+    expect(find.byType(ShellAppGrid), findsNothing);
   });
 
   testWidgets('typing filters the grid and tapping an icon opens the app', (
@@ -76,7 +76,7 @@ void main() {
 
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.byType(ShellLaunchPad), findsNothing);
+    expect(find.byType(ShellAppGrid), findsNothing);
     expect(find.text('Appearance'), findsWidgets);
   });
 
@@ -93,11 +93,11 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.byType(ShellLaunchPad), findsOneWidget);
+    expect(find.byType(ShellAppGrid), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
-    expect(find.byType(ShellLaunchPad), findsNothing);
+    expect(find.byType(ShellAppGrid), findsNothing);
   });
 
   testWidgets('keyboard navigation selects and opens apps', (tester) async {
@@ -111,7 +111,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(find.text('Appearance'), findsWidgets);
-    expect(find.byType(ShellLaunchPad), findsNothing);
+    expect(find.byType(ShellAppGrid), findsNothing);
 
     await tester.tap(find.byIcon(Icons.rocket_launch));
     await tester.pumpAndSettle();
@@ -120,7 +120,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(find.text('No captures yet'), findsWidgets);
-    expect(find.byType(ShellLaunchPad), findsNothing);
+    expect(find.byType(ShellAppGrid), findsNothing);
   });
 
   testWidgets('horizontal arrows move the selection after unfocus', (
@@ -141,7 +141,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.byType(ShellLaunchPad), findsNothing);
+    expect(find.byType(ShellAppGrid), findsNothing);
   });
 
   testWidgets('keys are ignored while the pad is closing', (tester) async {
@@ -153,7 +153,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.byType(ShellLaunchPad), findsNothing);
+    expect(find.byType(ShellAppGrid), findsNothing);
     expect(find.text('Appearance'), findsNothing);
   });
 
@@ -163,7 +163,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tapAt(const Offset(30, 400));
     await tester.pumpAndSettle();
-    expect(find.byType(ShellLaunchPad), findsNothing);
+    expect(find.byType(ShellAppGrid), findsNothing);
   });
 
   testWidgets('paged grid swipes, dots and key jumps navigate', (tester) async {
@@ -172,10 +172,10 @@ void main() {
       batteryPollInterval: null,
     );
     addTearDown(controller.dispose);
-    controller.launchPadOpen = true;
+    controller.appGridOpen = true;
     await pumpOasis(
       tester,
-      Scaffold(body: ShellLaunchPad(controller: controller)),
+      Scaffold(body: ShellAppGrid(controller: controller)),
     );
     expect(find.byType(PageView), findsOneWidget);
     expect(find.text('App 0'), findsOneWidget);

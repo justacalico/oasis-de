@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_settings/state/settings_state.dart';
 import 'package:oasis_ui/oasis_ui.dart';
@@ -69,6 +71,19 @@ void main() {
     expect(s.brightness, 0.75);
     expect(s.volume, 0.65);
     expect(s.nightLight, isTrue);
+
+    Future<ProcessResult> dayRun(String exe, List<String> args) async {
+      final out = switch (exe) {
+        'gammastep' => 'Period: Daytime\nColor temperature: 6500',
+        _ => '',
+      };
+      return ProcessResult(0, 0, out, '');
+    }
+
+    expect(
+      (await CliSystemBackend(run: dayRun).read()).nightLight,
+      isFalse,
+    );
   });
 
   test('cli backend read tolerates missing tools', () async {
@@ -488,6 +503,24 @@ class _FakeSink extends Fake implements IOSink {
   Future<void> close() async {}
 }
 
+class _HangingChkProc extends Fake implements Process {
+  _HangingChkProc(this.onKill);
+
+  final void Function() onKill;
+
+  @override
+  Future<int> get exitCode => Completer<int>().future;
+
+  @override
+  IOSink get stdin => _FakeSink();
+
+  @override
+  bool kill([ProcessSignal signal = ProcessSignal.sigterm]) {
+    onKill();
+    return true;
+  }
+}
+
 void verifyPasswordCoverage() {
   test('verifyPassword fails closed without a check helper', () async {
     expect(
@@ -515,5 +548,19 @@ void verifyPasswordCoverage() {
       ).verifyPassword('x'),
       isFalse,
     );
+  });
+
+  test('verifyPassword kills a hung check helper', () {
+    fakeAsync((async) {
+      var killed = false;
+      bool? result;
+      CliSystemBackend(
+        userName: () => 'u',
+        startProcess: (e, a) async => _HangingChkProc(() => killed = true),
+      ).verifyPassword('x').then((v) => result = v);
+      async.elapse(const Duration(seconds: 11));
+      expect(result, isFalse);
+      expect(killed, isTrue);
+    });
   });
 }

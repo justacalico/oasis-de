@@ -171,13 +171,13 @@ class _PreviewPainter extends CustomPainter {
       );
     }
 
-    final dockW = w * 0.42;
-    final dockRect = Rect.fromCenter(
+    final dashW = w * 0.42;
+    final dashRect = Rect.fromCenter(
       center: Offset(w / 2, h * 0.93),
-      width: dockW,
+      width: dashW,
       height: h * 0.1,
     );
-    glassRect(dockRect, 14 * r);
+    glassRect(dashRect, 14 * r);
     const iconCols = [
       [0xFF8E8E93, 0xFF48484A],
       [0xFF4FC3F7, 0xFF0078C8],
@@ -185,20 +185,20 @@ class _PreviewPainter extends CustomPainter {
       [0xFF7BD88F, 0xFF2F9E4F],
       [0xFFBF5AF2, 0xFF8E3DBE],
     ];
-    final iconSize = dockRect.height * 0.62;
-    final gap = (dockW - iconSize * iconCols.length) / (iconCols.length + 1);
+    final iconSize = dashRect.height * 0.62;
+    final gap = (dashW - iconSize * iconCols.length) / (iconCols.length + 1);
     for (var i = 0; i < iconCols.length; i++) {
-      final x = dockRect.left + gap * (i + 1) + iconSize * i;
+      final x = dashRect.left + gap * (i + 1) + iconSize * i;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, dockRect.center.dy - iconSize / 2, iconSize,
+          Rect.fromLTWH(x, dashRect.center.dy - iconSize / 2, iconSize,
               iconSize),
           Radius.circular(iconSize * 0.28),
         ),
         Paint()
           ..shader = ui.Gradient.linear(
-            Offset(x, dockRect.center.dy - iconSize / 2),
-            Offset(x, dockRect.center.dy + iconSize / 2),
+            Offset(x, dashRect.center.dy - iconSize / 2),
+            Offset(x, dashRect.center.dy + iconSize / 2),
             [Color(iconCols[i][0]), Color(iconCols[i][1])],
           ),
       );

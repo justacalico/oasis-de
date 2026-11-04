@@ -3,8 +3,8 @@ import 'package:oasis_ui/oasis_ui.dart';
 
 import 'shell_controller.dart';
 
-class ShellControlCenter extends StatelessWidget {
-  const ShellControlCenter({super.key, required this.controller});
+class ShellQuickSettings extends StatelessWidget {
+  const ShellQuickSettings({super.key, required this.controller});
 
   final ShellController controller;
 
@@ -31,7 +31,7 @@ class ShellControlCenter extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        _CcToggle(
+                        _QsToggle(
                           icon: Icons.wifi,
                           label: l10n.ccWifi,
                           subtitle: c.wifiOn ? l10n.ccOn : l10n.ccOff,
@@ -39,7 +39,7 @@ class ShellControlCenter extends StatelessWidget {
                           onChanged: (v) => c.wifiOnValue = v,
                         ),
                         const SizedBox(width: 10),
-                        _CcToggle(
+                        _QsToggle(
                           icon: Icons.bluetooth,
                           label: l10n.ccBluetooth,
                           subtitle: c.bluetoothOn ? l10n.ccOn : l10n.ccOff,
@@ -51,14 +51,14 @@ class ShellControlCenter extends StatelessWidget {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        _CcToggle(
+                        _QsToggle(
                           icon: Icons.do_not_disturb_on,
                           label: l10n.ccFocus,
                           value: c.focusOn,
                           onChanged: (v) => c.focusOnValue = v,
                         ),
                         const SizedBox(width: 10),
-                        _CcToggle(
+                        _QsToggle(
                           icon: Icons.dark_mode,
                           label: l10n.ccDarkMode,
                           value: OasisStyle.of(context).palette.isDark,
@@ -74,7 +74,7 @@ class ShellControlCenter extends StatelessWidget {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        _CcToggle(
+                        _QsToggle(
                           icon: Icons.nightlight,
                           label: l10n.ccNightLight,
                           value: c.nightLightOn,
@@ -83,7 +83,7 @@ class ShellControlCenter extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    _CcCard(
+                    _QsCard(
                       child: Row(
                         children: [
                           for (
@@ -112,7 +112,7 @@ class ShellControlCenter extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _CcCard(
+                    _QsCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -130,7 +130,7 @@ class ShellControlCenter extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 10),
-                    _CcCard(
+                    _QsCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -149,7 +149,7 @@ class ShellControlCenter extends StatelessWidget {
 
                     if (c.batteryLevel != null) ...[
                       const SizedBox(height: 10),
-                      _CcCard(
+                      _QsCard(
                         child: Row(
                           children: [
                             Icon(
@@ -178,7 +178,7 @@ class ShellControlCenter extends StatelessWidget {
                     ],
 
                     const SizedBox(height: 10),
-                    _CcCard(
+                    _QsCard(
                       child: Row(
                         children: [
                           Icon(
@@ -240,8 +240,8 @@ class ShellControlCenter extends StatelessWidget {
 }
 
 
-class _CcToggle extends StatelessWidget {
-  const _CcToggle({
+class _QsToggle extends StatelessWidget {
+  const _QsToggle({
     required this.icon,
     required this.label,
     this.subtitle,
@@ -265,7 +265,7 @@ class _CcToggle extends StatelessWidget {
           button: true,
           toggled: value,
           label: label,
-          child: _CcCard(
+          child: _QsCard(
             child: Row(
               children: [
                 Container(
@@ -312,8 +312,8 @@ class _CcToggle extends StatelessWidget {
   }
 }
 
-class _CcCard extends StatelessWidget {
-  const _CcCard({required this.child});
+class _QsCard extends StatelessWidget {
+  const _QsCard({required this.child});
 
   final Widget child;
 

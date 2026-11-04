@@ -21,7 +21,7 @@ class ShellWindowData {
   Offset position;
   Size? size;
   Size? adoptedSize;
-  final dockIconKey = GlobalKey();
+  final dashIconKey = GlobalKey();
   var workspace = 0;
   var animateGeom = false;
 

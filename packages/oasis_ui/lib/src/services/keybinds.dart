@@ -199,7 +199,7 @@ class OasisKeybindsService extends ChangeNotifier {
   static const storeKey = 'shell.keybinds';
 
   static const actionLauncher = 'shell.launcher';
-  static const actionLaunchpad = 'shell.launchpad';
+  static const actionAppGrid = 'shell.launchpad';
   static const actionCycleWindows = 'shell.cycleWindows';
   static const actionCycleWindowsBack = 'shell.cycleWindowsBack';
   static const actionDismiss = 'shell.dismiss';
@@ -210,7 +210,7 @@ class OasisKeybindsService extends ChangeNotifier {
 
   static const builtinActions = [
     actionLauncher,
-    actionLaunchpad,
+    actionAppGrid,
     actionCycleWindows,
     actionCycleWindowsBack,
     actionDismiss,
@@ -222,7 +222,7 @@ class OasisKeybindsService extends ChangeNotifier {
 
   static const defaults = <String, OasisKeyCombo>{
     actionLauncher: OasisKeyCombo(key: LogicalKeyboardKey.space, meta: true),
-    actionLaunchpad: OasisKeyCombo(
+    actionAppGrid: OasisKeyCombo(
       key: LogicalKeyboardKey.space,
       control: true,
     ),

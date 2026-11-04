@@ -25,7 +25,7 @@ List<OasisApp> buildShellApps(
   OasisDisplayBackend? displayBackend,
   OasisPowerBackend? powerBackend,
   OasisKeybindsService? keybinds,
-  OasisDockSettings? dock,
+  OasisDashSettings? dash,
   OasisMouseSettings? mouse,
   OasisTrackpadSettings? trackpad,
 }) {
@@ -50,7 +50,7 @@ List<OasisApp> buildShellApps(
             displayBackend: displayBackend,
             powerBackend: powerBackend,
             keybinds: keybinds,
-            dock: dock,
+            dash: dash,
             mouse: mouse,
             trackpad: trackpad,
           ),

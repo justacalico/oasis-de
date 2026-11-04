@@ -139,7 +139,7 @@ abstract class OasisAppearanceApi extends ChangeNotifier {
         desktopGradientStart: palette.desktopGradientStart,
         desktopGradientMid: palette.desktopGradientMid,
         desktopGradientEnd: palette.desktopGradientEnd,
-        dockFill: palette.dockFill,
+        dashFill: palette.dashFill,
         isDark: palette.isDark,
         isOled: palette.isOled,
       );

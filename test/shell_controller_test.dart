@@ -145,6 +145,7 @@ void main() {
       async.flushMicrotasks();
       expect(backend.calls, greaterThanOrEqualTo(4));
       expect(c.batteryLevel, 0.5);
+      expect(c.batteryCharging, isFalse);
       c.dispose();
     });
   });
@@ -254,7 +255,7 @@ void main() {
     expect(w.size!.width, screen.width / 2);
     expect(
       w.size!.height,
-      screen.height - kMenuBarHeight - 8 - kDockHeight,
+      screen.height - kTopBarHeight - 8 - kDashHeight,
     );
     expect(w.position.dx, 0);
     c.dragWindow(w.id, const Offset(5, 5), screen);
@@ -328,7 +329,7 @@ void main() {
     expect(c.wifiScanning, isFalse);
     await c.connectWifiNetwork('Cafe');
     expect(calls, ['scan', 'connect:Cafe', 'scan']);
-    c.wifiOn = false;
+    c.wifiOnValue = false;
     await c.refreshWifiNetworks();
     expect(c.wifiNetworks, isEmpty);
     c.dispose();
@@ -467,16 +468,16 @@ void main() {
     c.toggleLauncher();
     expect(c.launcherOpen, isTrue);
     expect(c.openMenu, isNull);
-    c.toggleControlCenter();
-    expect(c.controlCenterOpen, isTrue);
+    c.toggleQuickSettings();
+    expect(c.quickSettingsOpen, isTrue);
     expect(c.launcherOpen, isFalse);
     c.selectMenu('Edit');
     c.closeOverlays();
-    expect(c.controlCenterOpen, isFalse);
+    expect(c.quickSettingsOpen, isFalse);
     expect(c.openMenu, isNull);
-    c.toggleControlCenter();
-    c.toggleControlCenter();
-    expect(c.controlCenterOpen, isFalse);
+    c.toggleQuickSettings();
+    c.toggleQuickSettings();
+    expect(c.quickSettingsOpen, isFalse);
     c.toggleLauncher();
     c.toggleLauncher();
     expect(c.launcherOpen, isFalse);

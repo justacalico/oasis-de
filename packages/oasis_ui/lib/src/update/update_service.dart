@@ -129,9 +129,12 @@ class UpdateService extends OasisUpdateApi {
         final bytes = await download(Uri.parse(asset.url));
         final sums = utf8.decode(await download(Uri.parse(sumUrl)));
         final sum = sha256.convert(bytes).toString();
-        if (_checksumMatches(sums, sum, asset.name)) {
+        final safeName = asset.name.split(RegExp(r'[/\\]')).last;
+        final nameOk =
+            safeName.isNotEmpty && safeName != '.' && safeName != '..';
+        if (nameOk && _checksumMatches(sums, sum, asset.name)) {
           final file = File(
-            '${Directory.systemTemp.path}/oasis-${asset.name}',
+            '${Directory.systemTemp.path}/oasis-$safeName',
           );
           final writer = _writeFile;
           if (writer != null) {

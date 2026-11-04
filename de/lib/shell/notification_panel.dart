@@ -4,8 +4,8 @@ import 'package:oasis_ui/oasis_ui.dart';
 import '../services/notifications.dart';
 import 'shell_controller.dart';
 
-class NotificationCenterPanel extends StatelessWidget {
-  const NotificationCenterPanel({super.key, required this.controller});
+class NotificationPanelPanel extends StatelessWidget {
+  const NotificationPanelPanel({super.key, required this.controller});
 
   final ShellController controller;
 
@@ -50,7 +50,7 @@ class NotificationCenterPanel extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            l10n.notifCenter,
+                            l10n.notifPanel,
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -228,8 +228,8 @@ class NotificationBanner extends StatelessWidget {
             child: GestureDetector(
               onTap: () {
                 controller.dismissBanner();
-                if (!controller.notificationCenterOpen) {
-                  controller.toggleNotificationCenter();
+                if (!controller.notificationPanelOpen) {
+                  controller.toggleNotificationPanel();
                 }
               },
               child: OasisGlass(
