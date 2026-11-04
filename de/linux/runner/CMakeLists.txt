@@ -16,6 +16,9 @@ pkg_check_modules(WAYLAND REQUIRED IMPORTED_TARGET
   pixman-1
 )
 
+# xkb_keymap_new_from_names2 appeared in libxkbcommon 1.11.
+pkg_check_modules(XKB_NAMES2 QUIET xkbcommon>=1.11)
+
 pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET
   wlroots-0.20
 )
@@ -75,6 +78,9 @@ add_dependencies(${BINARY_NAME} wlr_protocols_gen)
 # Add preprocessor definitions for the application ID.
 add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
 add_definitions(-DWLR_USE_UNSTABLE)
+if(XKB_NAMES2_FOUND)
+  add_definitions(-DOASIS_XKB_NAMES2)
+endif()
 
 # Add dependency libraries. Add any application-specific dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
