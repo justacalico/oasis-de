@@ -110,34 +110,15 @@ class OasisTheme {
       fromPalette(OasisPalette.of(mode));
 }
 
-class OasisAppearance extends ChangeNotifier {
-  OasisAppearance({
-    OasisThemeMode themeMode = OasisThemeMode.light,
-    Color? accent,
-  })  : _themeMode = themeMode,
-        _accent = accent;
-
-  OasisThemeMode _themeMode;
-  Color? _accent;
-
-  OasisThemeMode get themeMode => _themeMode;
-  Color? get accent => _accent;
-
-  set themeMode(OasisThemeMode mode) {
-    if (mode == _themeMode) return;
-    _themeMode = mode;
-    notifyListeners();
-  }
-
-  set accent(Color? color) {
-    if (color == _accent) return;
-    _accent = color;
-    notifyListeners();
-  }
+abstract class OasisAppearanceApi extends ChangeNotifier {
+  OasisThemeMode get themeMode;
+  set themeMode(OasisThemeMode mode);
+  Color? get accent;
+  set accent(Color? color);
 
   ThemeData get theme {
-    var palette = OasisPalette.of(_themeMode);
-    final custom = _accent;
+    var palette = OasisPalette.of(themeMode);
+    final custom = accent;
     if (custom != null) {
       palette = OasisPalette(
         accent: custom,
@@ -164,5 +145,35 @@ class OasisAppearance extends ChangeNotifier {
       );
     }
     return OasisTheme.fromPalette(palette);
+  }
+}
+
+class OasisAppearance extends OasisAppearanceApi {
+  OasisAppearance({
+    OasisThemeMode themeMode = OasisThemeMode.light,
+    Color? accent,
+  })  : _themeMode = themeMode,
+        _accent = accent;
+
+  OasisThemeMode _themeMode;
+  Color? _accent;
+
+  @override
+  OasisThemeMode get themeMode => _themeMode;
+  @override
+  Color? get accent => _accent;
+
+  @override
+  set themeMode(OasisThemeMode mode) {
+    if (mode == _themeMode) return;
+    _themeMode = mode;
+    notifyListeners();
+  }
+
+  @override
+  set accent(Color? color) {
+    if (color == _accent) return;
+    _accent = color;
+    notifyListeners();
   }
 }

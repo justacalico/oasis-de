@@ -12,7 +12,7 @@ class UpdateCheckTile extends StatelessWidget {
     this.onOpenUrl,
   });
 
-  final UpdateService service;
+  final OasisUpdateApi service;
   final ValueChanged<String>? onOpenUrl;
 
   @override

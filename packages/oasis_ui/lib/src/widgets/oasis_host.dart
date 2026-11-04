@@ -14,8 +14,8 @@ class OasisHost extends InheritedWidget {
     required super.child,
   });
 
-  final OasisAppearance appearance;
-  final UpdateService? updates;
+  final OasisAppearanceApi appearance;
+  final OasisUpdateApi? updates;
   final ValueChanged<Locale?> setLocale;
   final Locale? locale;
   final ValueChanged<String>? openUrl;
