@@ -567,7 +567,7 @@ void main() {
         exec: const ['x'],
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(controller.windows.first.position.dx, greaterThan(1900));
 
     controller.identifyOutputs();

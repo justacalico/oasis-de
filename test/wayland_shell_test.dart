@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasis_de/app.dart';
 import 'package:oasis_de/shell/desktop_shell.dart';
+import 'package:oasis_de/shell/dash.dart';
 import 'package:oasis_de/shell/shell_controller.dart';
 import 'package:oasis_de/shell/window_switcher.dart';
 import 'package:oasis_de/wayland/layer_surface_view.dart';
@@ -960,18 +961,100 @@ void main() {
     service.dispose();
   });
 
-  testWidgets('launching placeholder shows app name', (tester) async {
+  testWidgets('launching app bounces in the dash without a window', (
+    tester,
+  ) async {
     final host = FakeWaylandHost();
     final service = await _service(host);
-    final c = ShellController(apps: [_external('pending')], wayland: service);
-    c.openApp(c.apps.single);
-    await pumpOasis(
-      tester,
-      DesktopShell(controller: c, menusBuilder: () => const []),
-      size: const Size(1280, 800),
+    final c = ShellController(
+      apps: [_external('x'), _external('y')],
+      wayland: service,
+      batteryPollInterval: null,
     );
-    expect(find.text('Ext pending'), findsWidgets);
-    c.dispose();
+    addTearDown(c.dispose);
+    c.pinned.addAll(c.apps);
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      wrapOasis(
+        DesktopShell(controller: c, menusBuilder: () => const []),
+        size: const Size(1280, 800),
+      ),
+    );
+    await tester.pump();
+
+    final icons = find.descendant(
+      of: find.byType(ShellDash),
+      matching: find.byType(OasisAppIcon),
+    );
+    final rest = tester.getTopLeft(icons.at(1));
+    c.openApp(c.apps.first);
+    c.openApp(c.apps.last);
+    await tester.pump();
+    expect(c.windows.length, 2);
+    expect(find.byType(OasisWindow), findsNothing);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.getTopLeft(icons.at(1)).dy, lessThan(rest.dy));
+    expect(tester.getTopLeft(icons.at(2)).dy, lessThan(rest.dy));
+
+    _emitToplevel(host, id: 1, appId: 'x');
+    _emitToplevel(host, id: 2, appId: 'y');
+    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(c.windows.map((w) => w.launching), everyElement(isFalse));
+    expect(find.byType(OasisWindow), findsNWidgets(2));
+    expect(tester.getTopLeft(icons.at(1)).dy, rest.dy);
+    service.dispose();
+  });
+
+  testWidgets('closing a launching window cancels the failure timer', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(
+      apps: [_external('x')],
+      wayland: service,
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    c.openApp(c.apps.single);
+    expect(c.windows.single.launching, isTrue);
+    c.closeWindow(c.windows.single.id);
+    expect(c.windows, isEmpty);
+    await tester.pump(const Duration(seconds: 9));
+    expect(c.launchError, isNull);
+    expect(c.notifications, isEmpty);
+    service.dispose();
+  });
+
+  testWidgets('unpinned app icon bounces in the dash while launching', (
+    tester,
+  ) async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final c = ShellController(
+      apps: [_external('x')],
+      wayland: service,
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+    c.openApp(c.apps.single);
+    await tester.pumpWidget(
+      wrapOasis(
+        Scaffold(body: Center(child: ShellDash(controller: c))),
+        size: const Size(1280, 800),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    final icons = find.descendant(
+      of: find.byType(ShellDash),
+      matching: find.byType(OasisAppIcon),
+    );
+    expect(icons, findsNWidgets(2));
+    _emitToplevel(host, appId: 'x');
+    await tester.pump();
     service.dispose();
   });
 
