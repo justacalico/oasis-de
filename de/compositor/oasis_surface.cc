@@ -745,7 +745,7 @@ void emit_decoration(Surface* s) {
     }
   } else if (s->deco != nullptr && s->deco->scheduled_mode != 0) {
     mode = (int)s->deco->scheduled_mode;
-  } else if (s->kde_deco != nullptr && s->kde_deco->mode != 0) {
+  } else if (s->kde_deco != nullptr && s->kde_req) {
     mode = (int)s->kde_deco->mode;
   }
   if (mode == s->rep_deco) return;

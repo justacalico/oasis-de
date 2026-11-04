@@ -323,6 +323,23 @@ void main() {
     service.dispose();
   });
 
+  test('self-decorating app id overrides negotiated mode', () async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    await service.start();
+    host.emit({
+      'event': 'toplevel',
+      'id': 1,
+      'appId': 'gitlab.openlyst.devinorium',
+    });
+    host.emit({'event': 'decoration', 'id': 1, 'mode': 2});
+    await pumpEventQueue();
+    final s = service.surfaces[1]!;
+    expect(s.decorationMode, 2);
+    expect(s.clientDecorated, isTrue);
+    service.dispose();
+  });
+
   test('service tracks shortcut inhibit and pointer lock', () async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);

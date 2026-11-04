@@ -216,6 +216,7 @@ struct Surface {
   bool cfg_sent = false;
   wlr_xdg_toplevel_decoration_v1* deco = nullptr;
   wlr_server_decoration* kde_deco = nullptr;
+  bool kde_req = false;
   wl_listener deco_destroy = {};
   wl_listener deco_request = {};
   wl_listener kde_mode = {};
