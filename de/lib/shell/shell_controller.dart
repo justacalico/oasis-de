@@ -777,11 +777,20 @@ class ShellController extends ChangeNotifier {
     }
     for (final w in windows) {
       final s = w.surface;
-      if (s == null || w.zoomed || s.size.isEmpty) continue;
+      if (s == null || w.zoomed || w.fullscreen || s.size.isEmpty) {
+        continue;
+      }
       if (_resizeGesture?.id == w.id) continue;
       if (s.size == w.adoptedSize) continue;
       w.adoptedSize = s.size;
-      final fit = Size(s.size.width, s.size.height + w.titleBarHeight);
+      var fit = Size(s.size.width, s.size.height + w.titleBarHeight);
+      final bound = _workAreaSize(w);
+      if (bound != null) {
+        fit = Size(
+          math.min(fit.width, bound.width),
+          math.min(fit.height, bound.height),
+        );
+      }
       if (w.size == fit) continue;
       w.size = fit;
       changed = true;
@@ -806,6 +815,36 @@ class ShellController extends ChangeNotifier {
       _pushWaylandFocus();
       notifyListeners();
     }
+  }
+
+  /// Work area available to a floating window on the head [w] sits on:
+  /// output rect minus menu bar, layer-exclusive insets and, on the
+  /// primary head, the dock. Client-chosen sizes are clamped to this so
+  /// a window can never map bigger than the screen.
+  Size? _workAreaSize(ShellWindowData w) {
+    final wl = wayland;
+    final center = w.position + (w.size ?? Size.zero).center(Offset.zero);
+    final head = (wl?.outputAt(center) ?? wl?.primaryOutput)?.rect;
+    if (wl == null || head == null) return null;
+    final insets = wl.exclusiveInsets;
+    var width = head.width - insets.horizontal;
+    var height = head.height - kMenuBarHeight - 8 - insets.vertical;
+    if (head == wl.primaryOutput?.rect) {
+      final d = dock;
+      if (d == null) {
+        height -= kDockHeight;
+      } else {
+        final extent = dockReservedExtent(d);
+        switch (d.position) {
+          case OasisDockPosition.left:
+          case OasisDockPosition.right:
+            width -= extent;
+          case OasisDockPosition.bottom:
+            height -= extent;
+        }
+      }
+    }
+    return Size(width, height);
   }
 
   void _onWaylandRequest(WaylandRequest request) {
