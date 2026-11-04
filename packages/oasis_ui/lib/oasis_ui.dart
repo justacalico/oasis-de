@@ -31,6 +31,12 @@ export 'src/widgets/oasis_traffic_lights.dart';
 export 'src/widgets/oasis_wallpaper.dart';
 export 'src/widgets/oasis_window.dart';
 export 'src/widgets/wifi_signal_icon.dart';
+export 'src/host/host_endpoint.dart';
+export 'src/host/host_link.dart';
+export 'src/host/host_protocol.dart';
+export 'src/host/host_remote.dart';
+export 'src/host/host_stub.dart'
+    if (dart.library.io) 'src/host/host_dbus.dart';
 export 'src/update/app_update.dart';
 export 'src/update/update_checker.dart';
 export 'src/update/update_service.dart';

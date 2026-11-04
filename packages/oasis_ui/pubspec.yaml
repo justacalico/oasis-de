@@ -10,6 +10,7 @@ environment:
 
 dependencies:
   clock: ^1.1.1
+  dbus: ^0.7.11
   flutter:
     sdk: flutter
   flutter_localizations:
