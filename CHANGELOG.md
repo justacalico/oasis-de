@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.15.2 - 2026-11-04
+#### Bug Fixes
+- 钳制客户端自报窗口尺寸不超过工作区 - (57be00f) - HttpAnimations
+- 按窗口几何偏移绘制缓冲消除应用黑边 - (b6dc972) - HttpAnimations
+#### Refactoring
+- 拆分合成器大文件 - (1901861) - zhenxi
+
+- - -
+
 ## v0.15.1 - 2026-11-04
 #### Bug Fixes
 - 连接时等待事件订阅生效后再取主机快照 - (02dcb1f) - HttpAnimations
