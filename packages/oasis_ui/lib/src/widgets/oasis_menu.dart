@@ -48,12 +48,6 @@ void showOasisMenu(
   entry = OverlayEntry(
     builder: (context) {
       final style = OasisStyle.of(context);
-      const menuWidth = 250.0;
-      const menuHeight = 400.0;
-      final maxX = box.size.width - menuWidth - 8;
-      final maxY = box.size.height - 8;
-      final dx = local.dx.clamp(8.0, maxX > 8 ? maxX : 8.0);
-      final dy = local.dy.clamp(8.0, maxY > 8 ? maxY : 8.0);
       return Stack(
         children: [
           Positioned.fill(
@@ -63,11 +57,10 @@ void showOasisMenu(
               onSecondaryTapUp: (_) => close(),
             ),
           ),
-          Positioned(
-            left: dx,
-            top: dy,
+          CustomSingleChildLayout(
+            delegate: _OasisMenuLayout(local),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: menuHeight),
+              constraints: const BoxConstraints(maxHeight: 400),
               child: OasisGlass(
                 borderRadius: style.menuRadius,
                 blur: 36,
@@ -107,6 +100,39 @@ void showOasisMenu(
     },
   );
   overlay.insert(entry);
+}
+
+class _OasisMenuLayout extends SingleChildLayoutDelegate {
+  const _OasisMenuLayout(this.anchor);
+
+  final Offset anchor;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    const margin = 8.0;
+    final maxX = (size.width - childSize.width - margin).clamp(
+      margin,
+      double.infinity,
+    );
+    var dy = anchor.dy;
+    if (dy + childSize.height > size.height - margin) {
+      dy = anchor.dy - childSize.height;
+    }
+    final maxY = (size.height - childSize.height - margin).clamp(
+      margin,
+      double.infinity,
+    );
+    dy = dy.clamp(margin, maxY);
+    return Offset(anchor.dx.clamp(margin, maxX), dy);
+  }
+
+  @override
+  bool shouldRelayout(_OasisMenuLayout oldDelegate) =>
+      oldDelegate.anchor != anchor;
 }
 
 class OasisPopupMenuButton<T> extends StatelessWidget {

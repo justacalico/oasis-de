@@ -604,6 +604,30 @@ void main() {
     expect(find.text('Two'), findsNothing);
   });
 
+  testWidgets('OasisMenu flips above anchor near the bottom edge', (
+    tester,
+  ) async {
+    Widget home() => Builder(
+      builder: (context) => Center(
+        child: GestureDetector(
+          onTap: () => showOasisMenu(context, const Offset(100, 780), [
+            for (var i = 0; i < 20; i++) OasisMenuItem(label: 'Item $i'),
+          ]),
+          child: const Text('open'),
+        ),
+      ),
+    );
+    await pumpOasis(tester, home());
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    final menu = tester.getRect(find.byType(OasisGlass));
+    expect(menu.bottom, lessThanOrEqualTo(780));
+    expect(menu.top, greaterThanOrEqualTo(8));
+    await tester.pumpWidget(wrapOasis(home(), theme: OasisThemeMode.dark));
+    await tester.pumpAndSettle();
+    expect(find.text('Item 0'), findsOneWidget);
+  });
+
   testWidgets('OasisPopupMenuButton opens and selects', (tester) async {
     int? got;
     await pumpOasis(
