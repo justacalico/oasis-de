@@ -450,10 +450,57 @@ static bool note_exported(Surface* s, wlr_buffer* buf) {
   return true;
 }
 
+// Buffers the renderer already imported (shm and friendlier dmabufs)
+// fall back to a GPU readback through the compositor's own context.
+static bool readback_texture(Surface* s, wlr_texture* tex, int w, int h,
+                             pixman_box32_t* rects, int nrects) {
+  if (w <= 0 || h <= 0 || w > 16384 || h > 16384) return false;
+  uint8_t* stage = stage_pixels(s, w, h);
+  if (stage == nullptr) return false;
+  bool ok = true;
+  for (int i = 0; i < nrects && ok; i++) {
+    pixman_box32_t& r = rects[i];
+    uint8_t* dst = stage + ((size_t)r.y1 * w + r.x1) * 4;
+    ok = texture_read_rgba(tex, dst, r, w * 4);
+  }
+  s->comp->host->unmapPixels(s->texture_id);
+  return ok;
+}
+
 static bool export_buffer(Surface* s) {
   wlr_surface* wlr = s->wlr;
   wlr_buffer* buf = wlr != nullptr ? wlr->current.buffer : nullptr;
-  if (buf == nullptr) return false;
+  if (buf == nullptr) {
+    // wlroots folds commits whose buffer can be damage-applied straight
+    // into the existing client texture and consumes current.buffer in
+    // the process, so shm clients only ever hand us one buffer. The new
+    // pixels then live in the surface's texture; a null-attach (unmap)
+    // commit instead leaves wlr->buffer NULL.
+    if (wlr == nullptr || wlr->buffer == nullptr ||
+        !(wlr->current.committed & WLR_SURFACE_STATE_BUFFER)) {
+      return false;
+    }
+    wlr_texture* tex = wlr_surface_get_texture(wlr);
+    if (tex == nullptr) return false;
+    if (s->iw != tex->width || s->ih != tex->height) s->need_full = true;
+    ensure_texture(s, 1);
+    pixman_region32_t full_region;
+    pixman_region32_init_rect(&full_region, 0, 0, tex->width, tex->height);
+    const pixman_region32_t* damage =
+        s->need_full ? &full_region : &wlr->buffer_damage;
+    int nrects = 0;
+    pixman_box32_t* rects = pixman_region32_rectangles(
+        const_cast<pixman_region32_t*>(damage), &nrects);
+    if (nrects == 0) {
+      pixman_region32_fini(&full_region);
+      return false;
+    }
+    s->need_full = false;
+    bool pushed = readback_texture(s, tex, tex->width, tex->height, rects,
+                                   nrects);
+    pixman_region32_fini(&full_region);
+    return pushed;
+  }
 
   // A commit that re-attaches the displayed buffer without damage carries
   // no new pixels; skip the whole export.
@@ -524,25 +571,11 @@ static bool export_buffer(Surface* s) {
     pixman_region32_fini(&full_region);
     return pushed;
   }
-  // Buffers the renderer already imported (shm and friendlier dmabufs)
-  // fall back to a GPU readback through the compositor's own context.
   wlr_client_buffer* cb = wlr_client_buffer_get(buf);
   if (cb != nullptr && cb->texture != nullptr) {
     ensure_texture(s, 1);
-    int w = buf->width, h = buf->height;
-    if (w > 0 && h > 0 && w <= 16384 && h <= 16384) {
-      uint8_t* stage = stage_pixels(s, w, h);
-      if (stage != nullptr) {
-        bool ok = true;
-        for (int i = 0; i < nrects && ok; i++) {
-          pixman_box32_t& r = rects[i];
-          uint8_t* dst = stage + ((size_t)r.y1 * w + r.x1) * 4;
-          ok = texture_read_rgba(cb->texture, dst, r, w * 4);
-        }
-        s->comp->host->unmapPixels(s->texture_id);
-        pushed = ok;
-      }
-    }
+    pushed = readback_texture(s, cb->texture, buf->width, buf->height,
+                              rects, nrects);
     pixman_region32_fini(&full_region);
     return pushed;
   }
