@@ -55,11 +55,11 @@ class _ShellDashState extends State<ShellDash>
     final px = _pointer;
     final base = widget.iconSize;
     if (px == null) return base;
-    final range = base * 2.1;
+    final range = base * 2.3;
     final d = (px - center).abs();
     if (d >= range) return base;
     final falloff = 1 - d / range;
-    return base + base * 0.38 * falloff * falloff * _magnify.value;
+    return base + base * 0.5 * falloff * falloff * _magnify.value;
   }
 
   Widget _dashMenu(
@@ -153,7 +153,7 @@ class _ShellDashState extends State<ShellDash>
         position: widget.position,
         onTap: c.toggleAppGrid,
       ),
-      _DashDivider(length: widget.iconSize * 0.8, vertical: vertical),
+      _DashDivider(size: widget.iconSize, position: widget.position),
       for (final app in c.pinned)
         DragTarget<OasisApp>(
           onAcceptWithDetails: (d) => c.movePinned(d.data.id, app.id),
@@ -204,7 +204,7 @@ class _ShellDashState extends State<ShellDash>
           pinned: pinnedIds.contains(w.app.id),
         ),
       if (minimized.isNotEmpty)
-        _DashDivider(length: widget.iconSize * 0.8, vertical: vertical),
+        _DashDivider(size: widget.iconSize, position: widget.position),
       for (final w in minimized)
         _dashMenu(
           context,
@@ -223,49 +223,56 @@ class _ShellDashState extends State<ShellDash>
         ),
     ];
 
+    final radius = widget.iconSize * 0.42;
     return MouseRegion(
       onHover: (e) {
         setState(() => _pointer = vertical ? e.position.dy : e.position.dx);
         _magnify.forward();
       },
       onExit: (_) => _magnify.reverse(),
-      child: Container(
-        margin: switch (widget.position) {
-          OasisDashPosition.left => const EdgeInsets.only(left: 10),
-          OasisDashPosition.right => const EdgeInsets.only(right: 10),
-          OasisDashPosition.bottom => const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: switch (widget.position) {
+          OasisDashPosition.left => EdgeInsets.only(
+            right: widget.iconSize * 0.6,
+          ),
+          OasisDashPosition.right => EdgeInsets.only(
+            left: widget.iconSize * 0.6,
+          ),
+          OasisDashPosition.bottom => EdgeInsets.only(
+            top: widget.iconSize * 0.6,
+          ),
         },
-        padding: vertical
-            ? const EdgeInsets.symmetric(horizontal: 8, vertical: 10)
-            : const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: p.glassBorder, width: 0.5),
-          boxShadow: [
-            BoxShadow(
-              color: p.shadow.withValues(alpha: 0.25),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                  child: Container(color: p.dashFill),
+        child: Container(
+          margin: switch (widget.position) {
+            OasisDashPosition.left => const EdgeInsets.only(left: 8),
+            OasisDashPosition.right => const EdgeInsets.only(right: 8),
+            OasisDashPosition.bottom => const EdgeInsets.only(bottom: 8),
+          },
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: p.glassBorder, width: 0.5),
+            boxShadow: [
+              BoxShadow(
+                color: p.shadow.withValues(alpha: 0.25),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(radius),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                    child: Container(color: p.dashFill),
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: vertical
-                  ? const EdgeInsets.symmetric(horizontal: 2, vertical: 6)
-                  : const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: Flex(
+              Flex(
                 direction: vertical ? Axis.vertical : Axis.horizontal,
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: vertical
@@ -273,8 +280,8 @@ class _ShellDashState extends State<ShellDash>
                     : CrossAxisAlignment.end,
                 children: icons,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -282,21 +289,38 @@ class _ShellDashState extends State<ShellDash>
 }
 
 class _DashDivider extends StatelessWidget {
-  const _DashDivider({required this.length, required this.vertical});
+  const _DashDivider({required this.size, required this.position});
 
-  final double length;
-  final bool vertical;
+  final double size;
+  final OasisDashPosition position;
 
   @override
   Widget build(BuildContext context) {
     final p = OasisStyle.of(context).palette;
-    return Container(
-      width: vertical ? length : 1,
-      height: vertical ? 1 : length,
-      margin: vertical
-          ? const EdgeInsets.symmetric(vertical: 8)
-          : const EdgeInsets.symmetric(horizontal: 8),
+    const strip = _DashIcon.dotStrip;
+    final line = Container(
+      width: position == OasisDashPosition.bottom ? 1 : size * 0.8,
+      height: position == OasisDashPosition.bottom ? size * 0.8 : 1,
       color: p.glassBorder,
+    );
+    return Padding(
+      padding: switch (position) {
+        OasisDashPosition.left => const EdgeInsets.symmetric(vertical: 6),
+        OasisDashPosition.right => const EdgeInsets.symmetric(vertical: 6),
+        OasisDashPosition.bottom => const EdgeInsets.symmetric(horizontal: 6),
+      },
+      child: SizedBox(
+        width: position == OasisDashPosition.bottom ? null : size + strip,
+        height: position == OasisDashPosition.bottom ? size + strip : null,
+        child: Padding(
+          padding: switch (position) {
+            OasisDashPosition.left => const EdgeInsets.only(left: strip),
+            OasisDashPosition.right => const EdgeInsets.only(right: strip),
+            OasisDashPosition.bottom => const EdgeInsets.only(bottom: strip),
+          },
+          child: Center(child: line),
+        ),
+      ),
     );
   }
 }
@@ -322,6 +346,11 @@ class _DashIcon extends StatelessWidget {
   final OasisDashPosition position;
   final VoidCallback? onTap;
   final TooltipTriggerMode? triggerMode;
+
+  /// Space below the icon (or beside it, on vertical dashes) holding the
+  /// running dot. Magnified icons grow past the panel edge instead of
+  /// stretching it, so this strip stays put.
+  static const dotStrip = 8.0;
 
   @override
   Widget build(BuildContext context) {
@@ -353,23 +382,11 @@ class _DashIcon extends StatelessWidget {
             triggerMode: triggerMode,
             child: GestureDetector(
               onTap: onTap,
-              child: SizedBox(
-                width: size,
-                height: size,
-                child: Transform.scale(
-                  scale: s / size,
-                  alignment: switch (position) {
-                    OasisDashPosition.left => Alignment.centerLeft,
-                    OasisDashPosition.right => Alignment.centerRight,
-                    OasisDashPosition.bottom => Alignment.bottomCenter,
-                  },
-                  child: OasisAppIcon(
-                    icon: app.icon,
-                    colors: app.iconColors,
-                    iconPath: app.iconPath,
-                    size: size,
-                  ),
-                ),
+              child: OasisAppIcon(
+                icon: app.icon,
+                colors: app.iconColors,
+                iconPath: app.iconPath,
+                size: s,
               ),
             ),
           ),
@@ -388,28 +405,49 @@ class _DashIcon extends StatelessWidget {
             ),
           ),
         );
+        final slot = switch (position) {
+          OasisDashPosition.bottom => SizedBox(
+            width: s,
+            height: size + dotStrip,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.bottomCenter,
+              children: [
+                Positioned(bottom: dotStrip, child: icon),
+                Positioned(bottom: 2, child: dot),
+              ],
+            ),
+          ),
+          OasisDashPosition.left => SizedBox(
+            width: size + dotStrip,
+            height: s,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.centerLeft,
+              children: [
+                Positioned(left: dotStrip, child: icon),
+                Positioned(left: 2, child: dot),
+              ],
+            ),
+          ),
+          OasisDashPosition.right => SizedBox(
+            width: size + dotStrip,
+            height: s,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.centerRight,
+              children: [
+                Positioned(right: dotStrip, child: icon),
+                Positioned(right: 2, child: dot),
+              ],
+            ),
+          ),
+        };
         return Padding(
           padding: vertical
               ? const EdgeInsets.symmetric(vertical: 4)
               : const EdgeInsets.symmetric(horizontal: 4),
-          child: Semantics(
-            button: true,
-            label: app.name,
-            child: switch (position) {
-              OasisDashPosition.bottom => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [icon, const SizedBox(height: 3), dot],
-              ),
-              OasisDashPosition.left => Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [dot, const SizedBox(width: 3), icon],
-              ),
-              OasisDashPosition.right => Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [icon, const SizedBox(width: 3), dot],
-              ),
-            },
-          ),
+          child: Semantics(button: true, label: app.name, child: slot),
         );
       },
     );

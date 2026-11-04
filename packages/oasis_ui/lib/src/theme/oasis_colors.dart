@@ -92,7 +92,7 @@ class OasisPalette {
     desktopGradientStart: Color(0xFF1B2A4A),
     desktopGradientMid: Color(0xFF46324A),
     desktopGradientEnd: Color(0xFF6B3B2E),
-    dashFill: Color(0x40FFFFFF),
+    dashFill: Color(0x4DFFFFFF),
     isDark: true,
     isOled: false,
   );
@@ -116,7 +116,7 @@ class OasisPalette {
     desktopGradientStart: Color(0xFF05070F),
     desktopGradientMid: Color(0xFF0E0B14),
     desktopGradientEnd: Color(0xFF140A08),
-    dashFill: Color(0x2EFFFFFF),
+    dashFill: Color(0x40FFFFFF),
     isDark: true,
     isOled: true,
   );

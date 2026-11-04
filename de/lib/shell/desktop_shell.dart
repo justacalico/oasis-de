@@ -73,7 +73,7 @@ class _DesktopShellState extends State<DesktopShell> {
       OasisDashPosition.left => pos.dx - rect.left,
       OasisDashPosition.right => rect.right - pos.dx,
     };
-    final show = _dashRevealed ? d < dash.iconSize + 45 : d <= 3;
+    final show = _dashRevealed ? d < dash.iconSize + 60 : d <= 3;
     if (show == _dashRevealed) return;
     _dashHideTimer?.cancel();
     if (show) {
