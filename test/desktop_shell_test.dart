@@ -101,8 +101,9 @@ void main() {
     expect(find.byType(Tooltip), findsWidgets);
   });
 
-  testWidgets('untitled wayland surface uses localized fallback name',
-      (tester) async {
+  testWidgets('untitled wayland surface uses localized fallback name', (
+    tester,
+  ) async {
     final host = FakeWaylandHost();
     final wayland = WaylandService(host: host);
     await wayland.start();
@@ -348,10 +349,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.wifi).first);
     await tester.pump();
     expect(find.text('Scanning…'), findsOneWidget);
-    await tester.tapAt(
-      const Offset(640, 400),
-      buttons: kSecondaryMouseButton,
-    );
+    await tester.tapAt(const Offset(640, 400), buttons: kSecondaryMouseButton);
     await tester.pumpAndSettle();
     expect(find.text('Scanning…'), findsNothing);
     completer.complete(const [OasisWifiNetwork(ssid: 'HomeBase')]);
@@ -382,13 +380,7 @@ void main() {
     await pumpDesktop(tester, backend: _SessionBackend(calls));
     await tester.tap(find.byIcon(Icons.power_settings_new));
     await tester.pumpAndSettle();
-    for (final label in [
-      'Lock',
-      'Log Out',
-      'Sleep',
-      'Restart',
-      'Shut Down',
-    ]) {
+    for (final label in ['Lock', 'Log Out', 'Sleep', 'Restart', 'Shut Down']) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       if (label != 'Lock') {
@@ -425,11 +417,7 @@ void main() {
     await store.write('shell.brightness', '0.3');
     await store.write('shell.volume', '0.7');
     final calls = <String>[];
-    await pumpDesktop(
-      tester,
-      backend: _ReplayBackend(calls),
-      store: store,
-    );
+    await pumpDesktop(tester, backend: _ReplayBackend(calls), store: store);
     expect(calls, ['wifi', 'bluetooth', 'nightLight', 'brightness', 'volume']);
   });
 
@@ -465,9 +453,7 @@ void main() {
     expect(find.text('File'), findsOneWidget);
   });
 
-  testWidgets('notification panel shows, dismisses and clears', (
-    tester,
-  ) async {
+  testWidgets('notification panel shows, dismisses and clears', (tester) async {
     final daemon = _FakeDaemon();
     await pumpDesktop(tester, notificationDaemon: daemon);
     expect(daemon.startedFake, isTrue);
@@ -529,16 +515,22 @@ void main() {
   });
 
   testWidgets('battery icon follows level and charging', (tester) async {
-    for (final (level, charging, icon) in [
-      (0.2, false, Icons.battery_1_bar),
-      (0.4, false, Icons.battery_3_bar),
-      (0.6, false, Icons.battery_4_bar),
-      (0.8, false, Icons.battery_6_bar),
-      (0.95, false, Icons.battery_full),
-      (0.5, true, Icons.battery_charging_full),
+    for (final (level, charging, icon, label, color) in [
+      (0.05, false, Icons.battery_1_bar, '5%', const Color(0xFFFF453A)),
+      (0.15, false, Icons.battery_1_bar, '15%', const Color(0xFFFFD60A)),
+      (0.2, false, Icons.battery_1_bar, '20%', const Color(0xFFFFFFFF)),
+      (0.4, false, Icons.battery_3_bar, '40%', const Color(0xFFFFFFFF)),
+      (0.6, false, Icons.battery_4_bar, '60%', const Color(0xFFFFFFFF)),
+      (0.8, false, Icons.battery_6_bar, '80%', const Color(0xFFFFFFFF)),
+      (0.95, false, Icons.battery_full, '95%', const Color(0xFFFFFFFF)),
+      (0.5, true, Icons.battery_charging_full, '50%', const Color(0xFF30D158)),
+      (0.05, true, Icons.battery_charging_full, '5%', const Color(0xFF30D158)),
     ]) {
       await pumpDesktop(tester, backend: _BatteryBackend(level, charging));
       expect(find.byIcon(icon), findsOneWidget);
+      expect(find.text(label), findsOneWidget);
+      expect(tester.widget<Icon>(find.byIcon(icon)).color, color);
+      expect(tester.widget<Text>(find.text(label)).style?.color, color);
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
     }
@@ -799,7 +791,10 @@ void main() {
       iconColors: const [Color(0xFF000000), Color(0xFF111111)],
       builder: (_) => const SizedBox(),
     );
-    final c = ShellController(batteryPollInterval: null, apps: [mk('a'), mk('b'), mk('ext')]);
+    final c = ShellController(
+      batteryPollInterval: null,
+      apps: [mk('a'), mk('b'), mk('ext')],
+    );
     addTearDown(c.dispose);
     c.pinned.addAll([c.apps[0], c.apps[1]]);
     c.openApp(c.apps[2]);
@@ -841,7 +836,10 @@ void main() {
       iconColors: const [Color(0xFF000000), Color(0xFF111111)],
       builder: (_) => const SizedBox(),
     );
-    final c = ShellController(batteryPollInterval: null, apps: [mk('a'), mk('b')]);
+    final c = ShellController(
+      batteryPollInterval: null,
+      apps: [mk('a'), mk('b')],
+    );
     addTearDown(c.dispose);
     c.pinned.addAll(c.apps);
     await pumpOasis(
@@ -868,7 +866,10 @@ void main() {
       iconColors: const [Color(0xFF000000), Color(0xFF111111)],
       builder: (_) => const SizedBox(),
     );
-    final c = ShellController(batteryPollInterval: null, apps: [mk('a'), mk('b')]);
+    final c = ShellController(
+      batteryPollInterval: null,
+      apps: [mk('a'), mk('b')],
+    );
     addTearDown(c.dispose);
     c.pinned.addAll(c.apps);
     await pumpOasis(
@@ -1094,7 +1095,9 @@ void main() {
     final w = c.windows.single;
     await pumpOasis(
       tester,
-      Scaffold(body: Center(child: ShellDash(controller: c))),
+      Scaffold(
+        body: Center(child: ShellDash(controller: c)),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -1129,9 +1132,7 @@ void main() {
     expect(c.windows, isEmpty);
   });
 
-  testWidgets('notification actions, banner hover and close', (
-    tester,
-  ) async {
+  testWidgets('notification actions, banner hover and close', (tester) async {
     final daemon = _FakeDaemon();
     await pumpDesktop(tester, notificationDaemon: daemon);
     daemon.push!(
@@ -1258,8 +1259,7 @@ class _WifiBackend extends NoopSystemBackend {
   }
 
   @override
-  Future<void> connectWifi(String ssid) async =>
-      calls.add('connect:$ssid');
+  Future<void> connectWifi(String ssid) async => calls.add('connect:$ssid');
 }
 
 class _BatteryBackend extends NoopSystemBackend {
@@ -1296,8 +1296,7 @@ class _ReplayBackend extends NoopSystemBackend {
 
 class _LockBackend extends NoopSystemBackend {
   @override
-  Future<bool> verifyPassword(String password) async =>
-      password == 'hunter2';
+  Future<bool> verifyPassword(String password) async => password == 'hunter2';
 }
 
 class _SessionBackend extends NoopSystemBackend {

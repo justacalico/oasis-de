@@ -104,20 +104,7 @@ class ShellTopBar extends StatelessWidget {
                 ),
                 _WifiMenu(controller: controller, style: textStyle),
                 if (controller.batteryLevel != null)
-                  _StatusIcon(
-                    icon: controller.batteryCharging
-                        ? Icons.battery_charging_full
-                        : switch ((controller.batteryLevel! * 10).round()) {
-                            <= 2 => Icons.battery_1_bar,
-                            <= 4 => Icons.battery_3_bar,
-                            <= 6 => Icons.battery_4_bar,
-                            <= 8 => Icons.battery_6_bar,
-                            _ => Icons.battery_full,
-                          },
-                    onTap: controller.toggleQuickSettings,
-                    style: textStyle,
-                    tooltip: l10n.ccBattery,
-                  ),
+                  _BatteryIndicator(controller: controller, style: textStyle),
                 _StatusIcon(
                   icon: Icons.tune,
                   onTap: controller.toggleQuickSettings,
@@ -328,6 +315,57 @@ class _WifiMenu extends StatelessWidget {
         final pos = box.localToGlobal(Offset(0, box.size.height + 4));
         showWifiMenu(context, pos, c);
       },
+    );
+  }
+}
+
+class _BatteryIndicator extends StatelessWidget {
+  const _BatteryIndicator({required this.controller, required this.style});
+
+  final ShellController controller;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = OasisLocalizations.of(context);
+    final level = controller.batteryLevel!;
+    final color = controller.batteryCharging
+        ? const Color(0xFF30D158)
+        : level < 0.10
+        ? const Color(0xFFFF453A)
+        : level < 0.20
+        ? const Color(0xFFFFD60A)
+        : style?.color;
+    final icon = controller.batteryCharging
+        ? Icons.battery_charging_full
+        : switch ((level * 10).round()) {
+            <= 2 => Icons.battery_1_bar,
+            <= 4 => Icons.battery_3_bar,
+            <= 6 => Icons.battery_4_bar,
+            <= 8 => Icons.battery_6_bar,
+            _ => Icons.battery_full,
+          };
+    final indicator = Semantics(
+      button: true,
+      label: l10n.ccBattery,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 3),
+            Text(
+              '${(level * 100).round()}%',
+              style: style?.copyWith(color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+    return GestureDetector(
+      onTap: controller.toggleQuickSettings,
+      child: OasisTooltip(message: l10n.ccBattery, child: indicator),
     );
   }
 }
