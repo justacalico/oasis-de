@@ -37,6 +37,7 @@ class MprisService extends ChangeNotifier {
   DBusRemoteObject? _player;
   StreamSubscription<DBusSignal>? _propsSub;
   StreamSubscription<DBusSignal>? _ownerSub;
+  final _recent = <String>[];
 
   var hasPlayer = false;
   var playing = false;
@@ -44,6 +45,7 @@ class MprisService extends ChangeNotifier {
   var artist = '';
   var album = '';
   var playerName = '';
+  var playerIdentity = '';
 
   Stream<DBusSignal> _signals(
     DBusClient bus, {
@@ -63,7 +65,7 @@ class MprisService extends ChangeNotifier {
     final bus = _connect();
     try {
       _bus = bus;
-      await _bindFirstPlayer(bus);
+      await _bindBest();
       _ownerSub =
           _signals(
             bus,
@@ -77,7 +79,7 @@ class MprisService extends ChangeNotifier {
     }
   }
 
-  Future<void> _bindFirstPlayer(DBusClient bus) async {
+  Future<List<String>> _listPlayers(DBusClient bus) async {
     final root = DBusRemoteObject(
       bus,
       name: 'org.freedesktop.DBus',
@@ -89,12 +91,45 @@ class MprisService extends ChangeNotifier {
       const [],
       replySignature: DBusSignature('as'),
     );
-    for (final v in (reply.returnValues.first as DBusArray).children) {
-      final n = (v as DBusString).value;
-      if (n.startsWith('org.mpris.MediaPlayer2.')) {
+    return [
+      for (final v in (reply.returnValues.first as DBusArray).children)
+        if ((v as DBusString).value.startsWith('org.mpris.MediaPlayer2.'))
+          v.value,
+    ];
+  }
+
+  Future<void> _bindBest() async {
+    final bus = _bus;
+    if (bus == null) return;
+    final names = await _listPlayers(bus);
+    if (names.isEmpty) return;
+    final ordered = [
+      for (final n in _recent)
+        if (names.contains(n)) n,
+      for (final n in names)
+        if (!_recent.contains(n)) n,
+    ];
+    for (final n in ordered) {
+      if (await _isPlaying(bus, n)) {
         await _bind(n);
         return;
       }
+    }
+    await _bind(ordered.first);
+  }
+
+  Future<bool> _isPlaying(DBusClient bus, String name) async {
+    try {
+      final props = await DBusRemoteObject(
+        bus,
+        name: name,
+        path: DBusObjectPath('/mpris/MediaPlayer2'),
+      ).getAllProperties('org.mpris.MediaPlayer2.Player');
+      DBusValue? v = props['PlaybackStatus'];
+      if (v is DBusVariant) v = v.value;
+      return v is DBusString && v.value == 'Playing';
+    } catch (_) {
+      return false;
     }
   }
 
@@ -104,22 +139,18 @@ class MprisService extends ChangeNotifier {
     final newOwner = (signal.values[2] as DBusString).value;
     if (!name.startsWith('org.mpris.MediaPlayer2.')) return;
     if (newOwner.isNotEmpty) {
-      unawaited(_bind(name));
-    } else if (name == playerName) {
-      _propsSub?.cancel();
-      _propsSub = null;
-      _player = null;
-      hasPlayer = false;
-      playing = false;
-      title = artist = album = playerName = '';
-      notifyListeners();
-      final bus = _bus;
-      if (bus != null) {
-        unawaited(
-          _bindFirstPlayer(bus).catchError((Object _) {}),
-        );
-      }
+      if (!hasPlayer) unawaited(_bind(name));
+      return;
     }
+    if (name != playerName) return;
+    _propsSub?.cancel();
+    _propsSub = null;
+    _player = null;
+    hasPlayer = false;
+    playing = false;
+    title = artist = album = playerName = playerIdentity = '';
+    notifyListeners();
+    unawaited(_bindBest().catchError((Object _) {}));
   }
 
   Future<void> _bind(String name) async {
@@ -127,12 +158,14 @@ class MprisService extends ChangeNotifier {
     if (bus == null) return;
     playerName = name;
     hasPlayer = true;
+    _touch(name);
     _player = DBusRemoteObject(
       bus,
       name: name,
       path: DBusObjectPath('/mpris/MediaPlayer2'),
     );
     await _readState();
+    await _readIdentity();
     await _propsSub?.cancel();
     _propsSub =
         _signals(
@@ -167,10 +200,34 @@ class MprisService extends ChangeNotifier {
     } catch (_) {}
   }
 
+  void _touch(String name) {
+    _recent
+      ..remove(name)
+      ..insert(0, name);
+  }
+
+  Future<void> _readIdentity() async {
+    final player = _player;
+    if (player == null) return;
+    var identity = '';
+    try {
+      final props = await player.getAllProperties(
+        'org.mpris.MediaPlayer2',
+      );
+      DBusValue? v = props['Identity'];
+      if (v is DBusVariant) v = v.value;
+      if (v is DBusString) identity = v.value;
+    } catch (_) {}
+    playerIdentity = identity.isEmpty
+        ? playerName.replaceFirst('org.mpris.MediaPlayer2.', '')
+        : identity;
+  }
+
   void _apply(DBusString key, DBusValue value) {
     if (value is DBusVariant) value = value.value;
     if (key.value == 'PlaybackStatus' && value is DBusString) {
       playing = value.value == 'Playing';
+      if (playing) _touch(playerName);
     } else if (key.value == 'Metadata' && value is DBusDict) {
       var t = '';
       var ar = '';
