@@ -311,13 +311,13 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get wallpaperCustom => 'Своё изображение';
 
   @override
-  String get wallpaperPathHint => 'Путь к изображению';
+  String get wallpaperBrowse => 'Обзор…';
 
   @override
-  String get wallpaperApply => 'Применить';
+  String get wallpaperBrowseHint => 'Выберите изображение из файлов';
 
   @override
-  String get wallpaperInvalidPath => 'Изображение не найдено';
+  String get wallpaperPickTitle => 'Выберите изображение для обоев';
 
   @override
   String get wallpaperFit => 'Размещение';
@@ -602,6 +602,12 @@ class OasisLocalizationsRu extends OasisLocalizations {
 
   @override
   String get filesCancel => 'Отмена';
+
+  @override
+  String get filesChoose => 'Выбрать';
+
+  @override
+  String get filePickerTitle => 'Выберите файл';
 
   @override
   String get filesCreate => 'Создать';

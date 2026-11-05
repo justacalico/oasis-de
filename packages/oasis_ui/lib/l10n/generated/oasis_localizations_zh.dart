@@ -304,13 +304,13 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get wallpaperCustom => '自定义图片';
 
   @override
-  String get wallpaperPathHint => '图片路径';
+  String get wallpaperBrowse => '浏览…';
 
   @override
-  String get wallpaperApply => '应用';
+  String get wallpaperBrowseHint => '从文件中挑选一张图片';
 
   @override
-  String get wallpaperInvalidPath => '找不到图片';
+  String get wallpaperPickTitle => '选择壁纸图片';
 
   @override
   String get wallpaperFit => '填充方式';
@@ -588,6 +588,12 @@ class OasisLocalizationsZh extends OasisLocalizations {
 
   @override
   String get filesCancel => '取消';
+
+  @override
+  String get filesChoose => '选择';
+
+  @override
+  String get filePickerTitle => '选择文件';
 
   @override
   String get filesCreate => '创建';

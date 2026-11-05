@@ -7,6 +7,7 @@ void showOasisDialog(
   BuildContext context,
   Widget Function(BuildContext context, VoidCallback close) builder, {
   VoidCallback? onClosed,
+  BoxConstraints constraints = const BoxConstraints(maxWidth: 300),
 }) {
   final overlay = Overlay.maybeOf(context);
   if (overlay == null) return;
@@ -33,7 +34,7 @@ void showOasisDialog(
           ),
           Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 300),
+              constraints: constraints,
               child: OasisGlass(
                 borderRadius: style.menuRadius,
                 blur: 40,

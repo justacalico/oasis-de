@@ -727,6 +727,64 @@ void main() {
     );
   });
 
+  testWidgets('file picker', (tester) async {
+    final when = DateTime(2024, 3, 2, 14, 30);
+    final s = FilesState(
+      backend: _FilesBackend({
+        '/home/u': [
+          FileItem(
+            path: '/home/u/docs',
+            name: 'docs',
+            isDir: true,
+            modified: when,
+          ),
+          FileItem(
+            path: '/home/u/photo.png',
+            name: 'photo.png',
+            isDir: false,
+            size: 3000000,
+            modified: when,
+          ),
+          FileItem(
+            path: '/home/u/report.pdf',
+            name: 'report.pdf',
+            isDir: false,
+            size: 42000,
+            modified: when,
+          ),
+        ],
+      }),
+    );
+    await _size(tester, const Size(900, 600));
+    await tester.pumpWidget(
+      wrapOasis(
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: OasisButton(
+                label: 'pick',
+                onPressed: () => showOasisFilePicker(
+                  context,
+                  state: s,
+                  initialDir: '/home/u',
+                ),
+              ),
+            ),
+          ),
+        ),
+        theme: OasisThemeMode.light,
+        size: const Size(900, 600),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('pick'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/file_picker.png'),
+    );
+  });
+
   testWidgets('screenshot app', (tester) async {
     await withClock(Clock.fixed(DateTime(2025, 6, 10, 9, 41)), () async {
       await _size(tester, const Size(1280, 800));

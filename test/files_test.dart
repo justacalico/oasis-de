@@ -673,4 +673,155 @@ void main() {
     expect(s.dir, '/home');
     s.dispose();
   });
+
+  Widget pickerHost({
+    FilesState? state,
+    FilesBackend? backend,
+    String? initialDir,
+    Set<String>? extensions,
+    String? title,
+    String? confirmLabel,
+    ValueChanged<String>? onSelected,
+    VoidCallback? onCancel,
+  }) =>
+      Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 640,
+            height: 460,
+            child: OasisFilePicker(
+              state: state,
+              backend: backend,
+              initialDir: initialDir,
+              extensions: extensions,
+              title: title,
+              confirmLabel: confirmLabel,
+              onSelected: onSelected ?? (_) {},
+              onCancel: onCancel,
+            ),
+          ),
+        ),
+      );
+
+  testWidgets('file picker filters and chooses a file', (tester) async {
+    final b = _backend();
+    final s = _state(b);
+    addTearDown(s.dispose);
+    String? picked;
+    await pumpOasis(
+      tester,
+      pickerHost(
+        state: s,
+        initialDir: '/home/u',
+        extensions: const {'png'},
+        title: 'Pick one',
+        confirmLabel: 'Use it',
+        onSelected: (p) => picked = p,
+      ),
+      size: const Size(900, 600),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Pick one'), findsOneWidget);
+    expect(find.text('b.png'), findsOneWidget);
+    expect(find.text('docs'), findsOneWidget);
+    expect(find.text('a.txt'), findsNothing);
+
+    await tester.tap(find.text('docs'));
+    await tester.pump();
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    expect(s.dir, '/home/u/docs');
+    expect(find.text('report.pdf'), findsNothing);
+    expect(find.text('This folder is empty'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Up'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('b.png'));
+    await tester.pump();
+    await tester.tap(find.text('Use it'));
+    await tester.pump();
+    expect(picked, '/home/u/b.png');
+  });
+
+  testWidgets('file picker double tap and cancel', (tester) async {
+    final b = _backend();
+    String? picked;
+    var cancelled = false;
+    await pumpOasis(
+      tester,
+      pickerHost(
+        backend: b,
+        initialDir: '/home/u',
+        onSelected: (p) => picked = p,
+        onCancel: () => cancelled = true,
+      ),
+      size: const Size(900, 600),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('a.txt'));
+    await tester.pump();
+    await tester.tap(find.text('a.txt').first);
+    await tester.pump();
+    expect(picked, '/home/u/a.txt');
+
+    await tester.tap(find.text('docs').first);
+    await tester.pump();
+    await tester.tap(find.text('docs').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+    expect(cancelled, isTrue);
+  });
+
+  testWidgets('showOasisFilePicker returns path or null', (tester) async {
+    final b = _backend();
+    final s = _state(b);
+    addTearDown(s.dispose);
+    Future<String?>? future;
+    await pumpOasis(
+      tester,
+      OasisHost(
+        appearance: OasisAppearance(),
+        setLocale: (_) {},
+        child: Scaffold(
+          body: Center(
+            child: Builder(
+              builder: (context) => OasisButton(
+                label: 'pick',
+                onPressed: () => future = showOasisFilePicker(
+                  context,
+                  state: s,
+                  initialDir: '/home/u',
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      size: const Size(900, 600),
+    );
+
+    await tester.tap(find.text('pick'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose a file'), findsOneWidget);
+    await tester.tap(find.text('b.png'));
+    await tester.pump();
+    await tester.tap(find.text('Choose'));
+    await tester.pumpAndSettle();
+    expect(await future!, '/home/u/b.png');
+
+    await tester.tap(find.text('pick'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(await future!, isNull);
+
+    await tester.tap(find.text('pick'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(await future!, isNull);
+  });
 }

@@ -306,13 +306,13 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get wallpaperCustom => 'Custom image';
 
   @override
-  String get wallpaperPathHint => 'Image path';
+  String get wallpaperBrowse => 'Browse…';
 
   @override
-  String get wallpaperApply => 'Apply';
+  String get wallpaperBrowseHint => 'Pick an image from your files';
 
   @override
-  String get wallpaperInvalidPath => 'Image not found';
+  String get wallpaperPickTitle => 'Choose a wallpaper image';
 
   @override
   String get wallpaperFit => 'Fit';
@@ -597,6 +597,12 @@ class OasisLocalizationsEn extends OasisLocalizations {
 
   @override
   String get filesCancel => 'Cancel';
+
+  @override
+  String get filesChoose => 'Choose';
+
+  @override
+  String get filePickerTitle => 'Choose a file';
 
   @override
   String get filesCreate => 'Create';

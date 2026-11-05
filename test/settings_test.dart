@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oasis_files/oasis_files.dart';
 import 'package:oasis_settings/oasis_settings.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -385,6 +386,52 @@ void main() {
     wallpaper.usePreset('aurora');
     expect(wallpaper.preset, 'aurora');
     expect(wallpaper.hasCustomImage, isFalse);
+  });
+
+  testWidgets('wallpaper pane browses for an image', (tester) async {
+    final wallpaper = OasisWallpaperService(store: MemoryOasisStore());
+    final backend = FakeFilesBackend([
+      const FileItem(
+        path: '/pics/beach.png',
+        name: 'beach.png',
+        isDir: false,
+      ),
+      const FileItem(
+        path: '/pics/notes.txt',
+        name: 'notes.txt',
+        isDir: false,
+      ),
+    ]);
+    await pumpOasis(
+      tester,
+      Scaffold(
+        body: WallpaperPane(
+          wallpaper: wallpaper,
+          filesBackend: backend,
+        ),
+      ),
+      size: const Size(1100, 800),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Browse…'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose a wallpaper image'), findsOneWidget);
+    expect(find.text('beach.png'), findsOneWidget);
+    expect(find.text('notes.txt'), findsNothing);
+
+    await tester.tap(find.text('beach.png'));
+    await tester.pump();
+    await tester.tap(find.text('Choose'));
+    await tester.pumpAndSettle();
+    expect(wallpaper.imagePath, '/pics/beach.png');
+    expect(find.text('beach.png'), findsOneWidget);
+    expect(find.text('Fill screen'), findsOneWidget);
+
+    await tester.tap(find.text('Browse…'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(wallpaper.imagePath, '/pics/beach.png');
   });
 
   test('SettingsState brightness, volume, night light and search', () async {

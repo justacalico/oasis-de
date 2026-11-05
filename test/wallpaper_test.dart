@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oasis_files/oasis_files.dart';
 import 'package:oasis_settings/oasis_settings.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -151,9 +152,23 @@ void main() {
       (tester) async {
     final wallpaper = OasisWallpaperService();
     addTearDown(wallpaper.dispose);
+    final file = File(
+        '${Directory.systemTemp.path}/oasis_pane_test.png');
+    await tester.runAsync(() async {
+      await file.writeAsBytes(base64Decode(_pngBase64));
+    });
+    addTearDown(() => file.deleteSync());
+    final backend = FakeFilesBackend([
+      FileItem(path: file.path, name: file.path.split('/').last, isDir: false),
+    ]);
     await pumpOasis(
       tester,
-      _host(child: SettingsHome(wallpaper: wallpaper)),
+      _host(
+        child: SettingsHome(
+          wallpaper: wallpaper,
+          filesBackend: backend,
+        ),
+      ),
       size: const Size(900, 620),
     );
 
@@ -162,22 +177,11 @@ void main() {
     expect(find.text('Oasis Dunes'), findsOneWidget);
     expect(find.text('Fit'), findsNothing);
 
-    await tester.enterText(
-        find.byType(TextField).last, '/pics/missing.png');
-    await tester.tap(find.text('Apply'));
+    await tester.tap(find.text('Browse…'));
     await tester.pumpAndSettle();
-    expect(wallpaper.imagePath, isNull);
-    expect(find.text('Image not found'), findsOneWidget);
-
-    final file = File(
-        '${Directory.systemTemp.path}/oasis_pane_test.png');
-    await tester.runAsync(() async {
-      await file.writeAsBytes(base64Decode(_pngBase64));
-    });
-    addTearDown(() => file.deleteSync());
-
-    await tester.enterText(find.byType(TextField).last, file.path);
-    await tester.tap(find.text('Apply'));
+    await tester.tap(find.text('oasis_pane_test.png'));
+    await tester.pump();
+    await tester.tap(find.text('Choose'));
     await tester.pumpAndSettle();
     expect(wallpaper.imagePath, file.path);
     expect(find.text('oasis_pane_test.png'), findsOneWidget);
@@ -188,11 +192,6 @@ void main() {
     await tester.tap(find.text('Fit to screen'));
     await tester.pumpAndSettle();
     expect(wallpaper.fit, BoxFit.contain);
-
-    await tester.enterText(find.byType(TextField).last, '   ');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
-    expect(wallpaper.imagePath, file.path);
 
     await tester.tap(find.text('Oasis Dunes'));
     await tester.pumpAndSettle();
@@ -211,6 +210,6 @@ void main() {
     state.selectPane(SettingsPane.wallpaper);
     await tester.pumpAndSettle();
     expect(find.text('Custom image'), findsOneWidget);
-    expect(find.byType(OasisSearchField), findsNWidgets(2));
+    expect(find.byType(OasisSearchField), findsOneWidget);
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oasis_files/oasis_files.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import '../state/settings_state.dart';
@@ -16,11 +17,13 @@ class SettingsHome extends StatefulWidget {
     super.key,
     this.state,
     this.wallpaper,
+    this.filesBackend,
     this.version = '0.1.0',
   });
 
   final SettingsState? state;
   final OasisWallpaperService? wallpaper;
+  final FilesBackend? filesBackend;
   final String version;
 
   @override
@@ -130,8 +133,10 @@ class _SettingsHomeState extends State<SettingsHome> {
                   padding: const EdgeInsets.all(20),
                   child: switch (s.pane) {
                     SettingsPane.appearance => const AppearancePane(),
-                    SettingsPane.wallpaper =>
-                      WallpaperPane(wallpaper: wallpaper),
+                    SettingsPane.wallpaper => WallpaperPane(
+                        wallpaper: wallpaper,
+                        filesBackend: widget.filesBackend,
+                      ),
                     SettingsPane.general => const GeneralPane(),
                     SettingsPane.displays => DisplaysPane(state: s),
                     SettingsPane.dash => DashPane(state: s),
