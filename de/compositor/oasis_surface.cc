@@ -145,6 +145,8 @@ void free_surface(Surface* s) {
     delete k;
   }
   s->ks_inhibitors.clear();
+  for (AppMenuLink* link : s->appmenus) link->surface = nullptr;
+  s->appmenus.clear();
   if (s->rb_tex != nullptr) wlr_texture_destroy(s->rb_tex);
   if (s->readback != nullptr) wlr_buffer_drop(s->readback);
   if (s->acquire_waiting) {
@@ -179,6 +181,10 @@ void announce_toplevel(Surface* s) {
   m["title"] = s->title;
   m["appId"] = s->app_id;
   m["parent"] = s->tl_parent != nullptr ? s->tl_parent->public_id : -1;
+  m["pid"] = (int64_t)s->pid;
+  m["xid"] = s->xsurface != nullptr ? (int64_t)s->xsurface->window_id : 0;
+  m["menuService"] = s->menu_service;
+  m["menuPath"] = s->menu_path;
   emit_id(s, "toplevel", std::move(m));
   emit_size(s);
   surface_sync_outputs(s);

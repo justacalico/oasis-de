@@ -10,13 +10,8 @@ import 'shell_controller.dart';
 import 'view_scale.dart';
 import 'wifi_menu.dart';
 
-
 class ShellTopBar extends StatelessWidget {
-  const ShellTopBar({
-    super.key,
-    required this.controller,
-    required this.menus,
-  });
+  const ShellTopBar({super.key, required this.controller, required this.menus});
 
   final ShellController controller;
   final List<ShellMenu> menus;
@@ -143,8 +138,7 @@ class ShellTopBar extends StatelessWidget {
                   onTap: controller.toggleNotificationPanel,
                   child: MinuteClock(
                     builder: (context, now) {
-                      final locale =
-                          Localizations.localeOf(context).toString();
+                      final locale = Localizations.localeOf(context).toString();
                       final text =
                           '${DateFormat.MEd(locale).format(now)} '
                           '${DateFormat.jm(locale).format(now)}';
@@ -246,7 +240,7 @@ class _StatusIcon extends StatelessWidget {
   }
 }
 
-class MenuDropdown extends StatelessWidget {
+class MenuDropdown extends StatefulWidget {
   const MenuDropdown({
     super.key,
     required this.menuIndex,
@@ -259,9 +253,42 @@ class MenuDropdown extends StatelessWidget {
   final ShellController controller;
 
   @override
+  State<MenuDropdown> createState() => _MenuDropdownState();
+}
+
+class _MenuDropdownState extends State<MenuDropdown> {
+  OasisMenuCascade? _cascade;
+
+  ShellMenu get _menu => widget.menus[widget.menuIndex];
+
+  @override
+  void initState() {
+    super.initState();
+    _menu.onOpen?.call();
+  }
+
+  @override
+  void didUpdateWidget(MenuDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.menuIndex != oldWidget.menuIndex) {
+      oldWidget.menus[oldWidget.menuIndex].onClose?.call();
+      _menu.onOpen?.call();
+      _cascade?.close();
+    }
+  }
+
+  @override
+  void dispose() {
+    _menu.onClose?.call();
+    _cascade?.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final style = OasisStyle.of(context);
-    final items = menus[menuIndex].items(context);
+    _cascade ??= OasisMenuCascade(Overlay.of(context));
+    final items = _menu.items(context);
     return OasisGlass(
       borderRadius: style.menuRadius,
       blur: 36,
@@ -269,25 +296,12 @@ class MenuDropdown extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 210),
         child: IntrinsicWidth(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final item in items) ...[
-                OasisMenuEntry(
-                  item: item,
-                  onSelect: () => controller.selectMenu(null),
-                ),
-                if (item.separatorAfter)
-                  Divider(
-                    height: 9,
-                    thickness: 0.5,
-                    indent: 12,
-                    endIndent: 12,
-                    color: style.palette.divider,
-                  ),
-              ],
-            ],
+          child: SingleChildScrollView(
+            child: OasisMenuList(
+              items: items,
+              cascade: _cascade,
+              onSelect: () => widget.controller.selectMenu(null),
+            ),
           ),
         ),
       ),

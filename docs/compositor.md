@@ -44,6 +44,17 @@ signal and is forwarded to Dart as `configureAcked` with the serial, so
 the shell can distinguish "client applied a configure" from "configure
 still in flight".
 
+## App menus
+
+`oasis_appmenu.cc` implements `org_kde_kwin_appmenu` (vendored in
+`de/compositor/protocols/appmenu.xml`). A client creates an appmenu
+object for its surface and advertises a `com.canonical.dbusmenu`
+service name and object path; the compositor stores them on the surface
+and forwards them to Dart in the toplevel announce (`menuService`,
+`menuPath`) and as `appMenu` updates. Surfaces also report `pid` and
+`xid` so the shell can fall back to `com.canonical.AppMenu.Registrar`
+lookups for apps that register menus without the KWin protocol.
+
 ## Liveness
 
 `wlr_xdg_surface_ping` is sent to every announced toplevel every 5

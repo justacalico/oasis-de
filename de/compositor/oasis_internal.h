@@ -96,6 +96,13 @@ struct KsInhibitor {
   struct Surface* surface = nullptr;
 };
 
+struct AppMenuLink {
+  struct Surface* surface = nullptr;
+  bool set = false;
+  std::string service;
+  std::string path;
+};
+
 struct OasisOutput {
   OasisPrivate* comp = nullptr;
   wlr_output* wlr = nullptr;
@@ -227,6 +234,8 @@ struct Surface {
   bool cfg_max = false, cfg_fs = false, cfg_resizing = false;
   std::string title, app_id;
   pid_t pid = -1;
+  std::vector<AppMenuLink*> appmenus;
+  std::string menu_service, menu_path;
 };
 
 struct KillCheck {
@@ -444,6 +453,9 @@ void popup_position(Surface* s, int* x, int* y);
 // oasis_xwayland.cc
 void xwayland_init(OasisPrivate* c);
 void xwayland_new_surface(OasisPrivate* c, wlr_xwayland_surface* xsurface);
+
+// oasis_appmenu.cc
+void appmenu_init(OasisPrivate* c);
 
 // oasis_layer.cc
 void layer_init(OasisPrivate* c);

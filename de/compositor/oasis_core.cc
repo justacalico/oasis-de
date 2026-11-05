@@ -262,6 +262,7 @@ bool OasisCore::start(std::string* error) {
   xwayland_init(p);
   surfaces_init(p);
   xdg_init(p);
+  appmenu_init(p);
   seat_init(p);
   text_input_init(p);
   decoration_init(p);
@@ -378,6 +379,11 @@ void OasisCore::replayEvents() {
       m["title"] = s->title;
       m["appId"] = s->app_id;
       m["parent"] = s->tl_parent != nullptr ? s->tl_parent->public_id : -1;
+      m["pid"] = (int64_t)s->pid;
+      m["xid"] =
+          s->xsurface != nullptr ? (int64_t)s->xsurface->window_id : 0;
+      m["menuService"] = s->menu_service;
+      m["menuPath"] = s->menu_path;
       emit_id(s, "toplevel", std::move(m));
     } else if (s->role == ROLE_POPUP) {
       OEvent m;
