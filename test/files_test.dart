@@ -368,6 +368,43 @@ void main() {
     expect(ok.modified, isNull);
   });
 
+  test('IoFilesBackend paste skips a directory pasted into itself', () async {
+    final root = Directory.systemTemp.createTempSync('oasisfiles');
+    addTearDown(() => root.delete(recursive: true));
+    Directory('${root.path}/a/b').createSync(recursive: true);
+    File('${root.path}/a/f.txt').writeAsStringSync('x');
+
+    final b = IoFilesBackend(home: root.path);
+    await b.paste(['${root.path}/a'], '${root.path}/a/b', move: false);
+    expect(Directory('${root.path}/a/b/a').existsSync(), isFalse);
+    await b.paste(['${root.path}/a'], '${root.path}/a', move: false);
+    expect(Directory('${root.path}/a (2)').existsSync(), isFalse);
+    await b.paste(['${root.path}/a'], '${root.path}/a/b', move: true);
+    expect(Directory('${root.path}/a/b').existsSync(), isTrue);
+    expect(File('${root.path}/a/f.txt').existsSync(), isTrue);
+
+    Directory('${root.path}/real/inner').createSync(recursive: true);
+    Link('${root.path}/alias').createSync('${root.path}/real');
+    await b.paste(['${root.path}/real'], '${root.path}/alias/inner', move: false);
+    expect(Directory('${root.path}/real/inner/real').existsSync(), isFalse);
+    await b.paste(['${root.path}/a/f.txt'], '${root.path}/a/b', move: false);
+    expect(File('${root.path}/a/b/f.txt').existsSync(), isTrue);
+
+    final weak = IoFilesBackend(
+      home: root.path,
+      resolveLinks: (p) => throw const FileSystemException(),
+    );
+    Directory('${root.path}/out').createSync();
+    await weak.paste(['${root.path}/a/f.txt'], '${root.path}/out', move: false);
+    expect(File('${root.path}/out/f.txt').existsSync(), isTrue);
+    await weak.paste(
+      ['${root.path}/a'],
+      '${root.path}/a/b',
+      move: false,
+    );
+    expect(Directory('${root.path}/a/b/a').existsSync(), isFalse);
+  });
+
   test('IoFilesBackend copy keeps symlinks as links', () async {
     final root = Directory.systemTemp.createTempSync('oasisfiles');
     addTearDown(() => root.delete(recursive: true));
