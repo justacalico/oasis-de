@@ -253,10 +253,7 @@ void main() {
     c.dragWindow(w.id, const Offset(5, 5), screen);
     c.endSurfaceGesture(const Offset(4, 400), screen);
     expect(w.size!.width, screen.width / 2);
-    expect(
-      w.size!.height,
-      screen.height - kTopBarHeight - 8 - kDashHeight,
-    );
+    expect(w.size!.height, screen.height - kTopBarHeight - 8 - kDashHeight);
     expect(w.position.dx, 0);
     c.dragWindow(w.id, const Offset(5, 5), screen);
     c.endSurfaceGesture(const Offset(1279, 400), screen);
@@ -303,6 +300,18 @@ void main() {
     c.dispose();
   });
 
+  test('pinApp beforeId inserts before the target pin', () {
+    final c = _controller();
+    c.pinApp('a');
+    c.pinApp('b', beforeId: 'missing');
+    c.pinApp('b', beforeId: 'a');
+    c.pinApp('notes', beforeId: 'a');
+    c.pinApp('a', beforeId: 'b');
+    c.pinApp('x', beforeId: 'a');
+    expect([for (final a in c.pinned) a.id], ['b', 'notes', 'a']);
+    c.dispose();
+  });
+
   test('toggles notify the system backend and reconcile', () async {
     final calls = <String>[];
     final c = ShellController(
@@ -320,10 +329,7 @@ void main() {
 
   test('wifi network list refreshes and connects', () async {
     final calls = <String>[];
-    final c = ShellController(
-      apps: const [],
-      backend: _WifiBackend(calls),
-    );
+    final c = ShellController(apps: const [], backend: _WifiBackend(calls));
     await c.refreshWifiNetworks();
     expect([for (final n in c.wifiNetworks) n.ssid], ['Home', 'Cafe']);
     expect(c.wifiScanning, isFalse);
@@ -659,10 +665,7 @@ void main() {
   });
 
   test('notifications cap at 50 and banner can be dismissed', () {
-    final c = ShellController(
-      apps: const [],
-      batteryPollInterval: null,
-    );
+    final c = ShellController(apps: const [], batteryPollInterval: null);
     addTearDown(c.dispose);
     for (var i = 0; i < 55; i++) {
       c.pushNotification(
@@ -740,8 +743,7 @@ class _WifiBackend extends NoopSystemBackend {
   }
 
   @override
-  Future<void> connectWifi(String ssid) async =>
-      calls.add('connect:$ssid');
+  Future<void> connectWifi(String ssid) async => calls.add('connect:$ssid');
 }
 
 class _SlowWifiBackend extends NoopSystemBackend {
@@ -777,8 +779,8 @@ class _DenyBackend extends NoopSystemBackend {
 
 class _Ctx extends Fake implements BuildContext {
   @override
-  InheritedElement? getElementForInheritedWidgetOfExactType<
-      T extends InheritedWidget>() => null;
+  InheritedElement?
+  getElementForInheritedWidgetOfExactType<T extends InheritedWidget>() => null;
 }
 
 class _BatteryBackend implements OasisSystemBackend {
@@ -854,8 +856,7 @@ class _RecordingBackend implements OasisSystemBackend {
   Future<List<OasisWifiNetwork>> wifiNetworks() async => const [];
 
   @override
-  Future<void> connectWifi(String ssid) async =>
-      calls.add('connect:$ssid');
+  Future<void> connectWifi(String ssid) async => calls.add('connect:$ssid');
 
   @override
   Future<void> bluetooth(bool enabled) async => calls.add('bluetooth');
@@ -876,12 +877,10 @@ class _RecordingBackend implements OasisSystemBackend {
   Future<List<OasisAudioCard>> audioCards() async => const [];
 
   @override
-  Future<void> setAudioOutput(String name) async =>
-      calls.add('output:$name');
+  Future<void> setAudioOutput(String name) async => calls.add('output:$name');
 
   @override
-  Future<void> setAudioInput(String name) async =>
-      calls.add('input:$name');
+  Future<void> setAudioInput(String name) async => calls.add('input:$name');
 
   @override
   Future<void> setAudioCardProfile(String card, String profile) async =>

@@ -367,6 +367,134 @@ void main() {
     );
   });
 
+  Offset iconCenter(WidgetTester tester, String name) => tester.getCenter(
+    find.descendant(
+      of: find.byType(ShellDash),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            w.properties.label == name &&
+            w.properties.button == true,
+      ),
+    ),
+  );
+
+  Future<void> dragIcon(WidgetTester tester, String from, String to) {
+    final start = iconCenter(tester, from);
+    return tester.dragFrom(start, iconCenter(tester, to) - start);
+  }
+
+  Future<ShellController> pumpDash(
+    WidgetTester tester,
+    List<OasisApp> apps, {
+    int pinned = 0,
+  }) async {
+    final dash = OasisDashSettings();
+    addTearDown(dash.dispose);
+    final c = ShellController(batteryPollInterval: null, apps: apps);
+    addTearDown(c.dispose);
+    c.pinned.addAll(c.apps.take(pinned));
+    await pumpOasis(
+      tester,
+      Scaffold(
+        body: DesktopShell(
+          controller: c,
+          dash: dash,
+          menusBuilder: () => const [],
+        ),
+      ),
+    );
+    return c;
+  }
+
+  testWidgets('pinned dash icons drag to reorder', (tester) async {
+    final c = await pumpDash(tester, [
+      _app('a'),
+      _app('b'),
+      _app('c'),
+    ], pinned: 3);
+
+    await dragIcon(tester, 'App c', 'App a');
+    await tester.pumpAndSettle();
+    expect([for (final a in c.pinned) a.id], ['c', 'a', 'b']);
+
+    await tester.dragFrom(iconCenter(tester, 'App b'), const Offset(5, 0));
+    await tester.pumpAndSettle();
+    expect([for (final a in c.pinned) a.id], ['c', 'a', 'b']);
+  });
+
+  testWidgets('dragging a running app onto a pinned icon pins it there', (
+    tester,
+  ) async {
+    final c = await pumpDash(tester, [
+      _app('a'),
+      _app('b'),
+      _app('notes'),
+    ], pinned: 2);
+    c.openApp(c.apps[2]);
+    await tester.pumpAndSettle();
+
+    await dragIcon(tester, 'App notes', 'App b');
+    await tester.pumpAndSettle();
+    expect([for (final a in c.pinned) a.id], ['a', 'notes', 'b']);
+  });
+
+  testWidgets('dragging a pinned icon onto an unpinned one moves it last', (
+    tester,
+  ) async {
+    final c = await pumpDash(tester, [
+      _app('a'),
+      _app('b'),
+      _app('notes'),
+    ], pinned: 2);
+    c.openApp(c.apps[2]);
+    await tester.pumpAndSettle();
+
+    await dragIcon(tester, 'App a', 'App notes');
+    await tester.pumpAndSettle();
+    expect([for (final a in c.pinned) a.id], ['b', 'a']);
+  });
+
+  testWidgets('unpinned dash icons drag to reorder', (tester) async {
+    final c = await pumpDash(tester, [_app('a'), _app('b'), _app('c')]);
+    for (final a in c.apps) {
+      c.openApp(a);
+    }
+    await tester.pumpAndSettle();
+
+    await dragIcon(tester, 'App c', 'App a');
+    await tester.pumpAndSettle();
+    expect(
+      iconCenter(tester, 'App c').dx,
+      lessThan(iconCenter(tester, 'App a').dx),
+    );
+
+    await dragIcon(tester, 'App c', 'App b');
+    await tester.pumpAndSettle();
+    final dx = [
+      for (final n in ['App a', 'App b', 'App c']) iconCenter(tester, n).dx,
+    ];
+    expect(dx[0], lessThan(dx[1]));
+    expect(dx[1], lessThan(dx[2]));
+  });
+
+  testWidgets('dragging a minimized icon onto a pinned icon pins it', (
+    tester,
+  ) async {
+    final c = await pumpDash(tester, [
+      _app('a'),
+      _app('b'),
+      _app('notes'),
+    ], pinned: 2);
+    c.openApp(c.apps[2]);
+    c.minimizeWindow(c.windows.single.id);
+    await tester.pumpAndSettle();
+
+    await dragIcon(tester, 'App notes', 'App b');
+    await tester.pumpAndSettle();
+    expect([for (final a in c.pinned) a.id], ['a', 'notes', 'b']);
+  });
+
   test('half snap respects the dash edge', () {
     final app = _app('a');
     const screen = Size(1280, 800);
