@@ -1224,6 +1224,31 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('banner tap invokes the default action', (tester) async {
+    final daemon = _FakeDaemon();
+    await pumpDesktop(tester, notificationDaemon: daemon);
+    daemon.push!(
+      OasisNotification(
+        id: 11,
+        appName: 'app',
+        summary: 'With action',
+        body: '',
+        timestamp: nullTimestamp,
+        actions: const ['default', 'Open'],
+      ),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NotificationBanner),
+        matching: find.text('With action'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(daemon.invoked, ['11:default']);
+    expect(find.byType(NotificationPanelPanel), findsNothing);
+  });
+
   testWidgets('launch counts and handlers survive a null daemon', (
     tester,
   ) async {
