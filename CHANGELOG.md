@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.16.0 - 2026-11-05
+#### Features
+- 顶栏接入应用全局菜单 - (a18a87e) - HttpAnimations
+- 重制 Dock 为 macOS 风格 - (2e62def) - HttpAnimations
+- 应用启动时 Dash 图标弹跳替代占位窗口 - (d0f1013) - HttpAnimations
+#### Bug Fixes
+- 补齐应用菜单覆盖率缺口 - (aeaaa4b) - HttpAnimations
+
+- - -
+
 ## v0.15.3 - 2026-11-04
 #### Bug Fixes
 - 恢复 mpris 启动顺序修复无总线环境下的测试 - (0206acf) - HttpAnimations
