@@ -64,6 +64,7 @@ add_executable(oasis_kms
   "${COMPOSITOR_DIR}/oasis_capture.cc"
   "${COMPOSITOR_DIR}/oasis_clipboard.cc"
   "${COMPOSITOR_DIR}/oasis_core.cc"
+  "${COMPOSITOR_DIR}/oasis_cursor.cc"
   "${COMPOSITOR_DIR}/oasis_decoration.cc"
   "${COMPOSITOR_DIR}/oasis_egl_debug.cc"
   "${COMPOSITOR_DIR}/oasis_export.cc"

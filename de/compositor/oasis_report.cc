@@ -17,19 +17,38 @@ namespace oasis {
 void emit_cursor(OasisPrivate* c) {
   OEvent m;
   Surface* s = c->cursor_surface;
-  if (s == nullptr || s->texture_id < 0) {
-    m["id"] = (int64_t)0;
-  } else {
-    int scale = s->wlr != nullptr && s->wlr->current.scale > 0
-                    ? s->wlr->current.scale
-                    : 1;
+  bool filled = false;
+  if (s != nullptr && s->texture_id >= 0) {
+    int scale = 1, transform = 0;
+    double vsw = -1, vsh = -1;
+    int vp_dw = -1, vp_dh = -1;
+    if (s->wlr != nullptr) {
+      wlr_surface_state* st = &s->wlr->current;
+      scale = st->scale > 0 ? st->scale : 1;
+      transform = (int)st->transform;
+      if (st->viewport.has_src) {
+        vsw = st->viewport.src.width;
+        vsh = st->viewport.src.height;
+      }
+      if (st->viewport.has_dst) {
+        vp_dw = st->viewport.dst_width;
+        vp_dh = st->viewport.dst_height;
+      }
+    }
+    const bool swap = (transform & 1) != 0;
+    int lw = swap ? s->ih / scale : s->iw / scale;
+    int lh = swap ? s->iw / scale : s->ih / scale;
     m["id"] = s->public_id;
     m["texture"] = s->texture_id;
-    m["w"] = (int64_t)(s->iw / scale);
-    m["h"] = (int64_t)(s->ih / scale);
+    m["w"] = (int64_t)(vp_dw > 0 ? vp_dw : vsw > 0 ? (int)vsw : lw);
+    m["h"] = (int64_t)(vp_dh > 0 ? vp_dh : vsh > 0 ? (int)vsh : lh);
     m["hx"] = (int64_t)c->cursor_hx;
     m["hy"] = (int64_t)c->cursor_hy;
+    filled = true;
+  } else if (s == nullptr && c->cursor_shape != 0) {
+    filled = cursor_shape_event(c, m);
   }
+  if (!filled) m["id"] = (int64_t)0;
   emit(c, "cursor", std::move(m));
 }
 

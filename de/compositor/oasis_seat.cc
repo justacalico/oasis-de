@@ -27,6 +27,16 @@ static void handle_set_cursor(wl_listener* listener, void* data) {
   }
   if (s != nullptr && s->role == ROLE_NONE) s->role = ROLE_CURSOR;
   c->cursor_surface = s;
+  c->cursor_shape = 0;
+  if (s != nullptr) {
+    if (s->public_id == 0) {
+      s->public_id = c->next_id++;
+      c->by_id[s->public_id] = s;
+    }
+    // Cursor surfaces are never announced, so they would otherwise stay
+    // scale-blind and keep committing scale-1 buffers on HiDPI outputs.
+    surface_sync_outputs(s);
+  }
   emit_cursor(c);
 }
 
@@ -53,9 +63,17 @@ static void handle_request_shape(wl_listener* listener, void* data) {
   OasisPrivate* c = wl_container_of(listener, c, request_shape);
   auto* ev =
       static_cast<wlr_cursor_shape_manager_v1_request_set_shape_event*>(data);
+  // A shape request replaces any client-supplied cursor surface.
+  if (c->cursor_surface != nullptr &&
+      c->cursor_surface->role == ROLE_CURSOR) {
+    c->cursor_surface->role = ROLE_NONE;
+  }
+  c->cursor_surface = nullptr;
+  c->cursor_shape = (uint32_t)ev->shape;
   OEvent m;
   m["shape"] = (int64_t)ev->shape;
   emit(c, "cursorShape", std::move(m));
+  emit_cursor(c);
 }
 
 void seat_init(OasisPrivate* c) {

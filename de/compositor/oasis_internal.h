@@ -71,6 +71,7 @@ struct wlr_output_layout;
 struct wlr_output_manager_v1;
 struct wlr_output_mode;
 struct wlr_output_configuration_v1;
+struct wlr_xcursor_manager;
 
 namespace oasis {
 
@@ -356,6 +357,13 @@ struct OasisPrivate {
   Surface* ptr_focus = nullptr;
   Surface* cursor_surface = nullptr;
   int cursor_hx = 0, cursor_hy = 0;
+  // wp_cursor_shape_v1 enum value when the client asked for a named shape
+  // instead of supplying a cursor surface; 0 means no shape is active.
+  uint32_t cursor_shape = 0;
+  // Texture the compositor stages themed shape images into; created lazily
+  // the first time a shape cursor needs rendering.
+  wlr_xcursor_manager* xcursor_mgr = nullptr;
+  int64_t cursor_tex = -1;
   uint32_t last_button_serial = 0;
   std::set<uint32_t> pressed;
   int32_t touch_id = -1;
@@ -481,6 +489,11 @@ void idle_suspend_timer_start(OasisPrivate* c);
 
 // oasis_seat.cc
 void seat_init(OasisPrivate* c);
+
+// oasis_cursor.cc
+bool cursor_shape_event(OasisPrivate* c, OEvent& m);
+void cursor_init(OasisPrivate* c);
+void cursor_finish(OasisPrivate* c);
 
 // oasis_clipboard.cc
 void install_host_source(OasisPrivate* c);

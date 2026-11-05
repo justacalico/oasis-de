@@ -263,6 +263,7 @@ bool OasisCore::start(std::string* error) {
   surfaces_init(p);
   xdg_init(p);
   appmenu_init(p);
+  cursor_init(p);
   seat_init(p);
   text_input_init(p);
   decoration_init(p);
@@ -354,12 +355,14 @@ void OasisCore::stop() {
     p->display = nullptr;
   }
   keyboard_finish(p);
+  cursor_finish(p);
   free(p->socket_name);
   p->socket_name = nullptr;
   p->kb_focus = nullptr;
   p->activated = nullptr;
   p->ptr_focus = nullptr;
   p->cursor_surface = nullptr;
+  p->cursor_shape = 0;
   p->constraint = nullptr;
   p->ptr_in_id = -1;
   p->pressed.clear();

@@ -197,6 +197,10 @@ void output_notify_surfaces(OasisPrivate* c) {
   for (Surface* s : c->surfaces) {
     if (s->announced) surface_sync_outputs(s);
   }
+  if (c->cursor_surface != nullptr) {
+    surface_sync_outputs(c->cursor_surface);
+  }
+  emit_cursor(c);
 }
 
 void outputs_reconfigure_locks(OasisPrivate* c) {
