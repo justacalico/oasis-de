@@ -599,6 +599,20 @@ class OasisLocalizationsEn extends OasisLocalizations {
   String get filesCancel => 'Cancel';
 
   @override
+  String get filesConflictTitle => 'Name already in use';
+
+  @override
+  String filesConflictMessage(String name) {
+    return '\"$name\" already exists here.';
+  }
+
+  @override
+  String get filesKeepBoth => 'Keep Both';
+
+  @override
+  String get filesReplace => 'Replace';
+
+  @override
   String get filesChoose => 'Choose';
 
   @override

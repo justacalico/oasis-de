@@ -1212,6 +1212,30 @@ abstract class OasisLocalizations {
   /// **'Cancel'**
   String get filesCancel;
 
+  /// No description provided for @filesConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Name already in use'**
+  String get filesConflictTitle;
+
+  /// No description provided for @filesConflictMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" already exists here.'**
+  String filesConflictMessage(String name);
+
+  /// No description provided for @filesKeepBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Both'**
+  String get filesKeepBoth;
+
+  /// No description provided for @filesReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get filesReplace;
+
   /// No description provided for @filesChoose.
   ///
   /// In en, this message translates to:

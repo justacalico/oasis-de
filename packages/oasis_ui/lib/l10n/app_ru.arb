@@ -227,6 +227,17 @@
   "filesOpen": "Открыть",
   "filesName": "Имя",
   "filesCancel": "Отмена",
+  "filesConflictTitle": "Имя уже занято",
+  "filesConflictMessage": "«{name}» уже существует здесь.",
+  "@filesConflictMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesKeepBoth": "Сохранить оба",
+  "filesReplace": "Заменить",
   "filesChoose": "Выбрать",
   "filePickerTitle": "Выберите файл",
   "filesCreate": "Создать",

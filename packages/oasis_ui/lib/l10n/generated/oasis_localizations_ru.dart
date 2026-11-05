@@ -604,6 +604,20 @@ class OasisLocalizationsRu extends OasisLocalizations {
   String get filesCancel => 'Отмена';
 
   @override
+  String get filesConflictTitle => 'Имя уже занято';
+
+  @override
+  String filesConflictMessage(String name) {
+    return '«$name» уже существует здесь.';
+  }
+
+  @override
+  String get filesKeepBoth => 'Сохранить оба';
+
+  @override
+  String get filesReplace => 'Заменить';
+
+  @override
   String get filesChoose => 'Выбрать';
 
   @override

@@ -866,7 +866,11 @@ class _FilesBackend extends FilesBackend {
   Future<void> mkdir(String parent, String name) async {}
 
   @override
-  Future<void> rename(String path, String newName) async {}
+  Future<void> rename(
+    String path,
+    String newName, {
+    FileConflictResolution onConflict = FileConflictResolution.fail,
+  }) async {}
 
   @override
   Future<void> paste(

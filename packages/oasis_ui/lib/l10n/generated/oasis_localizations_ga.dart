@@ -606,6 +606,20 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get filesCancel => 'Cealaigh';
 
   @override
+  String get filesConflictTitle => 'Ainm in úsáid cheana';
+
+  @override
+  String filesConflictMessage(String name) {
+    return 'Tá \"$name\" ann cheana.';
+  }
+
+  @override
+  String get filesKeepBoth => 'Coinnigh an Bheirt';
+
+  @override
+  String get filesReplace => 'Ionadaigh';
+
+  @override
   String get filesChoose => 'Roghnaigh';
 
   @override

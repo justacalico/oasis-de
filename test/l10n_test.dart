@@ -162,6 +162,10 @@ void exerciseStrings(OasisLocalizations l) {
   l.filesBookmarkTrash;
   l.filesBookmarkVideos;
   l.filesCancel;
+  l.filesConflictTitle;
+  l.filesConflictMessage('x');
+  l.filesKeepBoth;
+  l.filesReplace;
   l.filesChoose;
   l.filePickerTitle;
   l.filesClearSearch;
