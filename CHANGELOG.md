@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.17.0 - 2026-11-05
+#### Features
+- 新增文件选择对话框并在壁纸设置中接入 - (3069e8c) - HttpAnimations
+
+- - -
+
 ## v0.16.1 - 2026-11-05
 #### Bug Fixes
 - 修复鼠标光标不随输出缩放变化的问题 - (f5e6013) - HttpAnimations
