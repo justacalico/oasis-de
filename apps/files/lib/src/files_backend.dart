@@ -34,17 +34,20 @@ class IoFilesBackend implements FilesBackend {
     List<String>? mountRoots,
     Future<void> Function(FileSystemEntity, String)? renameEntity,
     String Function(String)? resolveLinks,
+    Future<FileStat> Function(FileSystemEntity)? statEntity,
   })  : _home = home ?? Platform.environment['HOME'] ?? '/',
         _runProcess = runProcess ?? Process.run,
         _mountRoots = mountRoots,
         _renameEntity = renameEntity,
-        _resolveLinks = resolveLinks;
+        _resolveLinks = resolveLinks,
+        _statEntity = statEntity;
 
   final String _home;
   final FilesProcessRunner _runProcess;
   final List<String>? _mountRoots;
   final Future<void> Function(FileSystemEntity, String)? _renameEntity;
   final String Function(String)? _resolveLinks;
+  final Future<FileStat> Function(FileSystemEntity)? _statEntity;
 
   String _realPath(String path) =>
       (_resolveLinks ??
@@ -60,18 +63,29 @@ class IoFilesBackend implements FilesBackend {
       if (!showHidden && name.startsWith('.')) continue;
       entities.add(entity);
     }
-    final stats = await Future.wait([for (final e in entities) e.stat()]);
+    final stats = await Future.wait([for (final e in entities) _stat(e)]);
     return [
       for (var i = 0; i < entities.length; i++)
         FileItem(
           path: entities[i].path,
           name: entities[i].path.split('/').last,
-          isDir: stats[i].type == FileSystemEntityType.directory,
-          size: stats[i].size,
-          modified: stats[i].modified,
+          isDir: stats[i]?.type == FileSystemEntityType.directory,
+          size: _sizeOf(stats[i]),
+          modified: stats[i]?.modified,
         ),
     ];
   }
+
+  Future<FileStat?> _stat(FileSystemEntity e) async {
+    try {
+      return await (_statEntity ?? (e) => e.stat())(e);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static int _sizeOf(FileStat? stat) =>
+      stat == null || stat.size < 0 ? 0 : stat.size;
 
   @override
   Future<List<FileItem>> search(
