@@ -227,6 +227,10 @@ class NotificationBanner extends StatelessWidget {
             width: 380,
             child: GestureDetector(
               onTap: () {
+                if (n.actions.contains('default')) {
+                  controller.invokeNotificationAction(n, 'default');
+                  return;
+                }
                 controller.dismissBanner();
                 if (!controller.notificationPanelOpen) {
                   controller.toggleNotificationPanel();
