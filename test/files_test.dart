@@ -344,6 +344,30 @@ void main() {
     expect(Directory('${root.path}/dest/folder (2)').existsSync(), isTrue);
   });
 
+  test('IoFilesBackend list survives broken and unstatable entries', () async {
+    final root = Directory.systemTemp.createTempSync('oasisfiles');
+    addTearDown(() => root.delete(recursive: true));
+    File('${root.path}/ok.txt').writeAsStringSync('x');
+    Link('${root.path}/dangling').createSync('${root.path}/gone');
+
+    final items = await IoFilesBackend(home: root.path).list(root.path);
+    expect(items.map((e) => e.name), containsAll(['ok.txt', 'dangling']));
+    final dangling = items.singleWhere((e) => e.name == 'dangling');
+    expect(dangling.isDir, isFalse);
+    expect(dangling.size, 0);
+
+    final degraded = await IoFilesBackend(
+      home: root.path,
+      statEntity: (e) => e.path.endsWith('ok.txt')
+          ? throw const FileSystemException('denied')
+          : e.stat(),
+    ).list(root.path);
+    final ok = degraded.singleWhere((e) => e.name == 'ok.txt');
+    expect(ok.isDir, isFalse);
+    expect(ok.size, 0);
+    expect(ok.modified, isNull);
+  });
+
   test('IoFilesBackend copy keeps symlinks as links', () async {
     final root = Directory.systemTemp.createTempSync('oasisfiles');
     addTearDown(() => root.delete(recursive: true));
