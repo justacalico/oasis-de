@@ -12,10 +12,17 @@ import 'package:oasis_de/shell/quick_settings.dart';
 import 'helpers/test_app.dart';
 
 class _FakeBus extends Fake implements DBusClient {
-  _FakeBus({this.names = const [], this.props = const {}});
+  _FakeBus({
+    this.names = const [],
+    this.props = const {},
+    this.propsByDest = const {},
+    this.failDest = const {},
+  });
 
   final List<String> names;
   final Map<String, DBusValue> props;
+  final Map<String, Map<String, DBusValue>> propsByDest;
+  final Set<String> failDest;
   final calls = <String>[];
   var fail = false;
 
@@ -33,7 +40,9 @@ class _FakeBus extends Fake implements DBusClient {
     Duration? timeout,
     bool requiresPrivilegedSocket = false,
   }) async {
-    if (fail) throw StateError('bus down');
+    if (fail || failDest.contains(destination)) {
+      throw StateError('bus down');
+    }
     calls.add('$interface.$name');
     if (name == 'ListNames') {
       return DBusMethodSuccessResponse([
@@ -42,7 +51,7 @@ class _FakeBus extends Fake implements DBusClient {
     }
     if (name == 'GetAll') {
       return DBusMethodSuccessResponse([
-        DBusDict.stringVariant(props),
+        DBusDict.stringVariant(propsByDest[destination] ?? props),
       ]);
     }
     return DBusMethodSuccessResponse(const []);
@@ -154,18 +163,11 @@ void main() {
       ]),
     );
 
+    names.add('org.mpris.MediaPlayer2.other');
     signals.add(
       _ownerChanged('org.mpris.MediaPlayer2.other', '', 'dest'),
     );
-    await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(Duration.zero);
-    expect(s.playerName, 'org.mpris.MediaPlayer2.other');
-
-    signals.add(
-      _ownerChanged('org.mpris.MediaPlayer2.other', 'dest', ''),
-    );
     await pumpEventQueue();
-    expect(s.hasPlayer, isTrue);
     expect(s.playerName, 'org.mpris.MediaPlayer2.spotify');
 
     names.remove('org.mpris.MediaPlayer2.spotify');
@@ -173,10 +175,105 @@ void main() {
       _ownerChanged('org.mpris.MediaPlayer2.spotify', 'dest', ''),
     );
     await pumpEventQueue();
+    expect(s.hasPlayer, isTrue);
+    expect(s.playerName, 'org.mpris.MediaPlayer2.other');
+
+    names.remove('org.mpris.MediaPlayer2.other');
+    signals.add(
+      _ownerChanged('org.mpris.MediaPlayer2.other', 'dest', ''),
+    );
+    await pumpEventQueue();
     expect(s.hasPlayer, isFalse);
     expect(s.title, isEmpty);
 
     await s.playPause();
+    s.dispose();
+  });
+
+  test('mpris fails over to the playing survivor', () async {
+    final names = [
+      'org.mpris.MediaPlayer2.spotify',
+      'org.mpris.MediaPlayer2.broken',
+      'org.mpris.MediaPlayer2.paused',
+      'org.mpris.MediaPlayer2.other',
+    ];
+    final bus = _FakeBus(
+      names: names,
+      props: {
+        'PlaybackStatus': DBusString('Playing'),
+        'Metadata': _metadata('Song', ['A'], ''),
+      },
+      propsByDest: {
+        'org.mpris.MediaPlayer2.paused': {
+          'PlaybackStatus': DBusString('Paused'),
+        },
+        'org.mpris.MediaPlayer2.other': {
+          'PlaybackStatus': DBusString('Playing'),
+          'Metadata': _metadata('Other Song', ['C'], ''),
+        },
+      },
+      failDest: {'org.mpris.MediaPlayer2.broken'},
+    );
+    final signals = StreamController<DBusSignal>.broadcast();
+    addTearDown(signals.close);
+    final s = _service(bus, signals);
+    await s.start();
+    expect(s.playerName, 'org.mpris.MediaPlayer2.spotify');
+    expect(s.playerIdentity, 'spotify');
+
+    names.add('org.mpris.MediaPlayer2.newbie');
+    signals.add(
+      _ownerChanged('org.mpris.MediaPlayer2.newbie', '', 'o'),
+    );
+    await pumpEventQueue();
+    expect(s.playerName, 'org.mpris.MediaPlayer2.spotify');
+
+    names.remove('org.mpris.MediaPlayer2.spotify');
+    signals.add(
+      _ownerChanged('org.mpris.MediaPlayer2.spotify', 'o', ''),
+    );
+    await pumpEventQueue();
+    expect(s.playerName, 'org.mpris.MediaPlayer2.other');
+    expect(s.title, 'Other Song');
+
+    names.add('org.mpris.MediaPlayer2.spotify');
+    signals.add(
+      _ownerChanged('org.mpris.MediaPlayer2.spotify', '', 'o2'),
+    );
+    await pumpEventQueue();
+    expect(s.playerName, 'org.mpris.MediaPlayer2.other');
+
+    names.remove('org.mpris.MediaPlayer2.other');
+    signals.add(
+      _ownerChanged('org.mpris.MediaPlayer2.other', 'o', ''),
+    );
+    await pumpEventQueue();
+    expect(s.playerName, 'org.mpris.MediaPlayer2.spotify');
+    expect(s.title, 'Song');
+
+    names.clear();
+    bus.fail = true;
+    signals.add(
+      _ownerChanged('org.mpris.MediaPlayer2.spotify', 'o2', ''),
+    );
+    await pumpEventQueue();
+    expect(s.hasPlayer, isFalse);
+    s.dispose();
+  });
+
+  test('mpris exposes the bound player identity', () async {
+    final bus = _FakeBus(
+      names: const ['org.mpris.MediaPlayer2.vlc'],
+      props: {
+        'PlaybackStatus': DBusString('Paused'),
+        'Identity': DBusString('VLC media player'),
+      },
+    );
+    final signals = StreamController<DBusSignal>.broadcast();
+    addTearDown(signals.close);
+    final s = _service(bus, signals);
+    await s.start();
+    expect(s.playerIdentity, 'VLC media player');
     s.dispose();
   });
 
