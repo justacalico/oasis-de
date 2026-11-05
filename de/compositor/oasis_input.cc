@@ -185,8 +185,9 @@ void OasisCore::pointerExit() {
       p->cursor_surface->role = ROLE_NONE;
     }
     p->cursor_surface = nullptr;
-    emit_cursor(p);
   }
+  p->cursor_shape = 0;
+  emit_cursor(p);
   comp_flush(p);
 }
 
