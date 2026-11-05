@@ -4,15 +4,15 @@ An Oasis app is a Flutter package in `apps/`. It depends on `oasis_ui` for look 
 
 ## Registering
 
-`de/lib/shell/shell_controller.dart` builds an `OasisApp` per bundled app:
+`de/lib/apps/shell_apps.dart` builds an `OasisApp` per bundled app:
 
 ```dart
 OasisApp(
   id: 'settings',
-  name: l10n.appNameSettings,
-  icon: OasisIcons.settings,
-  iconColors: [OasisColors.accent],
-  builder: (context) => const SettingsWindow(),
+  name: l10n.settingsTitle,
+  icon: Icons.settings,
+  iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
+  builder: (context) => const MyAppWindow(),
 )
 ```
 
