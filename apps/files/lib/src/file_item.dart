@@ -23,7 +23,7 @@ class FileItem {
     return name.substring(i + 1).toLowerCase();
   }
 
-  static const _imageExts = {
+  static const imageExtensions = {
     'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif',
   };
   static const _audioExts = {
@@ -41,7 +41,7 @@ class FileItem {
     'css', 'log', 'csv', 'ini', 'conf',
   };
 
-  bool get isImage => !isDir && _imageExts.contains(extension);
+  bool get isImage => !isDir && imageExtensions.contains(extension);
   bool get isAudio => !isDir && _audioExts.contains(extension);
   bool get isVideo => !isDir && _videoExts.contains(extension);
   bool get isArchive => !isDir && _archiveExts.contains(extension);

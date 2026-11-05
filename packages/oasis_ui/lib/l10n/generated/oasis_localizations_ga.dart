@@ -313,13 +313,13 @@ class OasisLocalizationsGa extends OasisLocalizations {
   String get wallpaperCustom => 'Íomhá shaincheaptha';
 
   @override
-  String get wallpaperPathHint => 'Conair na híomhá';
+  String get wallpaperBrowse => 'Brabhsáil…';
 
   @override
-  String get wallpaperApply => 'Cuir i bhfeidhm';
+  String get wallpaperBrowseHint => 'Roghnaigh íomhá ó do chomhaid';
 
   @override
-  String get wallpaperInvalidPath => 'Íomhá gan aimsiú';
+  String get wallpaperPickTitle => 'Roghnaigh íomhá pháipéar balla';
 
   @override
   String get wallpaperFit => 'Oiriúnú';
@@ -604,6 +604,12 @@ class OasisLocalizationsGa extends OasisLocalizations {
 
   @override
   String get filesCancel => 'Cealaigh';
+
+  @override
+  String get filesChoose => 'Roghnaigh';
+
+  @override
+  String get filePickerTitle => 'Roghnaigh comhad';
 
   @override
   String get filesCreate => 'Cruthaigh';

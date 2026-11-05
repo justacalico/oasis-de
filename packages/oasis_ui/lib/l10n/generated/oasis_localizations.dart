@@ -648,23 +648,23 @@ abstract class OasisLocalizations {
   /// **'Custom image'**
   String get wallpaperCustom;
 
-  /// No description provided for @wallpaperPathHint.
+  /// No description provided for @wallpaperBrowse.
   ///
   /// In en, this message translates to:
-  /// **'Image path'**
-  String get wallpaperPathHint;
+  /// **'Browse…'**
+  String get wallpaperBrowse;
 
-  /// No description provided for @wallpaperApply.
+  /// No description provided for @wallpaperBrowseHint.
   ///
   /// In en, this message translates to:
-  /// **'Apply'**
-  String get wallpaperApply;
+  /// **'Pick an image from your files'**
+  String get wallpaperBrowseHint;
 
-  /// No description provided for @wallpaperInvalidPath.
+  /// No description provided for @wallpaperPickTitle.
   ///
   /// In en, this message translates to:
-  /// **'Image not found'**
-  String get wallpaperInvalidPath;
+  /// **'Choose a wallpaper image'**
+  String get wallpaperPickTitle;
 
   /// No description provided for @wallpaperFit.
   ///
@@ -1211,6 +1211,18 @@ abstract class OasisLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get filesCancel;
+
+  /// No description provided for @filesChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose'**
+  String get filesChoose;
+
+  /// No description provided for @filePickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a file'**
+  String get filePickerTitle;
 
   /// No description provided for @filesCreate.
   ///

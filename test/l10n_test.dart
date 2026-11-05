@@ -104,8 +104,9 @@ void exerciseStrings(OasisLocalizations l) {
   l.wallpaperAurora;
   l.wallpaperEmber;
   l.wallpaperCustom;
-  l.wallpaperPathHint;
-  l.wallpaperApply;
+  l.wallpaperBrowse;
+  l.wallpaperBrowseHint;
+  l.wallpaperPickTitle;
   l.wallpaperFit;
   l.wallpaperFitCover;
   l.wallpaperFitContain;
@@ -161,6 +162,8 @@ void exerciseStrings(OasisLocalizations l) {
   l.filesBookmarkTrash;
   l.filesBookmarkVideos;
   l.filesCancel;
+  l.filesChoose;
+  l.filePickerTitle;
   l.filesClearSearch;
   l.filesCopy;
   l.filesCreate;
@@ -254,7 +257,6 @@ void exerciseStrings(OasisLocalizations l) {
   l.updateInstallFailed;
   l.updateInstalled;
   l.updateInstalling;
-  l.wallpaperInvalidPath;
   l.screenshotModeRegion;
   l.screenshotModeFullscreen;
   l.screenshotDelay;

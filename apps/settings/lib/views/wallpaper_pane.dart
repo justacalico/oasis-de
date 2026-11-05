@@ -1,28 +1,24 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:oasis_files/oasis_files.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 class WallpaperPane extends StatefulWidget {
-  const WallpaperPane({super.key, required this.wallpaper});
+  const WallpaperPane({
+    super.key,
+    required this.wallpaper,
+    this.filesBackend,
+  });
 
   final OasisWallpaperService wallpaper;
+  final FilesBackend? filesBackend;
 
   @override
   State<WallpaperPane> createState() => _WallpaperPaneState();
 }
 
 class _WallpaperPaneState extends State<WallpaperPane> {
-  final _pathController = TextEditingController();
-  bool _invalidPath = false;
-
-  @override
-  void dispose() {
-    _pathController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = OasisLocalizations.of(context);
@@ -101,36 +97,20 @@ class _WallpaperPaneState extends State<WallpaperPane> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OasisSearchField(
-                              hint: l10n.wallpaperPathHint,
-                              icon: Icons.image_outlined,
-                              controller: _pathController,
-                              onSubmitted: _apply,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          OasisButton(
-                            label: l10n.wallpaperApply,
-                            variant: OasisButtonVariant.primary,
-                            onPressed: () => _apply(_pathController.text),
-                          ),
-                        ],
-                      ),
-                      if (_invalidPath)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            l10n.wallpaperInvalidPath,
-                            style: text.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.error),
-                          ),
+                      Expanded(
+                        child: Text(
+                          l10n.wallpaperBrowseHint,
+                          style: text.bodySmall,
                         ),
+                      ),
+                      const SizedBox(width: 10),
+                      OasisButton(
+                        label: l10n.wallpaperBrowse,
+                        variant: OasisButtonVariant.primary,
+                        onPressed: _browse,
+                      ),
                     ],
                   ),
                 ),
@@ -166,14 +146,22 @@ class _WallpaperPaneState extends State<WallpaperPane> {
         _ => l10n.wallpaperDunes,
       };
 
-  void _apply(String path) {
-    final trimmed = path.trim();
-    if (trimmed.isEmpty) return;
-    if (!kIsWeb && !File(trimmed).existsSync()) {
-      setState(() => _invalidPath = true);
-      return;
-    }
-    setState(() => _invalidPath = false);
-    widget.wallpaper.imagePath = trimmed;
+  Future<void> _browse() async {
+    final path = await _pickImage(context);
+    if (path == null || !mounted) return;
+    widget.wallpaper.imagePath = path;
+  }
+
+  Future<String?> _pickImage(BuildContext context) {
+    final home = Platform.environment['HOME'];
+    final pictures = home == null ? '' : '$home/Pictures';
+    final startDir = Directory(pictures).existsSync() ? pictures : null;
+    return showOasisFilePicker(
+      context,
+      title: OasisLocalizations.of(context).wallpaperPickTitle,
+      initialDir: startDir,
+      extensions: FileItem.imageExtensions,
+      backend: widget.filesBackend,
+    );
   }
 }
