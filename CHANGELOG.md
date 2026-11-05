@@ -2,6 +2,21 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.18.0 - 2026-11-05
+#### Features
+- Dock 图标支持拖拽排序 - (f21e65a) - HttpAnimations
+- 顶栏电池指示器显示百分比并按电量状态变色 - (33fdea4) - HttpAnimations
+#### Bug Fixes
+- 重命名冲突时弹出对话框而不是静默覆盖 - (183d2bb) - HttpAnimations
+- 粘贴目录到自身子树时跳过而不是无限递归 - (64065e9) - HttpAnimations
+- 文件列表不再因单个损坏条目而整体失败 - (02ef63d) - HttpAnimations
+- 合成器不可用时启动外部应用现在会提示失败 - (0a3714d) - HttpAnimations
+- 无 Overlay 时不再直接执行关机确认操作 - (357abc3) - HttpAnimations
+#### Documentation
+- 修正 apps.md 示例中不存在的 API - (723527a) - HttpAnimations
+
+- - -
+
 ## v0.17.0 - 2026-11-05
 #### Features
 - 新增文件选择对话框并在壁纸设置中接入 - (3069e8c) - HttpAnimations
