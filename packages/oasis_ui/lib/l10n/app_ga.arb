@@ -227,6 +227,17 @@
   "filesOpen": "Oscail",
   "filesName": "Ainm",
   "filesCancel": "Cealaigh",
+  "filesConflictTitle": "Ainm in úsáid cheana",
+  "filesConflictMessage": "Tá \"{name}\" ann cheana.",
+  "@filesConflictMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesKeepBoth": "Coinnigh an Bheirt",
+  "filesReplace": "Ionadaigh",
   "filesChoose": "Roghnaigh",
   "filePickerTitle": "Roghnaigh comhad",
   "filesCreate": "Cruthaigh",

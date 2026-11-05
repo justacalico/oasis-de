@@ -8,6 +8,14 @@ typedef FilesProcessRunner = Future<ProcessResult> Function(
   List<String> arguments,
 );
 
+enum FileConflictResolution { fail, replace, keepBoth }
+
+class FileNameConflictException implements Exception {
+  const FileNameConflictException(this.path);
+
+  final String path;
+}
+
 abstract class FilesBackend {
   Future<List<FileItem>> list(String dir, {bool showHidden = false});
   Future<List<FileItem>> search(
@@ -17,7 +25,11 @@ abstract class FilesBackend {
   });
   Future<List<FileBookmark>> bookmarks();
   Future<void> mkdir(String parent, String name);
-  Future<void> rename(String path, String newName);
+  Future<void> rename(
+    String path,
+    String newName, {
+    FileConflictResolution onConflict = FileConflictResolution.fail,
+  });
   Future<void> paste(
     List<String> paths,
     String destDir, {
@@ -189,10 +201,25 @@ class IoFilesBackend implements FilesBackend {
   }
 
   @override
-  Future<void> rename(String path, String newName) {
+  Future<void> rename(
+    String path,
+    String newName, {
+    FileConflictResolution onConflict = FileConflictResolution.fail,
+  }) {
     _checkName(newName);
     final parent = path.substring(0, path.lastIndexOf('/'));
-    final target = '$parent/$newName';
+    var target = '$parent/$newName';
+    if (target == path) return Future.value();
+    if (FileSystemEntity.typeSync(target) !=
+        FileSystemEntityType.notFound) {
+      switch (onConflict) {
+        case FileConflictResolution.fail:
+          throw FileNameConflictException(target);
+        case FileConflictResolution.keepBoth:
+          target = _uniquePath(target);
+        case FileConflictResolution.replace:
+      }
+    }
     if (FileSystemEntity.typeSync(path) ==
         FileSystemEntityType.directory) {
       return Directory(path).rename(target);

@@ -241,6 +241,17 @@
   "filesOpen": "Open",
   "filesName": "Name",
   "filesCancel": "Cancel",
+  "filesConflictTitle": "Name already in use",
+  "filesConflictMessage": "\"{name}\" already exists here.",
+  "@filesConflictMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesKeepBoth": "Keep Both",
+  "filesReplace": "Replace",
   "filesChoose": "Choose",
   "filePickerTitle": "Choose a file",
   "filesCreate": "Create",

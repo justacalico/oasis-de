@@ -180,11 +180,35 @@ class FilesState extends ChangeNotifier {
     await _op('$dir/$name', () => _backend.mkdir(dir, name));
   }
 
-  Future<void> renameSelected(String newName) async {
+  Future<void> renameSelected(
+    String newName, {
+    Future<FileConflictResolution?> Function(String name)? onConflict,
+  }) async {
     final item = singleSelection;
     if (item == null) return;
-    await _op(item.path, () => _backend.rename(item.path, newName));
-    if (error == null) selection.clear();
+    var resolution = FileConflictResolution.fail;
+    for (;;) {
+      try {
+        await _backend.rename(item.path, newName, onConflict: resolution);
+        break;
+      } on FileNameConflictException {
+        final resolve = onConflict;
+        if (resolve == null) {
+          error = item.path;
+          notifyListeners();
+          return;
+        }
+        final choice = await resolve(newName);
+        if (choice == null) return;
+        resolution = choice;
+      } catch (_) {
+        error = item.path;
+        notifyListeners();
+        return;
+      }
+    }
+    selection.clear();
+    await refresh();
   }
 
   Future<void> trashSelection() async {

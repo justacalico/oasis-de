@@ -590,6 +590,20 @@ class OasisLocalizationsZh extends OasisLocalizations {
   String get filesCancel => '取消';
 
   @override
+  String get filesConflictTitle => '名称已被使用';
+
+  @override
+  String filesConflictMessage(String name) {
+    return '此处已存在“$name”。';
+  }
+
+  @override
+  String get filesKeepBoth => '保留两者';
+
+  @override
+  String get filesReplace => '替换';
+
+  @override
   String get filesChoose => '选择';
 
   @override

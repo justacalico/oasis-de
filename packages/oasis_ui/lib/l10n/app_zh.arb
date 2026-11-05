@@ -227,6 +227,17 @@
   "filesOpen": "打开",
   "filesName": "名称",
   "filesCancel": "取消",
+  "filesConflictTitle": "名称已被使用",
+  "filesConflictMessage": "此处已存在“{name}”。",
+  "@filesConflictMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesKeepBoth": "保留两者",
+  "filesReplace": "替换",
   "filesChoose": "选择",
   "filePickerTitle": "选择文件",
   "filesCreate": "创建",

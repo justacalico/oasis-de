@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import 'file_item.dart';
+import 'files_backend.dart';
 import 'files_browser.dart';
 import 'files_state.dart';
 import 'files_tiles.dart';
@@ -103,6 +105,72 @@ class _FilesHomeState extends State<FilesHome> {
     );
   }
 
+  Future<FileConflictResolution?> _conflictDialog(
+    OasisLocalizations l10n,
+    String name,
+  ) {
+    final completer = Completer<FileConflictResolution?>();
+    showOasisDialog(
+      context,
+      onClosed: () {
+        if (!completer.isCompleted) completer.complete(null);
+      },
+      (dialogContext, close) {
+        void choose(FileConflictResolution? choice) {
+          if (!completer.isCompleted) completer.complete(choice);
+          close();
+        }
+
+        return Material(
+          type: MaterialType.transparency,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.filesConflictTitle,
+                style: Theme.of(dialogContext).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.filesConflictMessage(name),
+                style: Theme.of(dialogContext).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OasisButton(
+                    label: l10n.filesCancel,
+                    variant: OasisButtonVariant.text,
+                    dense: true,
+                    onPressed: () => choose(null),
+                  ),
+                  OasisButton(
+                    label: l10n.filesKeepBoth,
+                    dense: true,
+                    onPressed: () =>
+                        choose(FileConflictResolution.keepBoth),
+                  ),
+                  OasisButton(
+                    label: l10n.filesReplace,
+                    variant: OasisButtonVariant.primary,
+                    dense: true,
+                    onPressed: () =>
+                        choose(FileConflictResolution.replace),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    return completer.future;
+  }
+
   void _contextMenu(
     BuildContext context,
     OasisLocalizations l10n,
@@ -123,7 +191,10 @@ class _FilesHomeState extends State<FilesHome> {
           title: l10n.filesRename,
           confirm: l10n.filesRename,
           initial: item.name,
-          onDone: s.renameSelected,
+          onDone: (name) => s.renameSelected(
+            name,
+            onConflict: (n) => _conflictDialog(l10n, n),
+          ),
         ),
       ),
       OasisMenuItem(

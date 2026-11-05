@@ -20,6 +20,7 @@ class _FakeBackend extends FilesBackend {
   final renamed = <String>[];
   final pasted = <String>[];
   var failList = false;
+  var failRename = false;
 
   @override
   Future<List<FileItem>> list(String dir, {bool showHidden = false}) async {
@@ -64,8 +65,14 @@ class _FakeBackend extends FilesBackend {
       made.add('$parent/$name');
 
   @override
-  Future<void> rename(String path, String newName) async =>
-      renamed.add('$path->$newName');
+  Future<void> rename(
+    String path,
+    String newName, {
+    FileConflictResolution onConflict = FileConflictResolution.fail,
+  }) async {
+    if (failRename) throw StateError('rename failed');
+    renamed.add('$path->$newName');
+  }
 
   @override
   Future<void> paste(
@@ -106,7 +113,27 @@ FileItem _file(String path, {int size = 10, DateTime? modified}) => FileItem(
 FileItem _dir(String path) =>
     FileItem(path: path, name: path.split('/').last, isDir: true);
 
-_FakeBackend _backend() => _FakeBackend({
+class _ConflictBackend extends _FakeBackend {
+  _ConflictBackend(super.tree);
+
+  final resolutions = <FileConflictResolution>[];
+
+  @override
+  Future<void> rename(
+    String path,
+    String newName, {
+    FileConflictResolution onConflict = FileConflictResolution.fail,
+  }) async {
+    resolutions.add(onConflict);
+    if (onConflict == FileConflictResolution.fail &&
+        newName == 'b.png') {
+      throw const FileNameConflictException('/home/u/b.png');
+    }
+    await super.rename(path, newName, onConflict: onConflict);
+  }
+}
+
+Map<String, List<FileItem>> _tree() => {
   '/home/u': [
     _dir('/home/u/docs'),
     _file('/home/u/a.txt', size: 100),
@@ -114,7 +141,9 @@ _FakeBackend _backend() => _FakeBackend({
     _file('/home/u/.hidden'),
   ],
   '/home/u/docs': [_file('/home/u/docs/report.pdf', size: 9)],
-});
+};
+
+_FakeBackend _backend() => _FakeBackend(_tree());
 
 FilesState _state(_FakeBackend b) => FilesState(backend: b);
 
@@ -239,6 +268,46 @@ void main() {
     await s.init('/nope');
     expect(s.error, '/nope');
     s.dispose();
+  });
+
+  test('state rename surfaces and resolves name conflicts', () async {
+    final b = _ConflictBackend(_tree());
+    final s = _state(b);
+    addTearDown(s.dispose);
+    await s.init('/home/u');
+    s.select(s.entries.firstWhere((e) => e.name == 'a.txt'));
+
+    var asked = 0;
+    await s.renameSelected(
+      'b.png',
+      onConflict: (name) async {
+        asked++;
+        return FileConflictResolution.keepBoth;
+      },
+    );
+    expect(asked, 1);
+    expect(b.resolutions, [
+      FileConflictResolution.fail,
+      FileConflictResolution.keepBoth,
+    ]);
+    expect(b.renamed, ['/home/u/a.txt->b.png']);
+    expect(s.error, isNull);
+    expect(s.selection, isEmpty);
+
+    s.select(s.entries.firstWhere((e) => e.name == 'a.txt'));
+    await s.renameSelected('b.png', onConflict: (_) async => null);
+    expect(b.renamed.length, 1);
+    expect(s.error, isNull);
+
+    s.select(s.entries.firstWhere((e) => e.name == 'a.txt'));
+    await s.renameSelected('b.png');
+    expect(s.error, '/home/u/a.txt');
+
+    s.error = null;
+    b.failRename = true;
+    s.select(s.entries.firstWhere((e) => e.name == 'a.txt'));
+    await s.renameSelected('zzz.txt');
+    expect(s.error, '/home/u/a.txt');
   });
 
   test('default backend is the io backend', () {
@@ -384,6 +453,53 @@ void main() {
     final link = Link('${root.path}/dest/src/alink');
     expect(link.existsSync(), isTrue);
     expect(FileSystemEntity.isLinkSync(link.path), isTrue);
+  });
+
+  test('IoFilesBackend rename conflicts fail, replace, or keep both', () async {
+    final root = Directory.systemTemp.createTempSync('oasisfiles');
+    addTearDown(() => root.delete(recursive: true));
+    File('${root.path}/a.txt').writeAsStringSync('one');
+    File('${root.path}/b.txt').writeAsStringSync('two');
+    Directory('${root.path}/d1').createSync();
+    Directory('${root.path}/d2').createSync();
+    final b = IoFilesBackend(home: root.path);
+
+    expect(
+      () => b.rename('${root.path}/a.txt', 'b.txt'),
+      throwsA(isA<FileNameConflictException>()),
+    );
+    expect(File('${root.path}/b.txt').readAsStringSync(), 'two');
+
+    await b.rename(
+      '${root.path}/a.txt',
+      'b.txt',
+      onConflict: FileConflictResolution.keepBoth,
+    );
+    expect(File('${root.path}/b.txt').readAsStringSync(), 'two');
+    expect(File('${root.path}/b (2).txt').readAsStringSync(), 'one');
+
+    File('${root.path}/c.txt').writeAsStringSync('three');
+    await b.rename(
+      '${root.path}/c.txt',
+      'b.txt',
+      onConflict: FileConflictResolution.replace,
+    );
+    expect(File('${root.path}/b.txt').readAsStringSync(), 'three');
+    expect(File('${root.path}/c.txt').existsSync(), isFalse);
+
+    expect(
+      () => b.rename('${root.path}/d1', 'd2'),
+      throwsA(isA<FileNameConflictException>()),
+    );
+    await b.rename(
+      '${root.path}/d1',
+      'd2',
+      onConflict: FileConflictResolution.keepBoth,
+    );
+    expect(Directory('${root.path}/d2 (2)').existsSync(), isTrue);
+
+    await b.rename('${root.path}/b.txt', 'b.txt');
+    expect(File('${root.path}/b.txt').existsSync(), isTrue);
   });
 
   test('IoFilesBackend rejects unsafe names', () async {
@@ -617,6 +733,43 @@ void main() {
     await tester.pump();
     expect(find.text('2 selected'), findsOneWidget);
     s.dispose();
+  });
+
+  testWidgets('rename conflict dialog offers keep both, replace and cancel', (
+    tester,
+  ) async {
+    final b = _ConflictBackend(_tree());
+    final s = _state(b);
+    addTearDown(s.dispose);
+    await pumpOasis(tester, host(s), size: const Size(900, 600));
+    await tester.pumpAndSettle();
+
+    Future<void> renameToConflict() async {
+      final ctx = tester.getCenter(find.text('a.txt'));
+      await tester.tapAt(ctx, buttons: kSecondaryButton);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).last, 'b.png');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
+    await renameToConflict();
+    expect(find.text('Name already in use'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(b.renamed, isEmpty);
+
+    await renameToConflict();
+    await tester.tap(find.text('Keep Both'));
+    await tester.pumpAndSettle();
+    expect(b.resolutions.last, FileConflictResolution.keepBoth);
+
+    await renameToConflict();
+    await tester.tap(find.text('Replace'));
+    await tester.pumpAndSettle();
+    expect(b.resolutions.last, FileConflictResolution.replace);
   });
 
   testWidgets('grid view renders image thumbnails', (tester) async {
