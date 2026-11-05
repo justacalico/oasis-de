@@ -322,6 +322,7 @@ class ShellController extends ChangeNotifier {
       final service = wayland;
       if (service == null || !service.available) {
         closeOverlays();
+        _notifyLaunchFailed(app.name);
         return;
       }
       window = _spawnWindow(app);
@@ -669,14 +670,18 @@ class ShellController extends ChangeNotifier {
   void _failLaunch(ShellWindowData window) {
     if (!window.launching) return;
     window.cancelLaunch();
-    launchError = window.app.name;
     windows.remove(window);
+    _notifyLaunchFailed(window.app.name);
+  }
+
+  void _notifyLaunchFailed(String appName) {
+    launchError = appName;
     pushNotification(
       OasisNotification(
         id: _notifications.nextLocalId(),
-        appName: window.app.name,
-        summary: window.app.name,
-        body: launchFailedMessage(window.app.name),
+        appName: appName,
+        summary: appName,
+        body: launchFailedMessage(appName),
         timestamp: clock.now(),
       ),
     );

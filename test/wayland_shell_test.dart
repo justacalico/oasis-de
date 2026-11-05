@@ -67,6 +67,8 @@ void main() {
     final c = ShellController(apps: [_external('x')], wayland: service);
     c.openApp(c.apps.single);
     expect(c.windows, isEmpty);
+    expect(c.launchError, 'Ext x');
+    expect(c.notifications.single.appName, 'Ext x');
     c.dispose();
     service.dispose();
   });
