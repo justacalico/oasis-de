@@ -16,10 +16,7 @@ void confirmShellAction(
   required String confirmLabel,
   required VoidCallback onConfirm,
 }) {
-  if (Overlay.maybeOf(context) == null) {
-    onConfirm();
-    return;
-  }
+  if (Overlay.maybeOf(context) == null) return;
   showOasisDialog(
     context,
     (context, close) => Column(

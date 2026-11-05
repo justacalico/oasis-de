@@ -136,6 +136,21 @@ void main() {
     );
   });
 
+  testWidgets('app menu quit asks for confirmation before logout', (
+    tester,
+  ) async {
+    final calls = <OasisSessionAction>[];
+    await pumpDesktop(tester, backend: _SessionBackend(calls));
+    await tester.tap(find.text('Oasis'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Quit Oasis'));
+    await tester.pumpAndSettle();
+    expect(calls, isEmpty);
+    await tester.tap(find.text('Log Out'));
+    await tester.pumpAndSettle();
+    expect(calls, [OasisSessionAction.logout]);
+  });
+
   testWidgets('menu hover switches the open menu', (tester) async {
     await pumpDesktop(tester);
     await tester.tap(find.text('File'));
