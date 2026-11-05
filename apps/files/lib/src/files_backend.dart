@@ -200,13 +200,24 @@ class IoFilesBackend implements FilesBackend {
     return File(path).rename(target);
   }
 
+  String _canonical(String path) {
+    try {
+      return _realPath(path);
+    } on FileSystemException {
+      return File(path).absolute.path;
+    }
+  }
+
   @override
   Future<void> paste(
     List<String> paths,
     String destDir, {
     required bool move,
   }) async {
+    final dest = _canonical(destDir);
     for (final path in paths) {
+      final src = _canonical(path);
+      if (dest == src || dest.startsWith('$src/')) continue;
       final name = path.split('/').last;
       final target = _uniquePath('$destDir/$name');
       if (move) {
