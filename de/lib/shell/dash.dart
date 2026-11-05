@@ -39,6 +39,11 @@ class ShellDash extends StatefulWidget {
 class _ShellDashState extends State<ShellDash>
     with SingleTickerProviderStateMixin {
   double? _pointer;
+
+  /// User-chosen order for unpinned icons (running and minimized),
+  /// keyed by app id. Pinned order lives on the controller instead.
+  final _unpinnedOrder = <String>[];
+
   late final AnimationController _magnify = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 160),
@@ -76,45 +81,83 @@ class _ShellDashState extends State<ShellDash>
     ];
     final canPin = c.apps.any((a) => a.id == app.id);
     return GestureDetector(
-      onSecondaryTapUp: (e) => showShellContextMenu(
-        context,
-        e.globalPosition,
-        [
-          for (final w in appWindows)
-            ShellMenuItem(
-              label: w.displayTitle,
-              checked: c.focusedId == w.id,
-              action: (_) =>
-                  w.minimized ? c.restoreWindow(w.id) : c.focusWindow(w.id),
-              separatorAfter: w == appWindows.last,
-            ),
-          for (final a in app.actions)
-            ShellMenuItem(
-              label: a.name,
-              action: (_) => c.launchAction(a.exec),
-              separatorAfter: a == app.actions.last,
-            ),
-          if (canPin)
-            ShellMenuItem(
-              label: pinned ? l10n.dashUnpin : l10n.dashPin,
-              action: (_) =>
-                  pinned ? c.unpinApp(app.id) : c.pinApp(app.id),
-              separatorAfter: appWindows.isNotEmpty,
-            ),
-          if (appWindows.isNotEmpty)
-            ShellMenuItem(
-              label: l10n.dashQuit,
-              action: (_) {
-                for (final w in appWindows) {
-                  c.closeWindow(w.id);
-                }
-              },
-            ),
-        ],
-      ),
+      onSecondaryTapUp: (e) => showShellContextMenu(context, e.globalPosition, [
+        for (final w in appWindows)
+          ShellMenuItem(
+            label: w.displayTitle,
+            checked: c.focusedId == w.id,
+            action: (_) =>
+                w.minimized ? c.restoreWindow(w.id) : c.focusWindow(w.id),
+            separatorAfter: w == appWindows.last,
+          ),
+        for (final a in app.actions)
+          ShellMenuItem(
+            label: a.name,
+            action: (_) => c.launchAction(a.exec),
+            separatorAfter: a == app.actions.last,
+          ),
+        if (canPin)
+          ShellMenuItem(
+            label: pinned ? l10n.dashUnpin : l10n.dashPin,
+            action: (_) => pinned ? c.unpinApp(app.id) : c.pinApp(app.id),
+            separatorAfter: appWindows.isNotEmpty,
+          ),
+        if (appWindows.isNotEmpty)
+          ShellMenuItem(
+            label: l10n.dashQuit,
+            action: (_) {
+              for (final w in appWindows) {
+                c.closeWindow(w.id);
+              }
+            },
+          ),
+      ]),
       child: child,
     );
   }
+
+  void _acceptDashDrag(OasisApp dragged, OasisApp target) {
+    if (dragged.id == target.id) return;
+    final c = widget.controller;
+    final dragPinned = c.pinned.any((a) => a.id == dragged.id);
+    final targetPinned = c.pinned.any((a) => a.id == target.id);
+    if (targetPinned) {
+      if (dragPinned) {
+        c.movePinned(dragged.id, target.id);
+      } else {
+        c.pinApp(dragged.id, beforeId: target.id);
+      }
+      return;
+    }
+    if (dragPinned) {
+      c.movePinned(dragged.id, c.pinned.last.id);
+      return;
+    }
+    setState(() {
+      final to = _unpinnedOrder.indexOf(target.id);
+      _unpinnedOrder.remove(dragged.id);
+      _unpinnedOrder.insert(to, dragged.id);
+    });
+  }
+
+  Widget _draggable(OasisApp app, Widget child) => DragTarget<OasisApp>(
+    onAcceptWithDetails: (d) => _acceptDashDrag(d.data, app),
+    builder: (_, _, _) => Draggable<OasisApp>(
+      data: app,
+      feedback: Material(
+        type: MaterialType.transparency,
+        child: _DashIcon(
+          app: app,
+          running: false,
+          measure: _sizeAt,
+          size: widget.iconSize,
+          position: widget.position,
+          onTap: null,
+        ),
+      ),
+      child: child,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +187,20 @@ class _ShellDashState extends State<ShellDash>
       if (seenRunning.add(w.app.id)) unpinnedRunning.add(w);
     }
 
+    final unpinnedIds = <String>{
+      for (final w in unpinnedRunning) w.app.id,
+      for (final w in minimized) w.app.id,
+    };
+    _unpinnedOrder.removeWhere((id) => !unpinnedIds.contains(id));
+    for (final id in unpinnedIds) {
+      if (!_unpinnedOrder.contains(id)) _unpinnedOrder.add(id);
+    }
+    int byOrder(ShellWindowData a, ShellWindowData b) => _unpinnedOrder
+        .indexOf(a.app.id)
+        .compareTo(_unpinnedOrder.indexOf(b.app.id));
+    unpinnedRunning.sort(byOrder);
+    minimized.sort(byOrder);
+
     final icons = <Widget>[
       _DashIcon(
         app: appGridEntry(l10n, p),
@@ -155,71 +212,63 @@ class _ShellDashState extends State<ShellDash>
       ),
       _DashDivider(size: widget.iconSize, position: widget.position),
       for (final app in c.pinned)
-        DragTarget<OasisApp>(
-          onAcceptWithDetails: (d) => c.movePinned(d.data.id, app.id),
-          builder: (_, _, _) => LongPressDraggable<OasisApp>(
-            data: app,
-            feedback: Material(
-              type: MaterialType.transparency,
-              child: _DashIcon(
-                app: app,
-                running: false,
-                measure: _sizeAt,
-                size: widget.iconSize,
-                position: widget.position,
-                onTap: null,
-              ),
+        _draggable(
+          app,
+          _dashMenu(
+            context,
+            _DashIcon(
+              key: pinnedMinimizedKeys[app.id],
+              triggerMode: TooltipTriggerMode.manual,
+              app: app,
+              running: running.contains(app.id),
+              bouncing: launching.contains(app.id),
+              measure: _sizeAt,
+              size: widget.iconSize,
+              position: widget.position,
+              onTap: () => c.openApp(app),
             ),
-            child: _dashMenu(
-              context,
-              _DashIcon(
-                key: pinnedMinimizedKeys[app.id],
-                triggerMode: TooltipTriggerMode.manual,
-                app: app,
-                running: running.contains(app.id),
-                bouncing: launching.contains(app.id),
-                measure: _sizeAt,
-                size: widget.iconSize,
-                position: widget.position,
-                onTap: () => c.openApp(app),
-              ),
-              app,
-              pinned: true,
-            ),
+            app,
+            pinned: true,
           ),
         ),
       for (final w in unpinnedRunning)
-        _dashMenu(
-          context,
-          _DashIcon(
-            app: w.app,
-            running: true,
-            bouncing: launching.contains(w.app.id),
-            measure: _sizeAt,
-            size: widget.iconSize,
-            position: widget.position,
-            onTap: () => c.focusWindow(w.id),
-          ),
+        _draggable(
           w.app,
-          pinned: pinnedIds.contains(w.app.id),
+          _dashMenu(
+            context,
+            _DashIcon(
+              app: w.app,
+              running: true,
+              bouncing: launching.contains(w.app.id),
+              measure: _sizeAt,
+              size: widget.iconSize,
+              position: widget.position,
+              onTap: () => c.focusWindow(w.id),
+            ),
+            w.app,
+            pinned: pinnedIds.contains(w.app.id),
+          ),
         ),
       if (minimized.isNotEmpty)
         _DashDivider(size: widget.iconSize, position: widget.position),
       for (final w in minimized)
-        _dashMenu(
-          context,
-          _DashIcon(
-            key: w.dashIconKey,
-            app: w.app,
-            running: true,
-            bouncing: launching.contains(w.app.id),
-            measure: _sizeAt,
-            size: widget.iconSize,
-            position: widget.position,
-            onTap: () => c.restoreWindow(w.id),
-          ),
+        _draggable(
           w.app,
-          pinned: pinnedIds.contains(w.app.id),
+          _dashMenu(
+            context,
+            _DashIcon(
+              key: w.dashIconKey,
+              app: w.app,
+              running: true,
+              bouncing: launching.contains(w.app.id),
+              measure: _sizeAt,
+              size: widget.iconSize,
+              position: widget.position,
+              onTap: () => c.restoreWindow(w.id),
+            ),
+            w.app,
+            pinned: pinnedIds.contains(w.app.id),
+          ),
         ),
     ];
 
@@ -478,13 +527,17 @@ class _DashBounceState extends State<_DashBounce>
 
   static final _rise = TweenSequence<double>([
     TweenSequenceItem(
-      tween: Tween(begin: 0.0, end: 1.0)
-          .chain(CurveTween(curve: Curves.easeOutCubic)),
+      tween: Tween(
+        begin: 0.0,
+        end: 1.0,
+      ).chain(CurveTween(curve: Curves.easeOutCubic)),
       weight: 45,
     ),
     TweenSequenceItem(
-      tween: Tween(begin: 1.0, end: 0.0)
-          .chain(CurveTween(curve: Curves.easeInCubic)),
+      tween: Tween(
+        begin: 1.0,
+        end: 0.0,
+      ).chain(CurveTween(curve: Curves.easeInCubic)),
       weight: 55,
     ),
   ]);

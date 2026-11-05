@@ -842,11 +842,15 @@ class ShellController extends ChangeNotifier {
     }
   }
 
-  void pinApp(String appId) {
+  void pinApp(String appId, {String? beforeId}) {
     if (pinned.any((a) => a.id == appId)) return;
+    final to = beforeId == null
+        ? pinned.length
+        : pinned.indexWhere((a) => a.id == beforeId);
+    if (to < 0) return;
     for (final a in apps) {
       if (a.id == appId) {
-        pinned.add(a);
+        pinned.insert(to, a);
         notifyListeners();
         return;
       }
