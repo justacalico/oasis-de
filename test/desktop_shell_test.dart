@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:clock/clock.dart';
 import 'package:flutter/gestures.dart';
@@ -1247,6 +1249,85 @@ void main() {
     await tester.pumpAndSettle();
     expect(daemon.invoked, ['11:default']);
     expect(find.byType(NotificationPanelPanel), findsNothing);
+  });
+
+  testWidgets('notification panel shows image, icon file and app icons', (
+    tester,
+  ) async {
+    final c = ShellController(
+      apps: [
+        OasisApp(
+          id: 'files',
+          name: 'Files',
+          icon: Icons.folder,
+          iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+          builder: (_) => const SizedBox(),
+        ),
+      ],
+      batteryPollInterval: null,
+    );
+    addTearDown(c.dispose);
+
+    final provider = MemoryImage(
+      base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
+        'AAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      ),
+    );
+    final tmp = Directory.systemTemp.createTempSync('oasisicon');
+    addTearDown(() => tmp.delete(recursive: true));
+    final iconFile = File('${tmp.path}/icon.png')
+      ..writeAsBytesSync(provider.bytes);
+
+    c.pushNotification(
+      OasisNotification(
+        id: 21,
+        appName: 'x',
+        summary: 'img',
+        body: '',
+        timestamp: nullTimestamp,
+        imageProvider: provider,
+      ),
+    );
+    c.pushNotification(
+      OasisNotification(
+        id: 22,
+        appName: 'x',
+        summary: 'path',
+        body: '',
+        timestamp: nullTimestamp,
+        iconPath: iconFile.path,
+      ),
+    );
+    c.pushNotification(
+      OasisNotification(
+        id: 23,
+        appName: 'files',
+        summary: 'app',
+        body: '',
+        timestamp: nullTimestamp,
+      ),
+    );
+    c.pushNotification(
+      OasisNotification(
+        id: 24,
+        appName: 'x',
+        summary: 'missing path',
+        body: '',
+        timestamp: nullTimestamp,
+        iconPath: '${tmp.path}/gone.png',
+      ),
+    );
+    await tester.pumpWidget(wrapOasis(
+      NotificationPanelPanel(controller: c),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(OasisAppIcon), findsWidgets);
+    expect(find.byType(Image), findsNWidgets(2));
+    c.dismissBanner();
+    c.clearNotifications();
+    await tester.pump(const Duration(seconds: 10));
   });
 
   testWidgets('launch counts and handlers survive a null daemon', (
