@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.18.3 - 2026-11-06
+#### Bug Fixes
+- 窗口匹配支持 StartupWMClass 与大小写回退 - (d7988c4) - HttpAnimations
+#### Refactoring
+- 自绘标题栏应用列表改为可注入配置 - (114cd7d) - HttpAnimations
+
+- - -
+
 ## v0.18.2 - 2026-11-06
 #### Bug Fixes
 - 通知图标匹配桌面条目并支持图片提示 - (c01d37a) - HttpAnimations
