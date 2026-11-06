@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.18.1 - 2026-11-05
+#### Bug Fixes
+- 通知横幅点击时调用默认动作 - (1c5946f) - HttpAnimations
+- MPRIS 播放器故障转移并暴露播放器标识 - (9b1f749) - HttpAnimations
+
+- - -
+
 ## v0.18.0 - 2026-11-05
 #### Features
 - Dock 图标支持拖拽排序 - (f21e65a) - HttpAnimations
