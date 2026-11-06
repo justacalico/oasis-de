@@ -390,6 +390,7 @@ void main() {
   ) async {
     final host = FakeWaylandHost();
     final service = await _service(host);
+    service.selfDecoratedAppIds.add('gitlab.openlyst.devinorium');
     final c = ShellController(apps: [_external('x')], wayland: service);
     c.openApp(c.apps.single);
     _emitToplevel(host, appId: 'gitlab.openlyst.devinorium');
