@@ -31,6 +31,7 @@ class DesktopAppEntry {
     this.terminal = false,
     this.startupNotify = false,
     this.startupWmClass,
+    this.mimeTypes = const [],
     this.actions = const [],
   });
 
@@ -44,6 +45,7 @@ class DesktopAppEntry {
   final bool terminal;
   final bool startupNotify;
   final String? startupWmClass;
+  final List<String> mimeTypes;
   final List<DesktopEntryAction> actions;
 }
 
@@ -329,14 +331,37 @@ List<String> parseExecLine(String exec, String name, String? icon) {
   for (final token in tokens) {
     if (token == '%c') {
       out.add(name);
-    } else if (token == '%i') {
+      continue;
+    }
+    if (token == '%i') {
       if (icon != null && icon.isNotEmpty) {
         out.add('--icon');
         out.add(icon);
       }
-    } else if (!token.startsWith('%')) {
-      out.add(token.replaceAll('\u0001', '%'));
+      continue;
     }
+    if (!token.contains('%')) {
+      out.add(token.replaceAll('\u0001', '%'));
+      continue;
+    }
+    final expanded = StringBuffer();
+    for (var j = 0; j < token.length; j++) {
+      if (token[j] == '%' && j + 1 < token.length) {
+        if (token[j + 1] == 'c') {
+          expanded.write(name);
+        } else if (token[j + 1] == 'i' && icon != null) {
+          expanded.write(icon);
+        }
+        j++;
+      } else {
+        expanded.write(token[j]);
+      }
+    }
+    final t = expanded.toString().replaceAll('\u0001', '%');
+    if (t.isNotEmpty) out.add(t);
+  }
+  while (out.isNotEmpty && out.last == '--') {
+    out.removeLast();
   }
   return out;
 }
@@ -455,6 +480,7 @@ DesktopAppEntry? parseDesktopEntry(
     terminal: entry['Terminal'] == 'true',
     startupNotify: entry['StartupNotify'] == 'true',
     startupWmClass: entry['StartupWMClass'],
+    mimeTypes: _splitList(entry['MimeType']),
     actions: actions,
   );
 }

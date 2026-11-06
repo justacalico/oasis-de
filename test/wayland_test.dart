@@ -651,6 +651,19 @@ void main() {
     ]);
     expect(parseExecLine('run "a b" %U', 'App', null), ['run', 'a b']);
     expect(parseExecLine('', 'App', null), isEmpty);
+    expect(parseExecLine('app --uri=%u --name=%c', 'App', null), [
+      'app',
+      '--uri=',
+      '--name=App',
+    ]);
+    expect(parseExecLine('app -- %F', 'App', null), ['app']);
+    expect(parseExecLine('app %f -- %F', 'App', null), ['app']);
+    expect(parseExecLine('app --img=%i tail%z', 'App', 'ic.png'), [
+      'app',
+      '--img=ic.png',
+      'tail',
+    ]);
+    expect(parseExecLine('app %%done', 'App', null), ['app', '%done']);
   });
 
   test('parseDesktopEntry variants', () {
@@ -679,10 +692,11 @@ Icon=editor
     expect(parseDesktopEntry('x', '$valid\nHidden=true'), isNull);
     final term = parseDesktopEntry(
       'x',
-      '$valid\nTerminal=true',
+      '$valid\nTerminal=true\nMimeType=text/plain;image/png;',
       resolveIcon: (_) => null,
     );
     expect(term!.terminal, isTrue);
+    expect(term.mimeTypes, ['text/plain', 'image/png']);
     expect(parseDesktopEntry('x', valid.replaceAll('Name=Editor', '')), isNull);
     expect(
       parseDesktopEntry('x', valid.replaceAll('Exec=edit %f', 'Exec=')),
