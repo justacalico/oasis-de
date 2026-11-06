@@ -1437,7 +1437,7 @@ void layerViewCoverage() {
   test('layerSurfaceRect resolves anchors and margins', () {
     const output = Size(800, 600);
     final s = WaylandSurface(id: 1)..layerDesired = const Size(100, 50);
-    expect(layerSurfaceRect(s, output), const Rect.fromLTWH(350, 275, 100, 50));
+    expect(layerSurfaceRect(s, output), const Rect.fromLTWH(0, 0, 800, 600));
     s.layerAnchor = 1;
     expect(layerSurfaceRect(s, output), const Rect.fromLTWH(350, 0, 100, 50));
     s.layerAnchor = 2;
@@ -1456,10 +1456,14 @@ void layerViewCoverage() {
     expect(layerSurfaceRect(s, output), const Rect.fromLTWH(10, 5, 100, 595));
     s.layerAnchor = 8 | 1 | 2;
     expect(layerSurfaceRect(s, output), const Rect.fromLTWH(680, 5, 100, 595));
-    s.layerAnchor = 0;
+    s.layerAnchor = 1;
     s.layerDesired = Size.zero;
     s.size = const Size(60, 30);
-    expect(layerSurfaceRect(s, output), const Rect.fromLTWH(370, 285, 60, 30));
+    s.layerMargins = EdgeInsets.zero;
+    expect(layerSurfaceRect(s, output), const Rect.fromLTWH(370, 0, 60, 30));
+    s.layerAnchor = 0;
+    s.layerMargins = const EdgeInsets.fromLTRB(10, 5, 20, 0);
+    expect(layerSurfaceRect(s, output), const Rect.fromLTWH(10, 5, 770, 595));
   });
 
   test('surfaceCoordsAt and subSurfaceHit resolve layers', () {

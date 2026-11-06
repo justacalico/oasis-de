@@ -14,6 +14,14 @@ const layerEdgeRight = 8;
 Rect layerSurfaceRect(WaylandSurface s, Size output) {
   final m = s.layerMargins;
   final a = s.layerAnchor;
+  if (a == 0) {
+    return Rect.fromLTWH(
+      m.left,
+      m.top,
+      math.max(0, output.width - m.left - m.right),
+      math.max(0, output.height - m.top - m.bottom),
+    );
+  }
   var w = a & layerEdgeLeft != 0 && a & layerEdgeRight != 0
       ? output.width - m.left - m.right
       : (s.layerDesired.width > 0
