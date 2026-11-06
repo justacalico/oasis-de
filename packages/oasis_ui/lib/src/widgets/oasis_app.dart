@@ -18,6 +18,7 @@ class OasisApp {
     this.iconPath,
     this.keywords = const [],
     this.genericName,
+    this.startupWmClass,
     this.actions = const [],
   });
 
@@ -30,6 +31,7 @@ class OasisApp {
   final String? iconPath;
   final List<String> keywords;
   final String? genericName;
+  final String? startupWmClass;
   final List<OasisAppAction> actions;
 
   bool get isExternal => exec != null;

@@ -570,6 +570,7 @@ OasisApp desktopAppToOasis(
     icon: Icons.apps,
     iconColors: const [Color(0xFF8E8E93), Color(0xFF48484A)],
     iconPath: entry.iconPath,
+    startupWmClass: entry.startupWmClass,
     exec: wrap(entry.argv),
     builder: (_) => const SizedBox.shrink(),
     actions: [

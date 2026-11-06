@@ -648,10 +648,13 @@ class ShellController extends ChangeNotifier {
   }
 
   OasisApp _appForSurface(WaylandSurface surface) {
+    final appId = surface.appId.toLowerCase();
     for (final a in apps) {
-      if (a.isExternal &&
-          (a.id == 'desktop:${surface.appId}' ||
-              a.id == 'desktop:${surface.appId}.desktop')) {
+      if (!a.isExternal) continue;
+      final id = a.id.toLowerCase();
+      if (id == 'desktop:$appId' ||
+          id == 'desktop:$appId.desktop' ||
+          a.startupWmClass?.toLowerCase() == appId) {
         return a;
       }
     }

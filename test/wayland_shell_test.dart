@@ -119,6 +119,30 @@ void main() {
     service.dispose();
   });
 
+  test('surfaces match apps by wm class and case-insensitive id', () async {
+    final host = FakeWaylandHost();
+    final service = await _service(host);
+    final spotify = OasisApp(
+      id: 'desktop:spotify',
+      name: 'Spotify',
+      icon: Icons.apps,
+      iconColors: const [Color(0xFF000000), Color(0xFF111111)],
+      exec: const ['spotify'],
+      startupWmClass: 'SpotifyWeb',
+      builder: (_) => const SizedBox(),
+    );
+    final c = ShellController(apps: [spotify], wayland: service);
+    _emitToplevel(host, id: 1, title: '', appId: 'spotifyweb');
+    await pumpEventQueue();
+    expect(c.windows.single.app.id, 'desktop:spotify');
+
+    _emitToplevel(host, id: 2, title: '', appId: 'SPOTIFY');
+    await pumpEventQueue();
+    expect(c.windows.last.app.id, 'desktop:spotify');
+    c.dispose();
+    service.dispose();
+  });
+
   test('close on surface window sends close to client', () async {
     final host = FakeWaylandHost();
     final service = await _service(host);
