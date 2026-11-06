@@ -325,7 +325,10 @@ void main() {
 
   test('self-decorating app id overrides negotiated mode', () async {
     final host = FakeWaylandHost();
-    final service = WaylandService(host: host);
+    final service = WaylandService(
+      host: host,
+      selfDecoratedAppIds: {'gitlab.openlyst.devinorium'},
+    );
     await service.start();
     host.emit({
       'event': 'toplevel',
@@ -333,10 +336,17 @@ void main() {
       'appId': 'gitlab.openlyst.devinorium',
     });
     host.emit({'event': 'decoration', 'id': 1, 'mode': 2});
+    host.emit({'event': 'toplevel', 'id': 2});
+    host.emit({
+      'event': 'appId',
+      'id': 2,
+      'appId': 'gitlab.openlyst.devinorium',
+    });
     await pumpEventQueue();
     final s = service.surfaces[1]!;
     expect(s.decorationMode, 2);
     expect(s.clientDecorated, isTrue);
+    expect(service.surfaces[2]!.clientDecorated, isTrue);
     service.dispose();
   });
 

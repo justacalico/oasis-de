@@ -6,11 +6,6 @@ import 'package:flutter/services.dart';
 
 import 'wayland_host.dart';
 
-/// App ids that draw their own titlebar yet still ask the compositor for
-/// server-side decorations. The negotiated mode cannot tell them apart
-/// from ordinary clients, so they are listed explicitly.
-const _selfDecoratedAppIds = {'gitlab.openlyst.devinorium'};
-
 class WaylandSurface {
   WaylandSurface({
     required this.id,
@@ -48,8 +43,12 @@ class WaylandSurface {
   /// Negotiated decoration mode: 0 none, 1 client-side, 2 server-side.
   /// Surfaces default to server-side when they never negotiate.
   int decorationMode = 2;
-  bool get clientDecorated =>
-      decorationMode != 2 || _selfDecoratedAppIds.contains(appId);
+
+  /// Marks a client that draws its own titlebar despite requesting
+  /// server-side decorations. Set by the service for app ids in
+  /// [WaylandService.selfDecoratedAppIds].
+  bool selfDecorated = false;
+  bool get clientDecorated => decorationMode != 2 || selfDecorated;
 
   /// Client process id behind the surface, -1 when unknown.
   int pid = -1;
@@ -196,10 +195,16 @@ class OasisOutput {
 }
 
 class WaylandService extends ChangeNotifier {
-  WaylandService({WaylandHost? host})
-    : _host = host ?? const ChannelWaylandHost();
+  WaylandService({WaylandHost? host, Set<String>? selfDecoratedAppIds})
+    : _host = host ?? const ChannelWaylandHost(),
+      selfDecoratedAppIds = selfDecoratedAppIds ?? {};
 
   final WaylandHost _host;
+
+  /// App ids that draw their own titlebar yet still ask the compositor
+  /// for server-side decorations. The negotiated mode cannot tell them
+  /// apart from ordinary clients, so they are listed explicitly.
+  final Set<String> selfDecoratedAppIds;
   final Map<int, WaylandSurface> surfaces = {};
   final Map<int, List<int>> _pendingSubs = {};
   bool _notifyQueued = false;
@@ -375,7 +380,10 @@ class WaylandService extends ChangeNotifier {
               ..pid = (e['pid'] as num?)?.toInt() ?? -1
               ..xid = (e['xid'] as num?)?.toInt() ?? 0
               ..appMenuService = e['menuService'] as String? ?? ''
-              ..appMenuPath = e['menuPath'] as String? ?? '';
+              ..appMenuPath = e['menuPath'] as String? ?? ''
+              ..selfDecorated = selfDecoratedAppIds.contains(
+                e['appId'],
+              );
         final adoptees = _pendingSubs.remove(id);
         if (adoptees != null) surfaces[id]!.children.addAll(adoptees);
       case 'toplevelParent':
@@ -386,7 +394,11 @@ class WaylandService extends ChangeNotifier {
       case 'title':
         surfaces[id]?.title = e['title'] as String? ?? '';
       case 'appId':
-        surfaces[id]?.appId = e['appId'] as String? ?? '';
+        final s = surfaces[id];
+        if (s != null) {
+          s.appId = e['appId'] as String? ?? '';
+          s.selfDecorated = selfDecoratedAppIds.contains(s.appId);
+        }
       case 'appMenu':
         final s = surfaces[id];
         if (s != null) {
