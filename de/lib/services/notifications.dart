@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:clock/clock.dart';
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
 
 class OasisNotification {
   const OasisNotification({
@@ -15,6 +17,9 @@ class OasisNotification {
     this.expireTimeout = -1,
     this.transient = false,
     this.actions = const [],
+    this.desktopEntry,
+    this.iconPath,
+    this.imageProvider,
   });
 
   final int id;
@@ -26,6 +31,9 @@ class OasisNotification {
   final int expireTimeout;
   final bool transient;
   final List<String> actions;
+  final String? desktopEntry;
+  final String? iconPath;
+  final ImageProvider? imageProvider;
 }
 
 class OasisNotificationServer extends DBusObject {
@@ -73,6 +81,13 @@ class OasisNotificationServer extends DBusObject {
         final transient =
             hints.children[const DBusString('transient')]?.toNative();
         final actionsValue = values[5];
+        final appIcon = values[2] is DBusString
+            ? (values[2] as DBusString).value
+            : '';
+        final imageProvider = await decodeImageData(
+          hints.children[const DBusString('image-data')] ??
+              hints.children[const DBusString('image_data')],
+        );
         onNotify(
           OasisNotification(
             id: id,
@@ -83,6 +98,14 @@ class OasisNotificationServer extends DBusObject {
             urgency: urgency is int ? urgency : 1,
             expireTimeout: (values[7] as DBusInt32).value,
             transient: transient == true,
+            desktopEntry:
+                _hintString(hints, 'desktop-entry') ??
+                _hintString(hints, 'desktop_entry'),
+            iconPath:
+                _hintString(hints, 'image-path') ??
+                _hintString(hints, 'image_path') ??
+                (appIcon.startsWith('/') ? appIcon : null),
+            imageProvider: imageProvider,
             actions: [
               if (actionsValue is DBusArray)
                 for (final a in actionsValue.children)
@@ -97,6 +120,71 @@ class OasisNotificationServer extends DBusObject {
       default:
         return DBusMethodErrorResponse.unknownMethod();
     }
+  }
+}
+
+String? _hintString(DBusDict hints, String key) {
+  final v = hints.children[DBusString(key)]?.toNative();
+  return v is String && v.isNotEmpty ? v : null;
+}
+
+Future<ImageProvider?> decodeImageData(DBusValue? raw) async {
+  var v = raw;
+  if (v is DBusVariant) v = v.value;
+  if (v is! DBusStruct || v.children.length != 7) return null;
+  final c = v.children;
+  if (c[0] is! DBusInt32 ||
+      c[1] is! DBusInt32 ||
+      c[2] is! DBusInt32 ||
+      c[3] is! DBusBoolean ||
+      c[4] is! DBusInt32 ||
+      c[5] is! DBusInt32 ||
+      c[6] is! DBusArray) {
+    return null;
+  }
+  final w = (c[0] as DBusInt32).value;
+  final h = (c[1] as DBusInt32).value;
+  final stride = (c[2] as DBusInt32).value;
+  final bits = (c[4] as DBusInt32).value;
+  final channels = (c[5] as DBusInt32).value;
+  final bytes = (c[6] as DBusArray).children;
+  if (w <= 0 || h <= 0 || bits != 8 || (channels != 3 && channels != 4)) {
+    return null;
+  }
+  final data = Uint8List(bytes.length);
+  for (var i = 0; i < bytes.length; i++) {
+    final b = bytes[i];
+    if (b is! DBusByte) return null;
+    data[i] = b.value;
+  }
+  final pixels = Uint8List(w * h * 4);
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      final si = y * stride + x * channels;
+      if (si + 2 >= data.length) return null;
+      final di = (y * w + x) * 4;
+      pixels[di] = data[si];
+      pixels[di + 1] = data[si + 1];
+      pixels[di + 2] = data[si + 2];
+      pixels[di + 3] =
+          channels == 4 && si + 3 < data.length ? data[si + 3] : 255;
+    }
+  }
+  try {
+    final completer = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      pixels,
+      w,
+      h,
+      ui.PixelFormat.rgba8888,
+      completer.complete,
+    );
+    final image = await completer.future;
+    final png = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (png == null) return null;
+    return MemoryImage(png.buffer.asUint8List());
+  } catch (_) {
+    return null;
   }
 }
 

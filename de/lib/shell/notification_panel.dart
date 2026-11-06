@@ -1,8 +1,30 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:oasis_ui/oasis_ui.dart';
 
 import '../services/notifications.dart';
 import 'shell_controller.dart';
+
+OasisApp? notificationApp(List<OasisApp> apps, OasisNotification n) {
+  var entry = n.desktopEntry?.toLowerCase();
+  if (entry != null && entry.endsWith('.desktop')) {
+    entry = entry.substring(0, entry.length - '.desktop'.length);
+  }
+  final keys = [?entry, n.appName.toLowerCase()];
+  for (final key in keys) {
+    for (final a in apps) {
+      final id = a.id.toLowerCase();
+      if (a.name.toLowerCase() == key ||
+          id == key ||
+          id == 'desktop:$key' ||
+          id.endsWith('.$key')) {
+        return a;
+      }
+    }
+  }
+  return null;
+}
 
 class NotificationPanelPanel extends StatelessWidget {
   const NotificationPanelPanel({super.key, required this.controller});
@@ -10,15 +32,38 @@ class NotificationPanelPanel extends StatelessWidget {
   final ShellController controller;
 
   Widget _appIcon(ShellController c, OasisNotification n) {
-    for (final a in c.apps) {
-      if (a.name == n.appName) {
-        return OasisAppIcon(
-          icon: a.icon,
-          colors: a.iconColors,
-          iconPath: a.iconPath,
-          size: 20,
-        );
-      }
+    final provider = n.imageProvider;
+    if (provider != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image(
+          image: provider,
+          width: 20,
+          height: 20,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    final iconPath = n.iconPath;
+    if (iconPath != null && File(iconPath).existsSync()) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.file(
+          File(iconPath),
+          width: 20,
+          height: 20,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    final app = notificationApp(c.apps, n);
+    if (app != null) {
+      return OasisAppIcon(
+        icon: app.icon,
+        colors: app.iconColors,
+        iconPath: app.iconPath,
+        size: 20,
+      );
     }
     return const Icon(Icons.notifications, size: 18);
   }
