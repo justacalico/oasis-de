@@ -115,6 +115,10 @@ class OasisNotificationServer extends DBusObject {
         );
         return DBusMethodSuccessResponse([DBusUint32(id)]);
       case 'CloseNotification':
+        if (methodCall.values.isEmpty ||
+            methodCall.values[0] is! DBusUint32) {
+          return DBusMethodErrorResponse.invalidArgs();
+        }
         onClose((methodCall.values[0] as DBusUint32).value);
         return DBusMethodSuccessResponse([]);
       default:

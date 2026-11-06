@@ -110,6 +110,22 @@ void main() {
       ),
     );
     expect(closed, [9]);
+    final badClose = await server.handleMethodCall(
+      DBusMethodCall(
+        sender: 'x',
+        name: 'CloseNotification',
+        values: [DBusString('x')],
+      ),
+    );
+    expect(badClose, isA<DBusMethodErrorResponse>());
+    final emptyClose = await server.handleMethodCall(
+      DBusMethodCall(
+        sender: 'x',
+        name: 'CloseNotification',
+        values: const [],
+      ),
+    );
+    expect(emptyClose, isA<DBusMethodErrorResponse>());
     final unknown = await server.handleMethodCall(
       DBusMethodCall(sender: 'x', name: 'Nope'),
     );

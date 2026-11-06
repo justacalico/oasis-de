@@ -237,6 +237,61 @@ void main() {
     service.dispose();
   });
 
+  test('service drops malformed surface events', () async {
+    final host = FakeWaylandHost();
+    final service = WaylandService(host: host);
+    await service.start();
+    host.emit({'event': 'toplevel', 'id': 1});
+    host.emit({'event': 'size', 'id': 1, 'w': 'oops', 'h': 480});
+    host.emit({'event': 'size', 'id': 1, 'w': 640});
+    host.emit({'event': 'minSize', 'id': 1, 'w': 'x', 'h': 1});
+    host.emit({'event': 'maxSize', 'id': 1, 'w': 1});
+    host.emit({'event': 'cursor', 'id': 1, 'texture': 5});
+    host.emit({
+      'event': 'inputRegion',
+      'id': 1,
+      'rects': [0, 0, 'x', 8],
+    });
+    host.emit({'event': 'popup', 'id': 2, 'x': 1, 'y': 2});
+    host.emit({'event': 'popup', 'id': 3, 'parent': 1});
+    host.emit({'event': 'subsurface', 'id': 4, 'parent': 1});
+    host.emit({'event': 'subsurface', 'id': 5, 'x': 1, 'y': 1});
+    host.emit({'event': 'popupMoved', 'id': 2, 'x': 'a'});
+    host.emit({
+      'event': 'childrenReordered',
+      'id': 1,
+      'children': [1, 'x'],
+    });
+    await pumpEventQueue();
+    final s = service.surfaces[1]!;
+    expect(s.size, Size.zero);
+    expect(s.minSize, Size.zero);
+    expect(s.maxSize, Size.zero);
+    expect(s.inputRegion, isNull);
+    expect(service.cursor, isNull);
+    expect(service.surfaces.containsKey(2), isFalse);
+    expect(service.surfaces.containsKey(3), isFalse);
+    expect(service.surfaces.containsKey(4), isFalse);
+    expect(service.surfaces.containsKey(5), isFalse);
+    expect(s.children, isEmpty);
+
+    host.emit({'event': 'inputRegion', 'id': 1, 'rects': [0, 0, 4, 4]});
+    host.emit({'event': 'subsurface', 'id': 6, 'parent': 1, 'x': 1, 'y': 1});
+    host.emit({
+      'event': 'childrenReordered',
+      'id': 1,
+      'children': [6],
+    });
+    await pumpEventQueue();
+    expect(s.inputRegion!.single.width, 4);
+    expect(s.children, [6]);
+
+    host.emit({'event': 'inputRegion', 'id': 1});
+    await pumpEventQueue();
+    expect(s.inputRegion, isNull);
+    service.dispose();
+  });
+
   test('service tracks subsurface layers and textures', () async {
     final host = FakeWaylandHost();
     final service = WaylandService(host: host);
