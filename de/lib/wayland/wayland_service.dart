@@ -366,6 +366,8 @@ class WaylandService extends ChangeNotifier {
 
   void _onEvent(Map<String, Object?> e) {
     final id = (e['id'] as num?)?.toInt() ?? -1;
+    double? dbl(Object? v) => v is num ? v.toDouble() : null;
+    int? intVal(Object? v) => v is num ? v.toInt() : null;
     switch (e['event']) {
       case 'toplevel':
         final parentId = (e['parent'] as num?)?.toInt() ?? -1;
@@ -407,8 +409,10 @@ class WaylandService extends ChangeNotifier {
         }
       case 'size':
         final s = surfaces[id];
-        if (s != null) {
-          s.size = Size((e['w'] as num).toDouble(), (e['h'] as num).toDouble());
+        final w = dbl(e['w']);
+        final h = dbl(e['h']);
+        if (s != null && w != null && h != null) {
+          s.size = Size(w, h);
           s.bufferSize = Size(
             (e['bw'] as num?)?.toDouble() ?? s.size.width,
             (e['bh'] as num?)?.toDouble() ?? s.size.height,
@@ -433,17 +437,20 @@ class WaylandService extends ChangeNotifier {
         }
       case 'cursor':
         final tex = (e['texture'] as num?)?.toInt() ?? -1;
-        cursor = id != 0 && tex >= 0
+        final cw = dbl(e['w']);
+        final ch = dbl(e['h']);
+        final hx = dbl(e['hx']);
+        final hy = dbl(e['hy']);
+        cursor = id != 0 &&
+                tex >= 0 &&
+                cw != null &&
+                ch != null &&
+                hx != null &&
+                hy != null
             ? WaylandCursor(
                 textureId: tex,
-                size: Size(
-                  (e['w'] as num).toDouble(),
-                  (e['h'] as num).toDouble(),
-                ),
-                hotspot: Offset(
-                  (e['hx'] as num).toDouble(),
-                  (e['hy'] as num).toDouble(),
-                ),
+                size: Size(cw, ch),
+                hotspot: Offset(hx, hy),
               )
             : null;
       case 'cursorShape':
@@ -459,69 +466,73 @@ class WaylandService extends ChangeNotifier {
         final s = surfaces[id];
         final rects = e['rects'] as List<Object?>?;
         if (s != null) {
-          s.inputRegion = rects == null
-              ? null
-              : [
-                  for (var i = 0; i + 3 < rects.length; i += 4)
-                    Rect.fromLTWH(
-                      (rects[i] as num).toDouble(),
-                      (rects[i + 1] as num).toDouble(),
-                      (rects[i + 2] as num).toDouble(),
-                      (rects[i + 3] as num).toDouble(),
-                    ),
-                ];
+          if (rects == null) {
+            s.inputRegion = null;
+          } else if (rects.every((v) => v is num)) {
+            s.inputRegion = [
+              for (var i = 0; i + 3 < rects.length; i += 4)
+                Rect.fromLTWH(
+                  (rects[i] as num).toDouble(),
+                  (rects[i + 1] as num).toDouble(),
+                  (rects[i + 2] as num).toDouble(),
+                  (rects[i + 3] as num).toDouble(),
+                ),
+            ];
+          }
         }
       case 'minSize':
         final s = surfaces[id];
-        if (s != null) {
-          s.minSize = Size(
-            (e['w'] as num).toDouble(),
-            (e['h'] as num).toDouble(),
-          );
+        final mw = dbl(e['w']);
+        final mh = dbl(e['h']);
+        if (s != null && mw != null && mh != null) {
+          s.minSize = Size(mw, mh);
         }
       case 'maxSize':
         final s = surfaces[id];
-        if (s != null) {
-          s.maxSize = Size(
-            (e['w'] as num).toDouble(),
-            (e['h'] as num).toDouble(),
-          );
+        final mw = dbl(e['w']);
+        final mh = dbl(e['h']);
+        if (s != null && mw != null && mh != null) {
+          s.maxSize = Size(mw, mh);
         }
       case 'decoration':
         surfaces[id]?.decorationMode = (e['mode'] as num?)?.toInt() ?? 2;
       case 'popup':
-        surfaces[id] = WaylandSurface(
-          id: id,
-          textureId: (e['textureId'] as num?)?.toInt() ?? -1,
-          parentId: (e['parent'] as num).toInt(),
-          offset: Offset(
-            (e['x'] as num).toDouble(),
-            (e['y'] as num).toDouble(),
-          ),
-        );
-        final adoptees = _pendingSubs.remove(id);
-        if (adoptees != null) surfaces[id]!.children.addAll(adoptees);
+        final parent = intVal(e['parent']);
+        final px = dbl(e['x']);
+        final py = dbl(e['y']);
+        if (parent != null && px != null && py != null) {
+          surfaces[id] = WaylandSurface(
+            id: id,
+            textureId: (e['textureId'] as num?)?.toInt() ?? -1,
+            parentId: parent,
+            offset: Offset(px, py),
+          );
+          final adoptees = _pendingSubs.remove(id);
+          if (adoptees != null) {
+            surfaces[id]!.children.addAll(adoptees);
+          }
+        }
       case 'popupMoved':
       case 'subsurfaceMoved':
         final s = surfaces[id];
-        if (s != null) {
-          s.offset = Offset(
-            (e['x'] as num).toDouble(),
-            (e['y'] as num).toDouble(),
-          );
+        final mx = dbl(e['x']);
+        final my = dbl(e['y']);
+        if (s != null && mx != null && my != null) {
+          s.offset = Offset(mx, my);
         }
       case 'popupClosed':
         surfaces.remove(id);
       case 'subsurface':
+        final parentId = intVal(e['parent']);
+        final sx = dbl(e['x']);
+        final sy = dbl(e['y']);
+        if (parentId == null || sx == null || sy == null) break;
         final sub = WaylandSurface(
           id: id,
           textureId: (e['textureId'] as num?)?.toInt() ?? -1,
-          parentId: (e['parent'] as num).toInt(),
+          parentId: parentId,
           isSub: true,
-          offset: Offset(
-            (e['x'] as num).toDouble(),
-            (e['y'] as num).toDouble(),
-          ),
+          offset: Offset(sx, sy),
         );
         surfaces[id] = sub;
         final parent = surfaces[sub.parentId];
@@ -535,7 +546,9 @@ class WaylandService extends ChangeNotifier {
       case 'childrenReordered':
         final s = surfaces[id];
         final order = e['children'] as List<Object?>?;
-        if (s != null && order != null) {
+        if (s != null &&
+            order != null &&
+            order.every((v) => v is num)) {
           s.children
             ..clear()
             ..addAll(order.map((v) => (v as num).toInt()));

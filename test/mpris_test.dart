@@ -25,6 +25,7 @@ class _FakeBus extends Fake implements DBusClient {
   final Set<String> failDest;
   final calls = <String>[];
   var fail = false;
+  var malformedNames = false;
 
   @override
   Future<DBusMethodSuccessResponse> callMethod({
@@ -46,7 +47,7 @@ class _FakeBus extends Fake implements DBusClient {
     calls.add('$interface.$name');
     if (name == 'ListNames') {
       return DBusMethodSuccessResponse([
-        DBusArray.string(names),
+        if (malformedNames) DBusString('x') else DBusArray.string(names),
       ]);
     }
     if (name == 'GetAll') {
@@ -341,6 +342,18 @@ void main() {
 
   test('mpris tolerates a dead bus', () async {
     final bus = _FakeBus()..fail = true;
+    final signals = StreamController<DBusSignal>.broadcast();
+    addTearDown(signals.close);
+    final s = _service(bus, signals);
+    await s.start();
+    expect(s.hasPlayer, isFalse);
+    s.dispose();
+  });
+
+  test('mpris tolerates a malformed names reply', () async {
+    final bus = _FakeBus(
+      names: const ['org.mpris.MediaPlayer2.spotify'],
+    )..malformedNames = true;
     final signals = StreamController<DBusSignal>.broadcast();
     addTearDown(signals.close);
     final s = _service(bus, signals);

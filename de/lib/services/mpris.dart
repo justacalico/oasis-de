@@ -91,9 +91,14 @@ class MprisService extends ChangeNotifier {
       const [],
       replySignature: DBusSignature('as'),
     );
+    final names = reply.returnValues.isEmpty
+        ? null
+        : reply.returnValues.first;
+    if (names is! DBusArray) return const [];
     return [
-      for (final v in (reply.returnValues.first as DBusArray).children)
-        if ((v as DBusString).value.startsWith('org.mpris.MediaPlayer2.'))
+      for (final v in names.children)
+        if (v is DBusString &&
+            v.value.startsWith('org.mpris.MediaPlayer2.'))
           v.value,
     ];
   }
