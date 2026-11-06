@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.18.4 - 2026-11-06
+#### Bug Fixes
+- Exec 字段码内联展开并解析 MimeType - (03ac012) - HttpAnimations
+- layer shell 无锚点时铺满整个输出 - (e654a30) - HttpAnimations
+- 非法 IPC 消息不再导致处理程序崩溃 - (b1dbffa) - HttpAnimations
+
+- - -
+
 ## v0.18.3 - 2026-11-06
 #### Bug Fixes
 - 窗口匹配支持 StartupWMClass 与大小写回退 - (d7988c4) - HttpAnimations
