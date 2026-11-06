@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.18.2 - 2026-11-06
+#### Bug Fixes
+- 通知图标匹配桌面条目并支持图片提示 - (c01d37a) - HttpAnimations
+
+- - -
+
 ## v0.18.1 - 2026-11-05
 #### Bug Fixes
 - 通知横幅点击时调用默认动作 - (1c5946f) - HttpAnimations
